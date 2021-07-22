@@ -19,7 +19,7 @@ dir<-Sys.getenv("DATA_DIR")
 # Read in data
 green <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_greenness_L1.csv"))
 
-# Take individual plant average
+# Take subplot average
 green2 <- green %>%
   group_by(rep, footprint, treatment, gall_present) %>%
   summarize(greenness = mean(greenness, na.rm = TRUE))

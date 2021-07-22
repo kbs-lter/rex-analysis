@@ -24,9 +24,9 @@ dir<-Sys.getenv("DATA_DIR")
 # Read in data
 green <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_greenness_L1.csv"))
 
-# Take individual plant average
+# Take subplot average
 green2 <- green %>%
-  group_by(rep, footprint, treatment, plant_num, gall_present) %>%
+  group_by(rep, footprint, treatment,gall_present) %>%
   summarize(greenness = mean(greenness, na.rm = TRUE))
 
 # Data exploration
@@ -45,9 +45,9 @@ plot(m1, main = "Greenness")
 # Homogeneity of variance is ok here (increasing variance in resids is not increasing with fitted values)
 # Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
 leveneTest(residuals(m1) ~ green2$treatment)
-# Assumption not met
+# Assumption met
 leveneTest(residuals(m1) ~ green2$gall_present)
-# Assumption not met
+# Assumption met
 # (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
 # Check for normal residuals
 qqPlot(resid(m1), main = "Greenness")
@@ -65,16 +65,3 @@ summary(m1)
 
 # Post hoc test to compare different levels
 emmeans(m1, list(pairwise ~ treatment), adjust = "tukey")
-# Different results than summary function (?), going to re-level a few times and compare
-
-# Re-leveling with each factor as the reference to compare each level
-green2 <- within(green2, treatment <- relevel(factor(treatment), ref = "drought"))
-m1.1 <- lmer(greenness ~ treatment + gall_present + (1|rep), data = green2, REML=FALSE)
-green2 <- within(green2, treatment <- relevel(factor(treatment), ref = "irr_control"))
-m1.2 <- lmer(greenness ~ treatment + gall_present + (1|rep), data = green2, REML=FALSE)
-green2 <- within(green2, treatment <- relevel(factor(treatment), ref = "warmed"))
-m1.3 <- lmer(greenness ~ treatment + gall_present + (1|rep), data = green2, REML=FALSE)
-summary(m1)
-summary(m1.1)
-summary(m1.2)
-summary(m1.3)
