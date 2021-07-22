@@ -58,10 +58,23 @@ shapiro.test(resid(m1)) # Normal
 m2 <- lm(greenness ~ treatment, data=green2)
 m3 <- lm(greenness ~ gall_present, data=green2)
 m4 <- lmer(greenness ~ treatment + (1|rep), data=green2, REML=F)
-AICctab(m1, m2, m3, m4, weights=T)
+m5 <- lmer(greenness ~ treatment * gall_present + (1|rep), data=green2, REML=F)
+AICctab(m1, m2, m3, m4, m5, weights=T)
 # Model 1 fits the best
 summary(m1)
 
 # Post hoc test to compare different levels
 emmeans(m1, list(pairwise ~ treatment), adjust = "tukey")
+# Different results than summary function (?), going to re-level a few times and compare
 
+# Re-leveling with each factor as the reference to compare each level
+green2 <- within(green2, treatment <- relevel(factor(treatment), ref = "drought"))
+m1.1 <- lmer(greenness ~ treatment + gall_present + (1|rep), data = green2, REML=FALSE)
+green2 <- within(green2, treatment <- relevel(factor(treatment), ref = "irr_control"))
+m1.2 <- lmer(greenness ~ treatment + gall_present + (1|rep), data = green2, REML=FALSE)
+green2 <- within(green2, treatment <- relevel(factor(treatment), ref = "warmed"))
+m1.3 <- lmer(greenness ~ treatment + gall_present + (1|rep), data = green2, REML=FALSE)
+summary(m1)
+summary(m1.1)
+summary(m1.2)
+summary(m1.3)
