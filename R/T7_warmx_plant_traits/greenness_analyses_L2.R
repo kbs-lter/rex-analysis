@@ -64,4 +64,4 @@ AICctab(m1, m2, m3, m4, m5, weights=T)
 summary(m1)
 
 # Post hoc test to compare different levels
-emmeans(m1, list(pairwise ~ treatment), adjust = "tukey")
+emmeans(m1, list(pairwise ~ treatment + gall_present), adjust = "tukey")
