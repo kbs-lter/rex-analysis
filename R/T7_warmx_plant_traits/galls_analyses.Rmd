@@ -1,0 +1,161 @@
+---
+title: "REX: Gall Analyses"
+author: "Moriah Young"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+COLLABORATORS: Phoebe Zarnetske, Mark Hammond, Kara Dobson, Emily Parker, Kristin Wolford 
+DATA INPUT: Clean & plot gall csv from the shared Google drive  
+DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
+PROJECT: REX  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(bbmle)
+library(lmerTest)
+library(fitdistrplus)
+library(sjPlot)
+library(car)
+library(emmeans)
+library(tidyverse)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+galls <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_galls_L1.csv"))
+
+# making it so that plant_height, gall_diameter, and gall_height are on the same row for the same plant
+# so each unique plant will have just one row ompared to two in the raw data.
+#galls2 <- galls %>% 
+#        select(-date) %>% 
+#        group_by(rep, footprint, treatment, plant_num, gall_present) %>% 
+#        summarise(across(everything(), na.omit)) %>% 
+#        distinct()
+
+galls3<- galls %>% select(rep, footprint, treatment, plant_num, gall_present, plant_height) %>% 
+  na.omit() #this is just plant height data
+
+galls4 <- galls %>% select(-plant_height) %>% 
+  na.omit() %>% 
+  full_join(galls3)
+
+galls5 <- galls4 %>% select(-date) # get rid of date - we don't need this and some have NAs
+
+# create a dateframe that only contains galled plants
+gall_only <- galls5[!(galls5$gall_present == "no_gall"),]
+        
+# Emily only wants to look at the effects of warming on goldenrod & galls so get rid of "drought" and "warmed_drought"
+# gall_warmed <- galls2[!(galls2$treatment == "drought" | galls2$treatment == "warmed_drought"),]
+```
+
+Emily's questions:
+1. Is there a relationship between plant height & likeliness of galling (i.e. are taller plants more likely to get a gall, or have multiple galls)?
+2. Are plant height & area of gall related?
+
+Looking at plant height first
+```{r}
+# Data exploration
+descdist(galls3$plant_height, discrete = FALSE)
+hist(galls3$plant_height)
+qqnorm(galls3$plant_height)
+shapiro.test(galls3$plant_height) # not normally distributed
+
+# Let's look at gall vs no gall distributions
+no_gall_height <- galls3[(galls3$gall_present == "no_gall"),]
+just_gall_height <- galls3[(galls3$gall_present == "gall"),]
+
+# Data exploration for gall plants
+descdist(just_gall_height$plant_height, discrete = FALSE)
+hist(galls3$plant_height)
+qqnorm(just_gall_height$plant_height)
+shapiro.test(just_gall_height$plant_height) # not normally distributed
+
+# Data exploration for non gall plants
+descdist(no_gall_height$plant_height, discrete = FALSE)
+hist(no_gall_height$plant_height)
+qqnorm(no_gall_height$plant_height)
+shapiro.test(no_gall_height$plant_height) # normally distributed
+
+# let's take the lognormal of plant height
+galls3$lph <- log(galls3$plant_height)
+descdist(galls3$lph, discrete = FALSE)
+hist(galls3$lph)
+qqnorm(galls3$lph)
+shapiro.test(galls3$lph) # normally distributed!
+```
+
+```{r}
+# Assumption checking
+m1 <- lmer(plant_height~ treatment + gall_present + (1|rep), data = galls3, REML=FALSE)
+# Check Assumptions:
+# (1) Linearity: if covariates are not categorical
+# (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
+plot(m1, main = "Plant Height")
+# Homogeneity of variance is ok here (increasing variance in resids is not increasing with fitted values)
+# Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
+leveneTest(residuals(m1) ~ galls3$treatment)
+# Assumption not met
+leveneTest(residuals(m1) ~ galls3$gall_present)
+# Assumption not met
+# (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
+# Check for normal residuals
+qqPlot(resid(m1), main = "Plant Height")
+hist(residuals(m1), main = "Plant Height")
+shapiro.test(resid(m1)) # Normal
+
+# checking assumptions with log of plant heights
+m1l <- lmer(lph~ treatment + gall_present + (1|rep), data = galls3, REML=FALSE)
+# Check Assumptions:
+# (1) Linearity: if covariates are not categorical
+# (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
+plot(m1l, main = "Plant Height")
+# Homogeneity of variance is ok here (increasing variance in resids is not increasing with fitted values)
+# Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
+leveneTest(residuals(m1l) ~ galls3$treatment)
+# Assumption met
+leveneTest(residuals(m1l) ~ galls3$gall_present)
+# Assumption not met
+# (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
+# Check for normal residuals
+qqPlot(resid(m1l), main = "Plant Height")
+hist(residuals(m1l), main = "Plant Height")
+shapiro.test(resid(m1l)) # Normal
+```
+
+```{r}
+# Model comparisons
+m2 <- lm(plant_height ~ treatment, data=galls3)
+m3 <- lm(plant_height ~ gall_present, data=galls3)
+m4 <- lmer(plant_height ~ treatment + (1|rep), data=galls3, REML=F)
+m5 <- lmer(plant_height ~ treatment * gall_present + (1|rep), data=galls3, REML=F)
+AICctab(m1, m2, m3, m4, m5, weights=T)
+# Models 2 and 3 fits the best
+summary(m2)
+summary(m3)
+
+# Model comparisons with log plant height
+m2l <- lm(plant_height ~ treatment, data=galls3)
+m3l <- lm(plant_height ~ gall_present, data=galls3)
+m4l <- lmer(plant_height ~ treatment + (1|rep), data=galls3, REML=F)
+m5l <- lmer(plant_height ~ treatment * gall_present + (1|rep), data=galls3, REML=F)
+AICctab(m1l, m2l, m3l, m4l, m5l, weights=T)
+# Models 2 and 3 fits the best
+summary(m2l)
+summary(m3l)
+```
+
+```{r}
+# Post hoc test to compare different levels
+
+```
+
