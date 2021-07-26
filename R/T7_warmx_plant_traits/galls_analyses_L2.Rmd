@@ -44,14 +44,14 @@ galls <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_galls_L1.csv
 #        summarise(across(everything(), na.omit)) %>% 
 #        distinct()
 
-galls3<- galls %>% select(rep, footprint, treatment, plant_num, gall_present, plant_height) %>% 
+galls3<- galls %>% dplyr::select(rep, footprint, treatment, plant_num, gall_present, plant_height) %>% 
   na.omit() #this is just plant height data
 
-galls4 <- galls %>% select(-plant_height) %>% 
+galls4 <- galls %>% dplyr::select(-plant_height) %>% 
   na.omit() %>% 
   full_join(galls3)
 
-galls5 <- galls4 %>% select(-date) # get rid of date - we don't need this and some have NAs
+galls5 <- galls4 %>% dplyr::select(-date) # get rid of date - we don't need this and some have NAs
 
 # create a dateframe that only contains galled plants
 gall_only <- galls5[!(galls5$gall_present == "no_gall"),]
@@ -62,12 +62,12 @@ plant_height <- galls5 %>%
         group_by(rep, footprint, treatment, gall_present) %>%
         summarize(plant_height = mean(plant_height, na.rm = TRUE))
 
-# Take subplot average of plant height
+# Take subplot average of gall height
 gall_height <- galls5 %>%
         group_by(rep, footprint, treatment, gall_present) %>%
         summarize(gall_height = mean(gall_height, na.rm = TRUE))
 
-# Take subplot average of plant height
+# Take subplot average of gall diameter
 gall_diameter <- galls5 %>%
         group_by(rep, footprint, treatment, gall_present) %>%
         summarize(gall_diameter = mean(gall_diameter, na.rm = TRUE))
@@ -251,4 +251,76 @@ res # p-value = 0.1872
 
 # p-value = 0.1872, which is greater than the significance level alpha = 0.05, therefore we can conclude that gall and no gall plant height is not significantly different from one another.
 ```
+Gall diameter
+```{r}
+# Data exploration
+descdist(gall_only$gall_diameter, discrete = FALSE)
+hist(gall_only$gall_diameter)
+qqnorm(gall_only$gall_diameter)
+shapiro.test(gall_only$gall_diameter)
+# Normally distributed
 
+# Assumption checking
+g.m1 <- lmer(gall_diameter ~ treatment + (1|rep), data = gall_only, REML=FALSE)
+# Check Assumptions:
+# (1) Linearity: if covariates are not categorical
+# (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
+plot(g.m1, main = "Gall diameter")
+# Homogeneity of variance is ok here (increasing variance in resids is not increasing with fitted values)
+# Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
+leveneTest(residuals(g.m1) ~ gall_only$treatment)
+# Assumption met
+leveneTest(residuals(g.m1) ~ as.factor(gall_only$rep))
+# Assumption met
+# (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
+# Check for normal residuals
+qqPlot(resid(g.m1), main = "Gall diameter")
+hist(residuals(g.m1), main = "Gall diameter")
+shapiro.test(resid(g.m1)) # Normal
+
+# Model comparisons
+g.m2 <- lm(gall_diameter ~ treatment, data=gall_only)
+AICctab(g.m1, g.m2, weights=T)
+# Model 1 fits the best
+summary(g.m1)
+
+# Post hoc test to compare different levels
+emmeans(g.m1, list(pairwise ~ treatment), adjust = "tukey")
+```
+
+Gall height
+```{r}
+# Data exploration
+descdist(gall_only$gall_height, discrete = FALSE)
+hist(gall_only$gall_height)
+qqnorm(gall_only$gall_height)
+shapiro.test(gall_only$gall_height)
+# Normally distributed
+
+# Assumption checking
+h.m1 <- lmer(gall_height ~ treatment + (1|rep), data = gall_only, REML=FALSE)
+# Check Assumptions:
+# (1) Linearity: if covariates are not categorical
+# (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
+plot(h.m1, main = "Gall height")
+# Homogeneity of variance is ok here (increasing variance in resids is not increasing with fitted values)
+# Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
+leveneTest(residuals(h.m1) ~ gall_only$treatment)
+# Assumption met
+leveneTest(residuals(h.m1) ~ as.factor(gall_only$rep))
+# Assumption met
+# (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
+# Check for normal residuals
+qqPlot(resid(h.m1), main = "Gall height")
+hist(residuals(h.m1), main = "Gall height")
+shapiro.test(resid(h.m1)) # Normal
+
+# Model comparisons
+h.m2 <- lm(gall_height ~ treatment, data=gall_only)
+AICctab(h.m1, h.m2, weights=T)
+# Model 1 fits the best
+summary(h.m1)
+
+# Post hoc test to compare different levels
+emmeans(h.m1, list(pairwise ~ treatment), adjust = "tukey")
+```
