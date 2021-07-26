@@ -25,6 +25,7 @@ green2 <- green %>%
   summarize(greenness = mean(greenness, na.rm = TRUE))
 
 # Boxplot
+png("rex_green.png", units="in", width=6, height=5, res=300)
 ggplot(green2, aes(x = treatment, y = greenness, fill = gall_present)) +
   geom_boxplot(color = "black", outlier.shape = NA) +
   labs(x = "Treatment", y = "Leaf Greenness", fill = "Gall Presence") +
@@ -38,15 +39,18 @@ ggplot(green2, aes(x = treatment, y = greenness, fill = gall_present)) +
                    guide = guide_axis(n.dodge=2)) +
   #geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = gall_present)) +
   theme_classic()
+dev.off()
 
 # Gall average plot
+png("gall_green.png", units="in", width=5, height=5, res=300)
 ggplot(green2, aes(x = gall_present, y = greenness, fill = gall_present)) +
   geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = gall_present)) +
-  scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab1")) +
+  scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab")) +
   geom_boxplot(color = "black", outlier.shape = NA) +
   labs(x = "Gall Presence", y = "Leaf Greenness") +
-  scale_fill_manual(values = c("olivedrab", "olivedrab1")) +
+  scale_fill_manual(values = c("olivedrab", "olivedrab")) +
   scale_x_discrete(labels=c("gall" = "Gall",
                             "no_gall" = "No Gall")) +
   theme_classic() +
   theme(legend.position = "none")
+dev.off()
