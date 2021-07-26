@@ -190,13 +190,17 @@ summ(m5)
 summ(m1)
 
 # Model comparisons with log plant height
-m2l <- lm(plant_height ~ treatment, data=galls3)
-m3l <- lm(plant_height ~ gall_present, data=galls3)
-m4l <- lmer(plant_height ~ treatment + (1|rep), data=galls3, REML=F)
-m5l <- lmer(plant_height ~ treatment * gall_present + (1|rep), data=galls3, REML=F)
+m2l <- lm(lph ~ treatment, data=galls3)
+m3l <- lm(lph ~ gall_present, data=galls3)
+m4l <- lmer(lph ~ treatment + (1|rep), data=galls3, REML=F)
+m5l <- lmer(lph ~ treatment * gall_present + (1|rep), data=galls3, REML=F)
 AICctab(m1l, m2l, m3l, m4l, m5l, weights=T)
 # Model 1 fits the best
-summ(m1l)
+summ(m5l)
+summary(m5l)
+# Post hoc test to compare different levels
+emmeans(m5l, list(pairwise ~ treatment), adjust = "tukey")
+emmeans(m5l, list(pairwise ~ treatment * gall_present), adjust = "tukey")
 ```
 
 
@@ -251,6 +255,7 @@ res # p-value = 0.1872
 
 # p-value = 0.1872, which is greater than the significance level alpha = 0.05, therefore we can conclude that gall and no gall plant height is not significantly different from one another.
 ```
+
 Gall diameter
 ```{r}
 # Data exploration
