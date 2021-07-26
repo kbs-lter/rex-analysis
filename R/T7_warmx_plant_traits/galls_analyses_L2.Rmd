@@ -26,6 +26,7 @@ library(sjPlot)
 library(car)
 library(emmeans)
 library(tidyverse)
+library(ggpubr)
 
 # Set working directory from .Renviron
 dir <- Sys.getenv("ANALYSIS_DIR")
@@ -157,5 +158,31 @@ summary(m3l)
 ```{r}
 # Post hoc test to compare different levels
 
+```
+
+Simple t-test of plant height between galled and non galled plants
+```{r}
+group_by(galls3, gall_present) %>%
+        summarise(count = n(),
+            mean = mean(plant_height, na.rm = TRUE),
+            sd = sd(plant_height), na.rm = TRUE)
+)
+
+ggboxplot(galls3, x = "gall_present", y = "plant_height", 
+          color = "gall_present", palette = c("#00AFBB", "#E7B800"),
+        ylab = "Plant Height", xlab = "Gall Present")
+
+# Shapiro-Wilk normality test for gall plant height
+with(galls3, shapiro.test(plant_height[gall_present == "gall"])) # p = 0.002157 - not normally distributed
+# Shapiro-Wilk normality test for non galled plant height
+with(galls3, shapiro.test(plant_height[gall_present == "no_gall"])) # 0.08565 - normally distributed
+
+# Because gall plant height does not pass the Shapiro-Wilk normality test, doing a non parametric two-samples
+# Wilcoxon rank test
+res <- wilcox.test(plant_height ~ gall_present, data = galls3,
+                   exact = FALSE)
+res # p-value = 0.1872
+
+# p-value = 0.1872, which is greater than the significance level alpha = 0.05, therefore we can conclude that gall and no gall plant height is not significantly different from one another.
 ```
 
