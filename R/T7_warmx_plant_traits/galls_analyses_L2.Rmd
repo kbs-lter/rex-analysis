@@ -106,9 +106,9 @@ b4 <- lmer(lph ~ treatment + gall_present + (1|rep), data = mean_galls)
 b5 <- lmer(lph ~ treatment * gall_present + (1|rep), data = mean_galls)
 
 AICctab(b0,b1,b2,b3,b4,b5, weights=T)
-
+summ(b1)
+summ(b2)
 ```
-
 
 Looking at plant height first
 ```{r}
