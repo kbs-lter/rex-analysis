@@ -28,6 +28,7 @@ library(emmeans)
 library(tidyverse)
 library(ggpubr)
 library(jtools) #summ 
+library(rstatix)
 
 # Set working directory from .Renviron
 dir <- Sys.getenv("ANALYSIS_DIR")
@@ -83,33 +84,6 @@ Emily's questions:
 1. Is there a relationship between plant height & likeliness of galling (i.e. are taller plants more likely to get a gall, or have multiple galls)?
 2. Are plant height & area of gall related?
 
-```{r}
-# MEAN OF VARIABLES DATA
-# Data exploration
-descdist(mean_galls$plant_height, discrete = FALSE)
-hist(mean_galls$plant_height)
-qqnorm(mean_galls$plant_height)
-shapiro.test(mean_galls$plant_height) # not normally distributed
-
-# taking the lognormal of plant height
-mean_galls$lph <- log(mean_galls$plant_height)
-descdist(mean_galls$lph, discrete = FALSE)
-hist(mean_galls$lph)
-qqnorm(mean_galls$lph)
-shapiro.test(mean_galls$lph) # normally distributed!
-
-b0 <- lm(lph ~ 1, data = mean_galls)
-b1 <- lm(lph ~ treatment, data = mean_galls)
-b2 <- lm(lph ~ treatment + gall_present, data = mean_galls)
-b3 <- lm(lph ~ treatment * gall_present, data = mean_galls)
-b4 <- lmer(lph ~ treatment + gall_present + (1|rep), data = mean_galls)
-b5 <- lmer(lph ~ treatment * gall_present + (1|rep), data = mean_galls)
-
-AICctab(b0,b1,b2,b3,b4,b5, weights=T)
-summ(b1)
-summ(b2)
-```
-
 Looking at plant height first
 ```{r}
 # Data exploration
@@ -161,6 +135,16 @@ qqPlot(resid(m1), main = "Plant Height")
 hist(residuals(m1), main = "Plant Height")
 shapiro.test(resid(m1)) # Normal
 
+# Model comparisons
+m2 <- lm(plant_height ~ treatment, data=galls3)
+m3 <- lm(plant_height ~ gall_present, data=galls3)
+m4 <- lmer(plant_height ~ treatment + (1|rep), data=galls3, REML=F)
+m5 <- lmer(plant_height ~ treatment * gall_present + (1|rep), data=galls3, REML=F)
+AICctab(m1, m2, m3, m4, m5, weights=T)
+# Models 5 and 1 fits the best
+summ(m5)
+summ(m1)
+
 # checking assumptions with log of plant heights
 m1l <- lmer(lph~ treatment + gall_present + (1|rep), data = galls3, REML=FALSE)
 # Check Assumptions:
@@ -179,16 +163,6 @@ qqPlot(resid(m1l), main = "Plant Height")
 hist(residuals(m1l), main = "Plant Height")
 shapiro.test(resid(m1l)) # Normal
 
-# Model comparisons
-m2 <- lm(plant_height ~ treatment, data=galls3)
-m3 <- lm(plant_height ~ gall_present, data=galls3)
-m4 <- lmer(plant_height ~ treatment + (1|rep), data=galls3, REML=F)
-m5 <- lmer(plant_height ~ treatment * gall_present + (1|rep), data=galls3, REML=F)
-AICctab(m1, m2, m3, m4, m5, weights=T)
-# Models 5 and 1 fits the best
-summ(m5)
-summ(m1)
-
 # Model comparisons with log plant height
 m2l <- lm(lph ~ treatment, data=galls3)
 m3l <- lm(lph ~ gall_present, data=galls3)
@@ -201,6 +175,13 @@ summary(m5l)
 # Post hoc test to compare different levels
 emmeans(m5l, list(pairwise ~ treatment), adjust = "tukey")
 emmeans(m5l, list(pairwise ~ treatment * gall_present), adjust = "tukey")
+
+# Model 1 fits the best
+summ(m1l)
+outlier <- galls3 %>% 
+  identify_outliers(plant_height)
+outlier
+galls3_no_outliers <- galls[-c(53, 54, 103, 110), ]
 ```
 
 
