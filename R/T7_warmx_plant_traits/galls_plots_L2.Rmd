@@ -22,7 +22,7 @@ rm(list=ls())
 library(tidyverse)
 
 # Set working directory from .Renviron
-dir <- Sys.getenv("DATA_DIR")
+dir <- Sys.getenv("ANALYSIS_DIR")
 list.files(dir)
 
 # Read in data
