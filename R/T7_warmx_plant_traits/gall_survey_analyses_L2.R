@@ -24,3 +24,92 @@ dir<-Sys.getenv("DATA_DIR")
 # Read in data
 gall <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_gall_survey_L1.csv"))
 
+# Gall count data #
+# Data exploration
+descdist(gall$total_rosette_quadrat, discrete = FALSE)
+hist(gall$total_rosette_quadrat)
+qqnorm(gall$total_rosette_quadrat)
+shapiro.test(gall$total_rosette_quadrat)
+# pretty right skewed, going to try a few transformations
+
+# square root transformation
+gall$sqrt_total_rose <- sqrt(gall$total_rosette_quadrat)
+descdist(gall$sqrt_total_rose, discrete = FALSE)
+hist(gall$sqrt_total_rose)
+qqnorm(gall$sqrt_total_rose)
+shapiro.test(gall$sqrt_total_rose)
+# better, not perfect
+
+# cubed root transformation
+gall$cubed_total_rose <- (gall$total_rosette_quadrat)^(1/3)
+descdist(gall$cubed_total_rose, discrete = FALSE)
+hist(gall$cubed_total_rose)
+qqnorm(gall$cubed_total_rose)
+shapiro.test(gall$cubed_total_rose)
+# pretty good
+
+# Assumption checking
+m1 <- lmer(cubed_total_rose ~ treatment + (1|rep), data = gall, REML=FALSE)
+# Check Assumptions:
+# (1) Linearity: if covariates are not categorical
+# (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
+plot(m1, main = "Total rosette count")
+# Homogeneity of variance is ok here (increasing variance in resids is not increasing with fitted values)
+# Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
+leveneTest(residuals(m1) ~ gall$treatment)
+# Assumption met
+# (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
+# Check for normal residuals
+qqPlot(resid(m1), main = "Total rosette count")
+hist(residuals(m1), main = "Total rosette count")
+shapiro.test(resid(m1)) # Good
+
+summary(m1)
+emmeans(m1, list(pairwise ~ treatment), adjust = "tukey")
+
+
+
+# Galling proportion data #
+gall <- gall %>%
+  mutate(prop_gall = rosette_galls/total_stems)
+# Data exploration
+descdist(gall$prop_gall, discrete = FALSE)
+hist(gall$prop_gall)
+qqnorm(gall$prop_gall)
+shapiro.test(gall$prop_gall)
+# right skewed, going to try a few transformations
+
+# square root transformation
+gall$sqrt_prop <- sqrt(gall$prop_gall)
+descdist(gall$sqrt_prop, discrete = FALSE)
+hist(gall$sqrt_prop)
+qqnorm(gall$sqrt_prop)
+shapiro.test(gall$sqrt_prop)
+# better, not perfect
+
+# cubed root transformation
+gall$cubed_prop <- (gall$prop_gall)^(1/3)
+descdist(gall$cubed_prop, discrete = FALSE)
+hist(gall$cubed_prop)
+qqnorm(gall$cubed_prop)
+shapiro.test(gall$cubed_prop)
+# sqrt was better
+
+# Assumption checking
+m2 <- lmer(sqrt_prop ~ treatment + (1|rep), data = gall, REML=FALSE)
+# Check Assumptions:
+# (1) Linearity: if covariates are not categorical
+# (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
+plot(m2, main = "Proportion galled")
+# Homogeneity of variance is ok here (increasing variance in resids is not increasing with fitted values)
+# Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
+leveneTest(residuals(m2) ~ gall$treatment)
+# Error, go back to this another time
+# (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
+# Check for normal residuals
+qqPlot(resid(m2), main = "Proportion galled")
+hist(residuals(m2), main = "Proportion galled")
+shapiro.test(resid(m2)) # Good enough
+
+summary(m2)
+emmeans(m2, list(pairwise ~ treatment), adjust = "tukey")

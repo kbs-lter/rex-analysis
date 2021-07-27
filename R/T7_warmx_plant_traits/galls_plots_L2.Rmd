@@ -62,9 +62,10 @@ plant_height <- galls5 %>%
         summarize(plant_height = mean(plant_height, na.rm = TRUE))
 
 # Boxplot
+png("heights.png", units="in", width=6, height=5, res=300)
 ggplot(plant_height, aes(x = treatment, y = plant_height, fill = gall_present)) +
         geom_boxplot(color = "black", outlier.shape = NA) +
-        labs(x = "Treatment", y = "Plant Height", fill = "Gall Presence") +
+        labs(x = "Treatment", y = "Plant Height (cm)", fill = "Gall Presence") +
         scale_fill_manual(values = c("olivedrab", "darkgoldenrod1"), labels = c("Gall", "No Gall")) +
         scale_x_discrete(limits = c("irr_control", "ambient", "drought", "warmed", "warmed_drought"),
                          labels=c("ambient" = "Control",
@@ -75,19 +76,21 @@ ggplot(plant_height, aes(x = treatment, y = plant_height, fill = gall_present)) 
                          guide = guide_axis(n.dodge=2)) +
         #geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = gall_present)) +
         theme_classic()
+dev.off()
 
 # Gall average plot
+png("heights_gall.png", units="in", width=5, height=5, res=300)
 ggplot(plant_height, aes(x = gall_present, y = plant_height, fill = gall_present)) +
         geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = gall_present)) +
         scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "darkgoldenrod1")) +
         geom_boxplot(color = "black", outlier.shape = NA) +
-        labs(x = "Gall Presence", y = "Plant Height") +
+        labs(x = "Gall Presence", y = "Plant Height (cm)") +
         scale_fill_manual(values = c("olivedrab", "darkgoldenrod1")) +
         scale_x_discrete(labels=c("gall" = "Gall",
                                   "no_gall" = "No Gall")) +
         theme_classic() +
         theme(legend.position = "none")
-
+dev.off()
 ```
 
 Looking at Gall Diameter
@@ -98,9 +101,10 @@ gall_diameter <- gall_only %>%
         summarize(gall_diameter = mean(gall_diameter, na.rm = TRUE))
 
 # Boxplot
+png("gall_diameter.png", units="in", width=6, height=5, res=300)
 ggplot(gall_diameter, aes(x = treatment, y = gall_diameter, fill = gall_present)) +
         geom_boxplot(color = "black", outlier.shape = NA) +
-        labs(x = "Treatment", y = "Gall Diameter", fill = "Gall Presence") +
+        labs(x = "Treatment", y = "Gall Diameter (cm)", fill = "Gall Presence") +
         scale_fill_manual(values = c("olivedrab"), labels = c("Gall")) +
         scale_x_discrete(limits = c("irr_control", "ambient", "drought", "warmed", "warmed_drought"),
                          labels=c("ambient" = "Control",
@@ -112,13 +116,15 @@ ggplot(gall_diameter, aes(x = treatment, y = gall_diameter, fill = gall_present)
         #geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = gall_present)) +
         theme_classic() +
   theme(legend.position = "none")
+dev.off()
 
 # Gall average plot
+# don't need this one
 ggplot(gall_diameter, aes(x = gall_present, y = gall_diameter, fill = gall_present)) +
         geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = gall_present)) +
         scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "darkgoldenrod1")) +
         geom_boxplot(color = "black", outlier.shape = NA) +
-        labs(x = "Gall Presence", y = "Gall Diameter") +
+        labs(x = "Gall Presence", y = "Gall Diameter (cm)") +
         scale_fill_manual(values = c("olivedrab", "darkgoldenrod1")) +
         scale_x_discrete(labels=c("gall" = "Gall")) +
         theme_classic() +
@@ -134,9 +140,10 @@ gall_height <- gall_only %>%
         summarize(gall_height= mean(gall_height, na.rm = TRUE))
 
 # Boxplot of gall height by treatment
+png("gall_height.png", units="in", width=6, height=5, res=300)
 ggplot(gall_height, aes(x = treatment, y = gall_height, fill = gall_present)) +
         geom_boxplot(color = "black", outlier.shape = NA) +
-        labs(x = "Treatment", y = "Gall Height", fill = "Gall Presence") +
+        labs(x = "Treatment", y = "Gall Height (cm)", fill = "Gall Presence") +
         scale_fill_manual(values = c("olivedrab"), labels = c("Gall")) +
         scale_x_discrete(limits = c("irr_control", "ambient", "drought", "warmed", "warmed_drought"),
                          labels=c("ambient" = "Control",
@@ -148,8 +155,10 @@ ggplot(gall_height, aes(x = treatment, y = gall_height, fill = gall_present)) +
         #geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = gall_present)) +
         theme_classic() +
   theme(legend.position = "none")
+dev.off()
 
 # Gall average plot
+# don't need this one
 ggplot(gall_height, aes(x = gall_present, y = gall_height, fill = gall_present)) +
         geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = gall_present)) +
         scale_color_manual(values = c("gall" = "olivedrab")) +
@@ -169,8 +178,26 @@ plot(gall_diameter ~ plant_height, data = gall_only) +
 abline(lm_gall)
 summary(lm_gall)
 
+# ggplot version
+png("dia_corr.png", units="in", width=5, height=5, res=300)
+ggplot(gall_only,aes(plant_height, gall_diameter)) +
+  geom_point(color='olivedrab') + 
+  geom_smooth(method='lm', color="olivedrab") +
+  labs(x = "Plant Height (cm)", y = "Gall Diameter (cm)") +
+  theme_classic()
+dev.off()
+
 lm_gall2 <- lm(gall_height ~ plant_height, data = gall_only)
 plot(gall_height ~ plant_height, data = gall_only) + 
 abline(lm_gall2)
 summary(lm_gall2)
+
+# ggplot version
+png("height_corr.png", units="in", width=5, height=5, res=300)
+ggplot(gall_only,aes(plant_height, gall_height)) +
+  geom_point(color='olivedrab') + 
+  geom_smooth(method='lm', color="olivedrab") +
+  labs(x = "Plant Height (cm)", y = "Gall Height (cm)") +
+  theme_classic()
+dev.off()
 ```
