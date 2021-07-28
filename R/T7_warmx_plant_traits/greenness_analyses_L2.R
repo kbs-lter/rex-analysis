@@ -24,9 +24,9 @@ dir<-Sys.getenv("DATA_DIR")
 # Read in data
 green <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_greenness_L1.csv"))
 
-# Take subplot average
+# Take indiv plant average
 green2 <- green %>%
-  group_by(rep, footprint, treatment,gall_present) %>%
+  group_by(rep, footprint, treatment, gall_present, plant_num) %>%
   summarize(greenness = mean(greenness, na.rm = TRUE))
 
 # Data exploration
@@ -59,9 +59,11 @@ m2 <- lm(greenness ~ treatment, data=green2)
 m3 <- lm(greenness ~ gall_present, data=green2)
 m4 <- lmer(greenness ~ treatment + (1|rep), data=green2, REML=F)
 m5 <- lmer(greenness ~ treatment * gall_present + (1|rep), data=green2, REML=F)
-AICctab(m1, m2, m3, m4, m5, weights=T)
-# Model 1 fits the best
-summary(m1)
+m6 <- lmer(greenness ~ treatment + gall_present + (1|rep/footprint), data = green2, REML=FALSE)
+m7 <- lmer(greenness ~ treatment * gall_present + (1|rep/footprint), data = green2, REML=FALSE)
+AICctab(m1, m2, m3, m4, m5, m6, m7, weights=T)
+# Model 6 fits the best
+summary(m6)
 
 # Post hoc test to compare different levels
-emmeans(m1, list(pairwise ~ treatment), adjust = "tukey")
+emmeans(m6, list(pairwise ~ treatment), adjust = "tukey")

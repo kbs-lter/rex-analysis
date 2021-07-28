@@ -64,8 +64,12 @@ qqPlot(resid(m1), main = "Total rosette count")
 hist(residuals(m1), main = "Total rosette count")
 shapiro.test(resid(m1)) # Good
 
-summary(m1)
-emmeans(m1, list(pairwise ~ treatment), adjust = "tukey")
+# comparison with other models
+m2 <- lmer(cubed_total_rose ~ treatment + (1|rep/footprint_number), data = gall, REML=FALSE)
+AICctab(m1, m2, weights=T)
+
+summary(m2)
+emmeans(m2, list(pairwise ~ treatment), adjust = "tukey")
 
 
 
@@ -96,7 +100,7 @@ shapiro.test(gall$cubed_prop)
 # sqrt was better
 
 # Assumption checking
-m2 <- lmer(sqrt_prop ~ treatment + (1|rep), data = gall, REML=FALSE)
+m3 <- lmer(sqrt_prop ~ treatment + (1|rep), data = gall, REML=FALSE)
 # Check Assumptions:
 # (1) Linearity: if covariates are not categorical
 # (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
@@ -111,5 +115,9 @@ qqPlot(resid(m2), main = "Proportion galled")
 hist(residuals(m2), main = "Proportion galled")
 shapiro.test(resid(m2)) # Good enough
 
-summary(m2)
-emmeans(m2, list(pairwise ~ treatment), adjust = "tukey")
+# comparison with other models
+m4 <- lmer(sqrt_prop ~ treatment + (1|rep/footprint_number), data = gall, REML=FALSE)
+AICctab(m3, m4, weights=T)
+
+summary(m3)
+emmeans(m3, list(pairwise ~ treatment), adjust = "tukey")
