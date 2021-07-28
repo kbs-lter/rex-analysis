@@ -1,13 +1,13 @@
 ---
 title: "REX: Gall Plots"
-author: "Moriah Young"
+author: "Moriah Young, Kara Dobson"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: pdf_document
 ---
 
-COLLABORATORS: Phoebe Zarnetske, Mark Hammond, Kara Dobson, Emily Parker, Kristin Wolford 
-DATA INPUT: Clean & plot gall csv from the shared Google drive  
-DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
+COLLABORATORS: Phoebe Zarnetske, Mark Hammond, Emily Parker, Kristin Wolford 
+DATA INPUT: Cleaned gall csv from the shared Google drive  
+DATA OUTPUT: Plots visualizing gall data - Rmd is located in the "R/T7_warmx_plant_traits" folder in the rex-analysis Git repository
 PROJECT: REX  
 
 ```{r setup, include=FALSE}
@@ -37,11 +37,14 @@ galls <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_galls_L1.csv
 #        distinct()
 
 galls3 <- galls %>% dplyr::select(rep, footprint, treatment, plant_num, gall_present, plant_height) %>% 
-  na.omit()
+  na.omit() # creating a data frame with just the plant_height variable (not gall_height or gall_diameter) and no  
+# NAs
 
 galls4 <- galls %>% dplyr::select(-plant_height) %>% 
-  na.omit() %>% 
-  full_join(galls3)
+  na.omit() %>% # get rid of plant_height variable and NAs
+  full_join(galls3) # joining the two data sets together 
+
+# The cleaned dataset has data on the same plant that was collected on different dates. So some plants have two rows of data pertaining to it. We wanted it so that plant_height, gall_diameter, and gall_height are on the same row for the same plant. The steps above basically (1) made a dataframe with just plant height as a variable and (2) another data set without plant height as a variable and kept the plants that had data on gall diameter and height. Both of those steps got rid of any NAs. Finally, (3) the two dataframes are merged to create one dataframe. 
 
 galls5 <- galls4 %>% dplyr::select(-date) # get rid of date - we don't need this and some have NAs for this
 

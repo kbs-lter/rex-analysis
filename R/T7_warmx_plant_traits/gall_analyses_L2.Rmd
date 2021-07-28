@@ -1,11 +1,11 @@
 ---
 title: "REX: Gall Analyses"
-author: "Moriah Young"
+author: "Moriah Young, Kara Dobson"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: pdf_document
 ---
 
-COLLABORATORS: Phoebe Zarnetske, Mark Hammond, Kara Dobson, Emily Parker, Kristin Wolford 
+COLLABORATORS: Phoebe Zarnetske, Mark Hammond, Emily Parker, Kristin Wolford 
 DATA INPUT: Clean & plot gall csv from the shared Google drive  
 DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
 PROJECT: REX  
@@ -108,7 +108,7 @@ hist(no_gall_height$plant_height)
 qqnorm(no_gall_height$plant_height)
 shapiro.test(no_gall_height$plant_height) # normally distributed
 
-# let's take the lognormal of plant height
+# let's take the lognormal of plant height (gall and no gall)
 galls3$lph <- log(galls3$plant_height)
 descdist(galls3$lph, discrete = FALSE)
 hist(galls3$lph)
@@ -146,7 +146,7 @@ summ(m5)
 summ(m1)
 
 # checking assumptions with log of plant heights
-m1l <- lmer(lph~ treatment + gall_present + (1|rep), data = galls3, REML=FALSE)
+m1l <- lmer(lph ~ treatment + gall_present + (1|rep), data = galls3, REML=FALSE)
 # Check Assumptions:
 # (1) Linearity: if covariates are not categorical
 # (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
@@ -169,19 +169,18 @@ m3l <- lm(lph ~ gall_present, data=galls3)
 m4l <- lmer(lph ~ treatment + (1|rep), data=galls3, REML=F)
 m5l <- lmer(lph ~ treatment * gall_present + (1|rep), data=galls3, REML=F)
 AICctab(m1l, m2l, m3l, m4l, m5l, weights=T)
-# Model 1 fits the best
+# Model 1 fits the best but it makes sense that there is an interaction between treatment and gall presence
 summ(m5l)
 summary(m5l)
 # Post hoc test to compare different levels
 emmeans(m5l, list(pairwise ~ treatment), adjust = "tukey")
 emmeans(m5l, list(pairwise ~ treatment * gall_present), adjust = "tukey")
 
-# Model 1 fits the best
 summ(m1l)
-outlier <- galls3 %>% 
-  identify_outliers(plant_height)
-outlier
-galls3_no_outliers <- galls[-c(53, 54, 103, 110), ]
+# outlier <- galls3 %>% 
+#   identify_outliers(plant_height)
+# outlier
+# galls3_no_outliers <- galls[-c(53, 54, 103, 110), ]
 ```
 
 
