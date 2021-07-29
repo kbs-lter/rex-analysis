@@ -24,25 +24,35 @@ green2 <- green %>%
   group_by(rep, footprint, treatment, gall_present) %>%
   summarize(greenness = mean(greenness, na.rm = TRUE))
 
+# Set ggplot2 plotting
+# This code for ggplot2 sets the theme to mostly black and white 
+# (Arial font, and large font, base size=24)
+theme_set(theme_bw(14))
+theme_update(axis.text.x = element_text(size = 16),
+             axis.text.y = element_text(size = 16),
+             axis.title = element_text(size=16,face="bold"))
+
 # Boxplot
-png("rex_green.png", units="in", width=6, height=5, res=300)
+png("rex_green.png", units="in", width=8, height=6, res=300)
 ggplot(green2, aes(x = treatment, y = greenness, fill = gall_present)) +
   geom_boxplot(color = "black", outlier.shape = NA) +
   labs(x = "Treatment", y = "Leaf Greenness", fill = "Gall Presence") +
   scale_fill_manual(values = c("olivedrab", "olivedrab1"), labels = c("Gall", "No Gall")) +
+  theme(legend.text = element_text(size=16),
+        legend.title = element_text(size=16)) +
   scale_x_discrete(limits = c("irr_control", "ambient", "drought", "warmed", "warmed_drought"),
                    labels=c("ambient" = "Ambient",
                             "drought" = "Drought",
-                            "irr_control" = "Irrigated Control",
+                            "irr_control" = "Irrigated \n Control",
                             "warmed" = "Warmed",
-                            "warmed_drought" = "Warmed & Drought"),
-                   guide = guide_axis(n.dodge=2)) +
+                            "warmed_drought" = "Warmed & \n Drought"))
+                   #guide = guide_axis(n.dodge=2))
   #geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = gall_present)) +
-  theme_classic()
+  #theme_classic()
 dev.off()
 
 # Gall average plot
-png("gall_green.png", units="in", width=5, height=5, res=300)
+png("gall_green.png", units="in", width=6, height=5, res=300)
 ggplot(green2, aes(x = gall_present, y = greenness, fill = gall_present)) +
   geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = gall_present)) +
   scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab")) +
@@ -51,6 +61,6 @@ ggplot(green2, aes(x = gall_present, y = greenness, fill = gall_present)) +
   scale_fill_manual(values = c("olivedrab", "olivedrab")) +
   scale_x_discrete(labels=c("gall" = "Gall",
                             "no_gall" = "No Gall")) +
-  theme_classic() +
+  #theme_classic() +
   theme(legend.position = "none")
 dev.off()
