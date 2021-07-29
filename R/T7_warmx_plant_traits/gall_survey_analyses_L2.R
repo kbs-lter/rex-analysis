@@ -104,16 +104,16 @@ m3 <- lmer(sqrt_prop ~ treatment + (1|rep), data = gall, REML=FALSE)
 # Check Assumptions:
 # (1) Linearity: if covariates are not categorical
 # (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
-plot(m2, main = "Proportion galled")
+plot(m3, main = "Proportion galled")
 # Homogeneity of variance is ok here (increasing variance in resids is not increasing with fitted values)
 # Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
-leveneTest(residuals(m2) ~ gall$treatment)
+leveneTest(residuals(m3) ~ gall$treatment)
 # Error, go back to this another time
 # (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
 # Check for normal residuals
-qqPlot(resid(m2), main = "Proportion galled")
-hist(residuals(m2), main = "Proportion galled")
-shapiro.test(resid(m2)) # Good enough
+qqPlot(resid(m3), main = "Proportion galled")
+hist(residuals(m3), main = "Proportion galled")
+shapiro.test(resid(m3)) # Good enough
 
 # comparison with other models
 m4 <- lmer(sqrt_prop ~ treatment + (1|rep/footprint_number), data = gall, REML=FALSE)

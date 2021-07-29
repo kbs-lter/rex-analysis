@@ -31,7 +31,7 @@ library(jtools) #summ
 library(rstatix)
 
 # Set working directory from .Renviron
-dir <- Sys.getenv("ANALYSIS_DIR")
+dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
 
 # Read in data
@@ -167,49 +167,24 @@ shapiro.test(resid(m1l)) # Normal
 m2l <- lm(lph ~ treatment, data=galls3)
 m3l <- lm(lph ~ gall_present, data=galls3)
 m4l <- lmer(lph ~ treatment + (1|rep), data=galls3, REML=F)
-m5l <- lmer(lph ~ treatment * gall_present + (1|rep), data=galls3, REML=F)
-AICctab(m1l, m2l, m3l, m4l, m5l, weights=T)
-# Model 1 fits the best but it makes sense that there is an interaction between treatment and gall presence
-summ(m5l)
-summary(m5l)
+m5l <- lmer(lph ~ treatment + (1|rep/footprint), data=galls3, REML=F)
+m6l <- lmer(lph ~ treatment * gall_present + (1|rep), data=galls3, REML=F)
+m7l <- lmer(lph ~ treatment + gall_present + (1|rep/footprint), data=galls3, REML=F)
+m8l <- lmer(lph ~ treatment * gall_present + (1|rep/footprint), data=galls3, REML=F)
+AICctab(m1l, m2l, m3l, m4l, m5l, m6l, m7l, m8l, weights=T)
+# Model 7 fits the best but it makes sense that there is an interaction between treatment and gall presence
+# so we're going with model 8
+summ(m8l)
+summary(m8l)
 # Post hoc test to compare different levels
-emmeans(m5l, list(pairwise ~ treatment), adjust = "tukey")
-emmeans(m5l, list(pairwise ~ treatment * gall_present), adjust = "tukey")
+emmeans(m8l, list(pairwise ~ treatment), adjust = "tukey")
+emmeans(m8l, list(pairwise ~ treatment * gall_present), adjust = "tukey")
 
-summ(m1l)
 # outlier <- galls3 %>% 
 #   identify_outliers(plant_height)
 # outlier
 # galls3_no_outliers <- galls[-c(53, 54, 103, 110), ]
 ```
-
-
-```{r}
-# taking the lognormal of plant height in the gall only dataframe
-gall_only$lph <- log(gall_only$plant_height)
-descdist(gall_only$lph, discrete = FALSE)
-hist(gall_only$lph)
-qqnorm(gall_only$lph)
-shapiro.test(gall_only$lph) # normally distributed!
-
-# Looking at plant height as a response variable and treatment as an explanatory variable. 
-w0 <- lm(lph ~ 1, data=gall_only)
-w1 <- lm(lph ~ treatment, data=gall_only)
-w2 <- lm(lph ~ gall_diameter, data=gall_only)
-w3 <- lm(lph ~ gall_height, data=gall_only)
-w4 <- lm(lph ~ treatment + (1|rep), data=gall_only)
-w5 <- lm(lph ~ treatment + gall_diameter, data=gall_only)
-w6 <- lm(lph ~ treatment + gall_height, data=gall_only)
-w7 <- lm(lph ~ treatment * gall_diameter, data=gall_only)
-w8 <- lm(lph ~ treatment * gall_height, data=gall_only)
-w9 <- lm(lph ~ treatment + gall_diameter + (1|rep), data=gall_only)
-w10 <- lm(lph ~ treatment + gall_height + (1|rep), data=gall_only)
-w11 <- lm(lph ~ treatment * gall_diameter + (1|rep), data=gall_only)
-w12 <- lm(lph ~ treatment * gall_height + (1|rep), data=gall_only)
-
-AICctab(w0,w1,w2,w3,w4,w5,w6,w7,w8,w9,w10,w11,w12, weights=TRUE)
-```
-
 
 Simple t-test of plant height between galled and non galled plants
 ```{r}
@@ -265,12 +240,14 @@ shapiro.test(resid(g.m1)) # Normal
 
 # Model comparisons
 g.m2 <- lm(gall_diameter ~ treatment, data=gall_only)
-AICctab(g.m1, g.m2, weights=T)
-# Model 1 fits the best
-summary(g.m1)
+g.m3 <- lmer(gall_diameter ~ treatment + (1|rep/footprint), data = gall_only, REML=FALSE)
+
+AICctab(g.m1, g.m2, g.m3, weights=T)
+# Model 3 fits the best
+summary(g.m3)
 
 # Post hoc test to compare different levels
-emmeans(g.m1, list(pairwise ~ treatment), adjust = "tukey")
+emmeans(g.m3, list(pairwise ~ treatment), adjust = "tukey")
 ```
 
 Gall height
@@ -302,10 +279,11 @@ shapiro.test(resid(h.m1)) # Normal
 
 # Model comparisons
 h.m2 <- lm(gall_height ~ treatment, data=gall_only)
-AICctab(h.m1, h.m2, weights=T)
-# Model 1 fits the best
-summary(h.m1)
+h.m3 <- lmer(gall_height ~ treatment + (1|rep/footprint), data = gall_only, REML=FALSE)
+AICctab(h.m1, h.m2, h.m3, weights=T)
+# Model 3 fits the best
+summary(h.m3)
 
 # Post hoc test to compare different levels
-emmeans(h.m1, list(pairwise ~ treatment), adjust = "tukey")
+emmeans(h.m3, list(pairwise ~ treatment), adjust = "tukey")
 ```

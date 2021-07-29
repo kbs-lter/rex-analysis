@@ -23,8 +23,16 @@ gall_avg <- galls %>%
   group_by(rep, footprint, treatment) %>%
   summarize(avg_gall = mean(sphere_vol, na.rm = TRUE))
 
+# Set ggplot2 plotting
+# This code for ggplot2 sets the theme to mostly black and white 
+# (Arial font, and large font, base size=24)
+theme_set(theme_bw(14))
+theme_update(axis.text.x = element_text(size = 16),
+             axis.text.y = element_text(size = 16),
+             axis.title = element_text(size=16,face="bold"))
+
 # Boxplot of volume x treatment
-png("vol_treatment.png", units="in", width=6, height=5, res=300)
+png("vol_treatment.png", units="in", width=8, height=6, res=300)
 ggplot(gall_avg, aes(x = treatment, y = avg_gall)) +
   geom_boxplot(color = "black", outlier.shape = NA, fill = "olivedrab") +
   labs(x = "Treatment", y = "Gall Volume (cm^3)") +
@@ -32,12 +40,11 @@ ggplot(gall_avg, aes(x = treatment, y = avg_gall)) +
   scale_x_discrete(limits = c("irr_control", "ambient", "drought", "warmed", "warmed_drought"),
                    labels=c("ambient" = "Ambient",
                             "drought" = "Drought",
-                            "irr_control" = "Irrigated Control",
+                            "irr_control" = "Irrigated \n Control",
                             "warmed" = "Warmed",
-                            "warmed_drought" = "Warmed & Drought"),
+                            "warmed_drought" = "Warmed & \n Drought"),
                    guide = guide_axis(n.dodge=2)) +
   #geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = gall_present)) +
-  theme_classic() +
   theme(legend.position = "none")
 dev.off()
 
@@ -47,7 +54,6 @@ png("vol_height.png", units="in", width=5, height=5, res=300)
 ggplot(galls,aes(plant_height, sphere_vol)) +
   geom_point(color='olivedrab') + 
   geom_smooth(method='lm', color="olivedrab") +
-  labs(x = "Plant Height (cm)", y = "Gall Volume (cm^3)") +
-  theme_classic()
+  labs(x = "Plant Height (cm)", y = "Gall Volume (cm^3)")
 dev.off()
 summary(lm_gall)
