@@ -119,5 +119,14 @@ shapiro.test(resid(m2)) # Good enough
 m4 <- lmer(sqrt_prop ~ treatment + (1|rep/footprint_number), data = gall, REML=FALSE)
 AICctab(m3, m4, weights=T)
 
-summary(m3)
-emmeans(m3, list(pairwise ~ treatment), adjust = "tukey")
+summary(m4)
+emmeans(m4, list(pairwise ~ treatment), adjust = "tukey")
+
+# emmeans is a lot different than summary (?) so re-leveling to get pairwise comparisons
+gall <- within(gall, treatment <- relevel(factor(treatment), ref = "warmed"))
+summary(m4)
+gall <- within(gall, treatment <- relevel(factor(treatment), ref = "drought"))
+summary(m4)
+gall <- within(gall, treatment <- relevel(factor(treatment), ref = "irrigated_control"))
+summary(m4)
+
