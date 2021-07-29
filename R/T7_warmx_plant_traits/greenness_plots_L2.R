@@ -31,7 +31,7 @@ ggplot(green2, aes(x = treatment, y = greenness, fill = gall_present)) +
   labs(x = "Treatment", y = "Leaf Greenness", fill = "Gall Presence") +
   scale_fill_manual(values = c("olivedrab", "olivedrab1"), labels = c("Gall", "No Gall")) +
   scale_x_discrete(limits = c("irr_control", "ambient", "drought", "warmed", "warmed_drought"),
-                   labels=c("ambient" = "Control",
+                   labels=c("ambient" = "Ambient",
                             "drought" = "Drought",
                             "irr_control" = "Irrigated Control",
                             "warmed" = "Warmed",

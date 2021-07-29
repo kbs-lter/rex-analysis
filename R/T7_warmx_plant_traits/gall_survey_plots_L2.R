@@ -33,7 +33,7 @@ ggplot(gall, aes(x = treatment, y = total_rosette_quadrat)) +
   geom_boxplot(color = "black", fill = "olivedrab") +
   labs(x = "Treatment", y = "Total # of Galls") +
   scale_x_discrete(limits = c("irrigated_control", "ambient_control", "drought", "warmed", "warmed_drought"),
-                   labels=c("ambient_control" = "Control",
+                   labels=c("ambient_control" = "Ambient",
                             "drought" = "Drought",
                             "irrigated_control" = "Irrigated Control",
                             "warmed" = "Warmed",
@@ -53,7 +53,7 @@ ggplot(gall, aes(x = treatment, y = prop_gall)) +
   geom_boxplot(color = "black", fill = "olivedrab") +
   labs(x = "Treatment", y = "Proportion of Galled Stems") +
   scale_x_discrete(limits = c("irrigated_control", "ambient_control", "drought", "warmed", "warmed_drought"),
-                   labels=c("ambient_control" = "Control",
+                   labels=c("ambient_control" = "Ambient",
                             "drought" = "Drought",
                             "irrigated_control" = "Irrigated Control",
                             "warmed" = "Warmed",
