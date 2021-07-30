@@ -19,6 +19,7 @@ knitr::opts_chunk$set(echo = TRUE)
 rm(list=ls())
 
 # Load packages
+library(Rmisc)
 library(tidyverse)
 
 # Set working directory from .Renviron
@@ -70,7 +71,7 @@ Looking at Plant Height - Galls vs No Galls
 # Take subplot average of plant height
 plant_height <- galls5 %>%
         group_by(rep, footprint, treatment, gall_present) %>%
-        summarize(plant_height = mean(plant_height, na.rm = TRUE))
+        dplyr::summarize(plant_height = mean(plant_height, na.rm = TRUE))
 
 # Boxplot
 png("height_treatment.png", units="in", width=8, height=6, res=300)
@@ -104,15 +105,16 @@ ggplot(plant_height, aes(x = gall_present, y = plant_height, fill = gall_present
 dev.off()
 
 # scatterplot version
+sum_gall <- summarySE(plant_height, measurevar="plant_height", groupvars="gall_present")
 ggplot(plant_height, aes(x = gall_present, y = plant_height, fill = gall_present, shape = gall_present)) +
         geom_jitter(shape=16, position=position_jitterdodge(), size = 3, aes(colour = gall_present)) +
         scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab3")) +
+        geom_crossbar(data=sum_gall, aes(x=gall_present,ymin=plant_height, ymax=plant_height, y=plant_height, group=gall_present), width = 0.5)+
         #geom_point(color = "black", outlier.shape = NA) +
         labs(x = "Gall Presence", y = "Plant Height (cm)") +
         scale_fill_manual(values = c("olivedrab", "olivedrab2")) +
         scale_x_discrete(labels=c("gall" = "Gall",
                                   "no_gall" = "No Gall")) +
-        geom_smooth(method = lm, aes(fill=gall_present)) +
         theme_classic() +
         theme(legend.position = "none")
 ```
