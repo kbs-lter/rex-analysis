@@ -74,13 +74,14 @@ plant_height <- galls5 %>%
         dplyr::summarize(plant_height = mean(plant_height, na.rm = TRUE))
 
 # Boxplot
-png("height_treatment.png", units="in", width=8, height=6, res=300)
+png("height_treatment.png", units="in", width=7, height=6, res=300)
 ggplot(plant_height, aes(x = treatment, y = plant_height, fill = gall_present)) +
         geom_boxplot(color = "black", outlier.shape = NA) +
         labs(x = "Treatment", y = "Plant Height (cm)", fill = "Gall Presence") +
         scale_fill_manual(values = c("olivedrab", "olivedrab2"), labels = c("Gall", "No Gall")) +
     theme(legend.text = element_text(size=16),
-        legend.title = element_text(size=16)) +
+        legend.title = element_text(size=16),
+        legend.position = c(.85,.85)) +
         scale_x_discrete(limits = c("irr_control", "ambient", "drought", "warmed", "warmed_drought"),
                          labels=c("ambient" = "Ambient",
                                   "drought" = "Drought",
@@ -106,6 +107,7 @@ dev.off()
 
 # scatterplot version
 sum_gall <- summarySE(plant_height, measurevar="plant_height", groupvars="gall_present")
+png("heights.png", units="in", width=6, height=5, res=300)
 ggplot(plant_height, aes(x = gall_present, y = plant_height, fill = gall_present, shape = gall_present)) +
         geom_jitter(shape=16, position=position_jitterdodge(), size = 3, aes(colour = gall_present)) +
         scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab3")) +
@@ -115,8 +117,8 @@ ggplot(plant_height, aes(x = gall_present, y = plant_height, fill = gall_present
         scale_fill_manual(values = c("olivedrab", "olivedrab2")) +
         scale_x_discrete(labels=c("gall" = "Gall",
                                   "no_gall" = "No Gall")) +
-        theme_classic() +
         theme(legend.position = "none")
+dev.off()
 ```
 
 Looking at Gall Diameter
