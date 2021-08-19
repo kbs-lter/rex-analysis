@@ -1,0 +1,41 @@
+---
+title: "REX: Insect Preference Trial Analyses"
+author: "Moriah Young"
+date: "8/19/2021"
+output: pdf_document
+---
+
+COLLABORATORS: Phoebe Zarnetske
+DATA INPUT: Clean & plot insect preference trial csv from the shared Google drive  
+DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
+PROJECT: REX  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(bbmle)
+library(lmerTest)
+library(fitdistrplus)
+library(sjPlot)
+library(car)
+library(emmeans)
+library(tidyverse)
+library(ggpubr)
+library(jtools) #summ 
+library(rstatix)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+insects <- read.csv(file.path(dir, "T7_warmx_insect/L1/2021/T7_warmx_insect_preference_L1.csv"))
+
+```
+
