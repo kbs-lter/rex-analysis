@@ -17,10 +17,10 @@ library(vegan)
 dir<-Sys.getenv("DATA_DIR")
 
 # Read in data
-voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_Soca_VOC_L1.csv"))
+voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_VOC_2021predrought_L1.csv"))
 
 # make community matrix - extract columns with abundance information
-ab = voc_transpose[,2:158]
+ab = voc_transpose[,2:269]
 
 # turn abundance data frame into a matrix
 mat_ab = as.matrix(ab)
@@ -50,5 +50,5 @@ ggplot(data.scores, aes(x = NMDS1, y = NMDS2)) +
         legend.title = element_text(size = 14, colour = "black", face = "bold"), 
         panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
         legend.key=element_blank()) + 
-  labs(x = "NMDS1", colour = "Treatment", y = "NMDS2")  + 
-  scale_colour_manual(values = c("#009E73", "#E69F00")) 
+  labs(x = "NMDS1", colour = "Treatment", y = "NMDS2")
+  #scale_colour_manual(values = c("#009E73", "#E69F00")) 
