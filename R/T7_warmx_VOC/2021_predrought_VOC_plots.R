@@ -31,7 +31,7 @@ ab = voc_transpose[,2:300]
 mat_ab = as.matrix(ab)
 
 # generate nmds plot
-set.seed(123)
+set.seed(1)
 nmds = metaMDS(mat_ab, distance = "bray")
 nmds
 plot(nmds)
@@ -64,6 +64,7 @@ ggplot(data.scores, aes(x = NMDS1, y = NMDS2)) +
         legend.title = element_text(size = 14, colour = "black", face = "bold"), 
         panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
         legend.key=element_blank()) + 
+  stat_ellipse(aes(fill=Treatment), alpha=.2,type='t',size =0.5, geom="polygon")+
   labs(x = "NMDS1", colour = "Treatment", y = "NMDS2")
   #scale_colour_manual(values = c("#009E73", "#E69F00")) 
 
@@ -130,13 +131,13 @@ voc_transpose_sum <- voc_transpose %>%
   summarize(abun = sum(rowsums),
             se = std.error(rowsums))
 
-ggplot(voc_transpose_sum, aes(x = Treatment, y = abun)) + 
-  geom_bar(position = "identity", alpha = 0.5, stat = "identity", color = 'black') +
+level_order <- c('Ambient', 'Irrigated', 'Warmed', "WarmedDrought", "Drought")
+ggplot(voc_transpose_sum, aes(x = factor(Treatment, level = level_order), y = abun)) + 
+  geom_bar(position = "identity", stat = "identity", color = 'black', fill = "goldenrod") +
   geom_errorbar(aes(ymin = abun - se, ymax = abun + se), width = 0.2,
                 position = "identity") +
-  #scale_fill_manual(labels = c("Ambient", "Warmed"), values=c('darkblue','lightblue'))+
   theme_classic() +
-  labs(x = NULL, y = NULL, fill = "Treatment")
+  labs(x = "Treatment", y = "Relative Abundance", fill = "Treatment")
 
 
 

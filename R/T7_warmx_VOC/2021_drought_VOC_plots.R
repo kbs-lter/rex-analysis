@@ -13,6 +13,7 @@ rm(list=ls())
 library(tidyverse)
 library(vegan)
 library(plotrix)
+library(plotly)
 
 # Set working directory
 dir<-Sys.getenv("DATA_DIR")
@@ -24,14 +25,14 @@ voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_VOC_2021drought_L1.
 
 #### NMDS ####
 # make community matrix - extract columns with abundance information
-ab = voc_transpose[,2:292]
+ab = voc_transpose[,2:359]
 
 # turn abundance data frame into a matrix
 mat_ab = as.matrix(ab)
 
 # generate nmds plot
-set.seed(123)
-nmds = metaMDS(mat_ab, distance = "bray")
+set.seed(1)
+nmds = metaMDS(mat_ab, distance = "bray",k = 2)
 nmds
 plot(nmds)
 
@@ -48,7 +49,7 @@ str(data.scores)
 
 # plot
 ggplot(data.scores, aes(x = NMDS1, y = NMDS2)) + 
-  geom_point(size = 4, aes(colour = Treatment, shape = Rep))+ 
+  geom_point(size = 4, aes(colour = Treatment))+ 
   theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
         axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
         legend.text = element_text(size = 12, face ="bold", colour ="black"), 
@@ -57,7 +58,11 @@ ggplot(data.scores, aes(x = NMDS1, y = NMDS2)) +
         legend.title = element_text(size = 14, colour = "black", face = "bold"), 
         panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
         legend.key=element_blank()) + 
+  stat_ellipse(aes(fill=Treatment), alpha=.2,type='t',size =1, geom="polygon")+
   labs(x = "NMDS1", colour = "Treatment", y = "NMDS2")
+
+# 3D plot of data - to do this one, change K in nmds to 3
+plot_ly(data.scores, x=~NMDS1, y=~NMDS2, z=~NMDS3, type="scatter3d", mode="markers", color=~Treatment)
 
 # plot with hulls - groups for each treatment
 W <- data.scores[data.scores$Treatment == "Warmed", ][chull(data.scores[data.scores$Treatment == 
@@ -75,7 +80,7 @@ hull.data
 
 ggplot() + 
   geom_polygon(data=hull.data,aes(x=NMDS1,y=NMDS2,fill=Treatment,group=Treatment),alpha=0.30) + # add the convex hulls
-  geom_point(data=data.scores,aes(x=NMDS1,y=NMDS2,colour=Treatment),size=4) + # add the point markers
+  geom_point(data=data.scores,aes(x=NMDS1,y=NMDS2,colour=Treatment),size=3) + # add the point markers
   coord_equal() +
   theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
         axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
@@ -84,8 +89,7 @@ ggplot() +
         axis.title.x = element_text(face = "bold", size = 14, colour = "black"), 
         legend.title = element_text(size = 14, colour = "black", face = "bold"), 
         panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
-        legend.key=element_blank()) + 
-  labs(x = "NMDS1", colour = "Treatment", y = "NMDS2")
+        legend.key=element_blank())
 
 # plot with hulls - groups for each rep
 Rep1 <- data.scores[data.scores$Rep == "1", ][chull(data.scores[data.scores$Rep == 
@@ -143,20 +147,26 @@ ggplot() +
 
 
 #### ABUNDANCE ####
-voc_transpose$rowsums <- rowSums(voc_transpose[2:292])
+voc_transpose$rowsums <- rowSums(voc_transpose[2:359])
 
 voc_transpose_sum <- voc_transpose %>%
   group_by(Treatment) %>%
   summarize(abun = sum(rowsums),
             se = std.error(rowsums))
 
-ggplot(voc_transpose_sum, aes(x = Treatment, y = abun)) + 
-  geom_bar(position = "identity", alpha = 0.5, stat = "identity", color = 'black') +
+level_order <- c('Ambient', 'Irrigated', 'Warmed', "WarmedDrought", "Drought")
+ggplot(voc_transpose_sum, aes(x = factor(Treatment, level = level_order), y = abun)) + 
+  geom_bar(position = "identity", stat = "identity", color = 'black', fill = "goldenrod") +
   geom_errorbar(aes(ymin = abun - se, ymax = abun + se), width = 0.2,
                 position = "identity") +
-  #scale_fill_manual(labels = c("Ambient", "Warmed"), values=c('darkblue','lightblue'))+
   theme_classic() +
-  labs(x = NULL, y = NULL, fill = "Treatment")
+  labs(x = "Treatment", y = "Relative Abundance", fill = "Treatment")
+
+ggplot(voc_transpose, aes(x = factor(Treatment, level = level_order), y = rowsums)) + 
+  geom_boxplot(color = 'black', fill = "goldenrod") +
+  #geom_jitter(alpha = 0.5, color = "goldenrod") +
+  theme_classic() +
+  labs(x = "Treatment", y = "Relative Abundance", fill = "Treatment")
 
 
 
