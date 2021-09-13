@@ -12,6 +12,8 @@ rm(list=ls())
 # Load packages
 library(tidyverse)
 library(vegan)
+library(plotrix)
+library(ggfortify)
 
 # Set working directory
 dir<-Sys.getenv("DATA_DIR")
@@ -19,8 +21,11 @@ dir<-Sys.getenv("DATA_DIR")
 # Read in data
 voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_VOC_2021predrought_L1.csv"))
 
+
+
+#### NMDS ####
 # make community matrix - extract columns with abundance information
-ab = voc_transpose[,2:269]
+ab = voc_transpose[,2:300]
 
 # turn abundance data frame into a matrix
 mat_ab = as.matrix(ab)
@@ -114,3 +119,41 @@ ggplot() +
         panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
         legend.key=element_blank()) + 
   labs(x = "NMDS1", colour = "Treatment", y = "NMDS2")
+
+
+
+#### ABUNDANCE ####
+voc_transpose$rowsums <- rowSums(voc_transpose[2:300])
+
+voc_transpose_sum <- voc_transpose %>%
+  group_by(Treatment) %>%
+  summarize(abun = sum(rowsums),
+            se = std.error(rowsums))
+
+ggplot(voc_transpose_sum, aes(x = Treatment, y = abun)) + 
+  geom_bar(position = "identity", alpha = 0.5, stat = "identity", color = 'black') +
+  geom_errorbar(aes(ymin = abun - se, ymax = abun + se), width = 0.2,
+                position = "identity") +
+  #scale_fill_manual(labels = c("Ambient", "Warmed"), values=c('darkblue','lightblue'))+
+  theme_classic() +
+  labs(x = NULL, y = NULL, fill = "Treatment")
+
+
+
+#### PCA ####
+voc_transpose2 <- voc_transpose
+row.names(voc_transpose2) <- paste(voc_transpose2$Treatment, row.names(voc_transpose2), sep="_") 
+voc_transpose2$Treatment <- NULL
+
+pca_res <- prcomp(ab, scale. = F)
+
+autoplot(pca_res, data=voc_transpose, color="Treatment")
+plot(pca_res$x[,1], pca_res$x[,2]) # same plot as above
+
+df_out <- as.data.frame(pca_res$x)
+df_out$group <- sapply( strsplit(as.character(row.names(voc_transpose2)), "_"), "[[", 1 )
+head(df_out)
+
+ggplot(df_out, aes(x=PC1, y=PC2, color=group)) +
+  geom_point() +
+  theme_classic()
