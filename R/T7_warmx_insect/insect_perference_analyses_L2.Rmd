@@ -5,7 +5,7 @@ date: "8/19/2021"
 output: pdf_document
 ---
 
-COLLABORATORS: Phoebe Zarnetske
+COLLABORATORS: Mark Hammond, Phoebe Zarnetske
 DATA INPUT: Clean & plot insect preference trial csv from the shared Google drive  
 DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
 PROJECT: REX  
@@ -35,7 +35,104 @@ dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
 
 # Read in data
-insects <- read.csv(file.path(dir, "T7_warmx_insect/L1/2021/T7_warmx_insect_preference_L1.csv"))
+insects <- read.csv(file.path(dir, "T7_warmx_insect/L1/T7_warmx_insect_preference_L1.csv"))
+
+# meta data of T7s OTC plots
+meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
+```
+
+```{r}
+# Clean data 
+# getting rid of NAs in data. NAs in data are from leaf samples collected for CN analyses and not used in the trials
+insects1 <- na.omit(insects) 
+# delete date column
+insects1$date <- NULL
+
+# Change column names to lowercase
+names(meta) <- tolower(names(meta))
+
+# merge insects data frame with meta data 
+# insects2 <- left_join(insects1, meta)
+
+```
+
+```{r}
+# Data Wrangling
+
+# Take subplot average of sla before trial
+sla_before <- insects1 %>%
+        group_by(replicate, footprint_location, subplot_location) %>%
+        dplyr::summarize(sla_before_mean = mean(sla_before, na.rm = TRUE))
+
+sla_after <- insects1 %>%
+        group_by(replicate, footprint_location, subplot_location) %>%
+        dplyr::summarize(sla_after_mean = mean(sla_after, na.rm = TRUE))
+
+insects2 <- left_join(sla_before, sla_after)
+
+insects3 <- insects2 %>% 
+        group_by(replicate, footprint_location, subplot_location) %>%
+        dplyr::summarize(percent_eaten = sla_after_mean / sla_before_mean)
+
+insects4 <- left_join(insects2, insects3)
+
+insects5 <- left_join(meta, insects4)
+# get rid of NAs in data - irrigated control plots were not used in this experiment
+insects6 <- na.omit(insects5)
+```
+```{r}
+ggplot(insects6, aes(x = subplot_descriptions, y = percent_eaten, fill = subplot_descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        #geom_errorbar(aes(ymin = lower, ymax =upper)) +
+        labs(x = "Treatment", y = "Percent Eaten") +
+        scale_fill_brewer(palette = "YlOrRd") +
+        scale_x_discrete(limits = c("ambient", "drought", "warmed", "warmed_drought"),
+                         labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed & \n Drought"),
+                         guide = guide_axis(n.dodge=2)) +
+        theme(legend.position="none")
+```
+```{r}
+# Data Exploration
+
+descdist(insects6$percent_eaten, discrete = FALSE)
+hist(insects6$percent_eaten)
+qqnorm(insects6$percent_eaten)
+shapiro.test(insects6$percent_eaten) # p-value = 0.3238 so we can't reject the null hypothesis that the data is normal
+# aka normal distribution!
+```
+
+```{r}
+# Assumption checking
+m1 <- lmer(percent_eaten ~ subplot_descriptions + (1|replicate), data = insects6, REML=FALSE)
+# Check Assumptions:
+# (1) Linearity: if covariates are not categorical
+# (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
+plot(m1, main = "Percent Eaten")
+# Homogeneity of variance is ok here (increasing variance in resids is not increasing with fitted values)
+# Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
+leveneTest(residuals(m1) ~ insects6$subplot_descriptions)
+# Assumption met
+# (3) Normality of error term: need to check by histogram, plot of residuals, could do Kolmogorov-Smirnov test.
+# Check for normal residuals
+qqPlot(resid(m1), main = "Percent Eaten")
+hist(residuals(m1), main = "Percent Eaten")
+shapiro.test(resid(m1)) # Normal
+
+# Model comparisons
+m2 <- lm(percent_eaten ~ subplot_descriptions, data = insects6)
+m3 <- lmer(percent_eaten ~ subplot_descriptions + (1|replicate), data = insects6, REML=F)
+m4 <- lmer(percent_eaten ~ subplot_descriptions + (1|replicate/footprint_location), data = insects6, REML=FALSE)
+
+AICctab(m1, m2, m3, m4, weights=T)
+# Model 2 fits the best
+summary(m2)
+summ(m2)
+
+# Post hoc test to compare different levels
+emmeans(m2, list(pairwise ~ subplot_descriptions), adjust = "tukey")
 
 ```
 
