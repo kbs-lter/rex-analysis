@@ -1,0 +1,169 @@
+---
+title: "REX: Insect Preference Trial Plots & Analyses"
+author: "Moriah Young"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(bbmle)
+library(lmerTest)
+library(fitdistrplus)
+library(sjPlot)
+library(car)
+library(emmeans)
+library(tidyverse)
+library(ggpubr)
+library(jtools) #summ 
+library(rstatix)
+library(janitor)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+insects <- read.csv(file.path(dir, "T7_warmx_insect/L1/T7_warmx_insect_preference_2021_L1.csv"))
+
+# meta data of T7s OTC plots
+meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
+
+# Set ggplot2 plotting
+# This code for ggplot2 sets the theme to mostly black and white 
+# (Arial font, and large font, base size=24)
+theme_set(theme_bw(14))
+theme_update(axis.text.x = element_text(size = 16),
+             axis.text.y = element_text(size = 16),
+             axis.title = element_text(size=16,face="bold"))
+```
+
+```{r}
+# Clean data 
+# getting rid of NAs in data. NAs in data are from leaf samples collected for CN analyses and not used in the trials
+insects <- insects[-88,] #this data point had a greater SLA_after than it's SLA_before even though it had some herbivory, so deleting
+insects1 <- na.omit(insects) 
+# delete date column
+insects1$date <- NULL
+# Change column names to lowercase
+names(meta) <- tolower(names(meta))
+
+```
+
+```{r}
+# Data Wrangling
+
+# Take subplot average of sla before trial
+sla_before <- insects1 %>%
+        group_by(replicate, footprint_location, subplot_location) %>%
+        dplyr::summarize(sla_before_mean = mean(sla_before, na.rm = TRUE))
+
+# Take subplot average of sla after trial
+sla_after <- insects1 %>%
+        group_by(replicate, footprint_location, subplot_location) %>%
+        dplyr::summarize(sla_after_mean = mean(sla_after_1, na.rm = TRUE))
+
+insects2 <- left_join(sla_before, sla_after) # combine sla_before and sla_after into one dataframe
+
+# calculate the proportion of leaves eaten
+insects3 <- insects2 %>% 
+        group_by(replicate, footprint_location, subplot_location) %>%
+        dplyr::summarize(percent_eaten = sla_after_mean / sla_before_mean)
+
+insects4 <- left_join(insects2, insects3)
+
+insects5 <- left_join(meta, insects4)
+# get rid of NAs in data - irrigated control plots were not used in this experiment
+insects6 <- na.omit(insects5)
+```
+
+```{r}
+png("insect_preference_treatments.png", units="in", width=7, height=6, res=300)
+ggplot(insects6, aes(x = subplot_descriptions, y = percent_eaten, fill = subplot_descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        #geom_errorbar(aes(ymin = lower, ymax =upper)) +
+        labs(x = "Treatment", y = "Percent Eaten") +
+        scale_fill_brewer(palette = "YlOrRd") +
+        scale_x_discrete(limits = c("ambient", "drought", "warmed", "warmed_drought"),
+                         labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed & \n Drought"),
+                         guide = guide_axis(n.dodge=2)) +
+        theme(legend.position="none")
+dev.off()
+
+# looking at the graph, there is more variability in the grasshoppers eating of ambient leaves and less so going from ambient to warmed + drought leaves. 
+```
+
+```{r}
+# subset the leaves that had no herbivory - did certain treatments have more no herbivory on it's leaves?
+no_herbivory <- subset(insects1, notes == "no_herbivory")
+no_herbivory <- left_join(no_herbivory, meta)
+summary(no_herbivory)
+tabyl(no_herbivory, subplot_descriptions) # pretty even among treatments
+```
+
+```{r}
+# proportion of leaves eaten at individual level
+indv_prop <- insects1 %>% 
+        group_by(replicate, footprint_location, subplot_location, plant_number) %>%
+        dplyr::summarize(prop_eaten = sla_after_1 / sla_before)
+# 
+indv_prop <- left_join(indv_prop, insects1)
+indv_prop <- left_join(meta, indv_prop)
+indv_prop <- na.omit(indv_prop)
+
+hist(indv_prop$prop_eaten)
+boxplot(indv_prop$prop_eaten)
+```
+
+```{r}
+# Data Exploration
+
+descdist(insects6$percent_eaten, discrete = FALSE)
+hist(insects6$percent_eaten)
+qqnorm(insects6$percent_eaten)
+shapiro.test(insects6$percent_eaten) # p-value = 0.3238 so we can't reject the null hypothesis that the data is normal
+# aka normal distribution!
+
+```
+```{r}
+# Assumption checking
+m1 <- lmer(percent_eaten ~ subplot_descriptions + (1|replicate), data = insects6, REML=FALSE)
+# Check Assumptions:
+# (1) Linearity: if covariates are not categorical
+# (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
+plot(m1, main = "Percent Eaten")
+# Homogeneity of variance is ok here (increasing variance in resids is not increasing with fitted values)
+# Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
+leveneTest(residuals(m1) ~ insects6$subplot_descriptions)
+# Assumption met
+# (3) Normality of error term: need to check by histogram, plot of residuals, could do Kolmogorov-Smirnov test.
+# Check for normal residuals
+qqPlot(resid(m1), main = "Percent Eaten")
+hist(residuals(m1), main = "Percent Eaten")
+shapiro.test(resid(m1)) # Normal
+
+# Model comparisons
+m2 <- lm(percent_eaten ~ subplot_descriptions, data = insects6)
+m3 <- lmer(percent_eaten ~ subplot_descriptions + (1|replicate), data = insects6, REML=F)
+m4 <- lmer(percent_eaten ~ subplot_descriptions + (1|replicate/footprint_location), data = insects6, REML=FALSE)
+
+AICctab(m1, m2, m3, m4, weights=T)
+# Model 2 fits the best
+summary(m2)
+summ(m2)
+
+# Post hoc test to compare different levels
+emmeans(m2, list(pairwise ~ subplot_descriptions), adjust = "tukey")
+
+```
+
