@@ -14,6 +14,7 @@ library(tidyverse)
 library(vegan)
 library(plotrix)
 library(plotly)
+library(broom)
 
 # Set working directory
 dir<-Sys.getenv("DATA_DIR")
@@ -145,6 +146,30 @@ ggplot() +
 
 
 
+#### PCoA ####
+dispersion<-betadisper(ab.dist, group=voc_transpose$Treatment)
+# extract the centroids and the site points in multivariate space.  
+centroids<-data.frame(grps=rownames(dispersion$centroids),data.frame(dispersion$centroids))
+vectors<-data.frame(group=dispersion$group,data.frame(dispersion$vectors))
+
+# to create the lines from the centroids to each point we will put it in a format that ggplot can handle
+seg.data<-cbind(vectors[,1:3],centroids[rep(1:nrow(centroids),as.data.frame(table(vectors$group))$Freq),2:3])
+names(seg.data)<-c("group","v.PCoA1","v.PCoA2","PCoA1","PCoA2")
+png("drought_comp.png", units="in", width=6, height=5, res=300)
+ggplot() + 
+  stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.7, geom="polygon")+
+  geom_point(data=centroids, aes(x=PCoA1,y=PCoA2),size=4.7,color="black",shape=16) + 
+  geom_point(data=centroids, aes(x=PCoA1,y=PCoA2, color=grps),size=4,shape=16) + 
+  geom_point(data=seg.data, aes(x=v.PCoA1,y=v.PCoA2, color=group),alpha=0.7,size=2.5,shape=16) +
+  scale_color_manual(labels=c("Ambient (A)", "Drought (D)", "Irrigated (I)", "Warmed (W)", "Warmed + Drought \n (WD)"),
+                     values=c('#2c7bb6','#abd9e9',"#ffffbf","#fdae61","#d7191c"))+
+  scale_fill_manual(labels=c("Ambient (A)", "Drought (D)", "Irrigated (I)", "Warmed (W)", "Warmed + Drought \n (WD)"),
+                    values=c('#2c7bb6','#abd9e9',"#ffffbf","#fdae61","#d7191c"))+
+  labs(x="PCoA 1",y="PCoA 2", color="Treatment", fill="Treatment") +
+  theme_classic()
+dev.off()
+
+
 
 #### ABUNDANCE ####
 voc_transpose$rowsums <- rowSums(voc_transpose[2:359])
@@ -155,19 +180,72 @@ voc_transpose_sum <- voc_transpose %>%
             se = std.error(rowsums))
 
 level_order <- c('Ambient', 'Irrigated', 'Warmed', "WarmedDrought", "Drought")
+png("drought_ab.png", units="in", width=6, height=5, res=300)
 ggplot(voc_transpose_sum, aes(x = factor(Treatment, level = level_order), y = abun)) + 
   geom_bar(position = "identity", stat = "identity", color = 'black', fill = "goldenrod") +
   geom_errorbar(aes(ymin = abun - se, ymax = abun + se), width = 0.2,
                 position = "identity") +
   theme_classic() +
   labs(x = "Treatment", y = "Relative Abundance", fill = "Treatment")
-
+dev.off()
+png("drought_tot_ab.png", units="in", width=6, height=4, res=300)
 ggplot(voc_transpose, aes(x = factor(Treatment, level = level_order), y = rowsums)) + 
-  geom_boxplot(color = 'black', fill = "goldenrod") +
+  geom_boxplot(color = 'black', fill = "cornflowerblue") +
   #geom_jitter(alpha = 0.5, color = "goldenrod") +
   theme_classic() +
-  labs(x = "Treatment", y = "Relative Abundance", fill = "Treatment")
+  labs(x = "Treatment", y = "Relative Abundance", fill = "Treatment") +
+  theme(axis.text=element_text(size=13),
+        axis.title=element_text(size=15,face="bold")) +
+  scale_x_discrete(limits = c("Ambient", "Irrigated", "Warmed", "WarmedDrought", "Drought"),
+                   labels=c("Ambient" = "Ambient",
+                            "Drought" = "Drought",
+                            "Irrigated" = "Irrigated",
+                            "Warmed" = "Warmed",
+                            "WarmedDrought" = "Warmed + Drought"),
+                   guide = guide_axis(n.dodge=2))
+dev.off()
 
+# plots for each compound - compounds picked based on analyses in analyses script
+level_order <- c('Ambient', 'Irrigated', 'Warmed', "WarmedDrought", "Drought")
+png("drought_caro.png", units="in", width=6, height=4, res=300)
+ggplot(voc_transpose, aes(x = factor(Treatment, level = level_order), y = Caryophyllene)) + 
+  geom_boxplot(color = 'black', fill = "cornflowerblue") +
+  #geom_jitter(alpha = 0.5, color = "goldenrod") +
+  theme_classic() +
+  labs(x = "Treatment", y = "Relative Abundance: Caryophyllene", fill = "Treatment") +
+  theme(axis.text=element_text(size=13),
+        axis.title=element_text(size=13,face="bold")) +
+  scale_x_discrete(limits = c("Ambient", "Irrigated", "Warmed", "WarmedDrought", "Drought"),
+                   labels=c("Ambient" = "Ambient",
+                            "Drought" = "Drought",
+                            "Irrigated" = "Irrigated",
+                            "Warmed" = "Warmed",
+                            "WarmedDrought" = "Warmed + Drought"),
+                   guide = guide_axis(n.dodge=2))
+dev.off()
+
+ggplot(voc_transpose, aes(x = factor(Treatment, level = level_order), y = Cyclopentanone..2.cyclopentylidene.)) + 
+  geom_boxplot(color = 'black', fill = "lightskyblue1") +
+  #geom_jitter(alpha = 0.5, color = "goldenrod") +
+  theme_classic() +
+  labs(x = "Treatment", y = "Relative Abundance - Cyclopentanone 2-cyclopentylidene-", fill = "Treatment")
+
+png("drought_eth.png", units="in", width=6, height=4, res=300)
+ggplot(voc_transpose, aes(x = factor(Treatment, level = level_order), y = Ethanone..1..4.ethylphenyl..)) + 
+  geom_boxplot(color = 'black', fill = "cornflowerblue") +
+  #geom_jitter(alpha = 0.5, color = "goldenrod") +
+  theme_classic() +
+  labs(x = "Treatment", y = "Relative Abundance: Ethanone, \n 1-(4-ethylphenyl)-", fill = "Treatment") +
+  theme(axis.text=element_text(size=13),
+        axis.title=element_text(size=13,face="bold")) +
+  scale_x_discrete(limits = c("Ambient", "Irrigated", "Warmed", "WarmedDrought", "Drought"),
+                   labels=c("Ambient" = "Ambient",
+                            "Drought" = "Drought",
+                            "Irrigated" = "Irrigated",
+                            "Warmed" = "Warmed",
+                            "WarmedDrought" = "Warmed + Drought"),
+                   guide = guide_axis(n.dodge=2))
+dev.off()
 
 
 
