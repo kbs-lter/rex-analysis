@@ -24,4 +24,8 @@ Phoebe Zarnetske (MSU)
 ## Overview
 Data analysis code is in this repository  
 
-Data Cleaning code is at https://github.com/kbs-lter/rex-data
+Data cleaning = Data Cleaning code is at https://github.com/kbs-lter/rex-data
+
+Analysis = Analysis code is in this repository.
+
+Results = e.g., Rmarkdown-produced PDFs on KBS_LTER_REX Google Shared Drive
