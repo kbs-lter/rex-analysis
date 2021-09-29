@@ -89,7 +89,7 @@ insects6 <- na.omit(insects5)
 #png("insect_preference_treatments.png", units="in", width=7, height=6, res=300)
 ggplot(insects6, aes(x = subplot_descriptions, y = prop_eaten, fill = subplot_descriptions)) +
         geom_boxplot(color = "black", outlier.shape = NA) +
-        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, size= 2) +
         #geom_errorbar(aes(ymin = lower, ymax =upper)) +
         labs(x = "Treatment", y = "Proportion of Leaf Eaten") +
         scale_fill_brewer(palette = "YlOrRd") +
@@ -171,7 +171,6 @@ m1 <- lmer(prop_eaten ~ subplot_descriptions + (1|replicate), data = insects6, R
 # (1) Linearity: if covariates are not categorical
 # (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
 plot(m1, main = "Proportion Eaten")
-# Homogeneity of variance is ok here (increasing variance in resids is not increasing with fitted values)
 # Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
 leveneTest(residuals(m1) ~ insects6$subplot_descriptions)
 # Assumption met
@@ -194,6 +193,9 @@ summ(m2)
 # Post hoc test to compare different levels
 emmeans(m2, list(pairwise ~ subplot_descriptions), adjust = "tukey")
 
+# No significance between treatments.
+# I could be overestimating herbivory due to plants shrinking over the ~24 hour period btw the plants being harvested from the field plots to the end of the feeding trial
+
 ```
 
 ```{r}
@@ -204,7 +206,7 @@ sla_before_trt <- na.omit(sla_before_trt)
 #png("soca_SLA_treatments.png", units="in", width=7, height=6, res=300)
 ggplot(sla_before_trt, aes(x = subplot_descriptions, y = sla_before_mean, fill = subplot_descriptions)) +
         geom_boxplot(color = "black", outlier.shape = NA) +
-        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, size= 2) +
         #geom_errorbar(aes(ymin = lower, ymax =upper)) +
         labs(x = "Treatment", y = "Surface Leaf Area (cm2)") +
         scale_fill_brewer(palette = "YlOrRd") +
@@ -239,5 +241,36 @@ hist(sla_before_trt$sla_before_mean) # right skewed
 qqnorm(sla_before_trt$sla_before_mean)
 shapiro.test(sla_before_trt$sla_before_mean) # p-value = 0.01431 so we reject the null hypothesis that the data is normal aka not a normal distribution
 
+```
+```{r}
+# Assumption checking
+m1 <- lmer(sla_before_mean ~ subplot_descriptions + (1|replicate), data = sla_before_trt, REML=FALSE)
+# Check Assumptions:
+# (1) Linearity: if covariates are not categorical
+# (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
+plot(m1, main = "SLA")
+# Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
+leveneTest(residuals(m1) ~ sla_before_trt$subplot_descriptions)
+# Assumption met
+# (3) Normality of error term: need to check by histogram, plot of residuals, could do Kolmogorov-Smirnov test.
+# Check for normal residuals
+qqPlot(resid(m1), main = "SLA")
+hist(residuals(m1), main = "SLA")
+shapiro.test(resid(m1)) # Normal
+
+# Model comparisons
+m2 <- lm(sla_before_mean ~ subplot_descriptions, data = sla_before_trt)
+m3 <- lmer(sla_before_mean ~ subplot_descriptions + (1|replicate), data = sla_before_trt, REML=F)
+m4 <- lmer(sla_before_mean ~ subplot_descriptions + (1|replicate/footprint_location), data = sla_before_trt, REML=FALSE)
+
+AICctab(m1, m2, m3, m4, weights=T)
+# Model 2 fits the best
+summary(m2)
+summ(m2)
+
+# Post hoc test to compare different levels
+emmeans(m2, list(pairwise ~ subplot_descriptions), adjust = "tukey")
+
+```
 ```
 
