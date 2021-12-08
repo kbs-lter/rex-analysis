@@ -15,6 +15,7 @@ library(vegan)
 library(plotrix)
 library(plotly)
 library(broom)
+library(Rtsne)
 
 # Set working directory
 dir<-Sys.getenv("DATA_DIR")
@@ -170,6 +171,44 @@ ggplot() +
   labs(x="PCoA 1",y="PCoA 2", color="Treatment", fill="Treatment") +
   theme_classic()
 dev.off()
+
+
+
+##### tSNE #####
+# https://datavizpyr.com/how-to-make-tsne-plot-in-r/
+set.seed(143)
+# making rep a character column so it isn't included in numerical columns for tSNE
+voc_transpose$Rep <- as.character(voc_transpose$Rep)
+# making ID column w/ row identifiers
+voc_transpose2 <- voc_transpose %>% 
+  mutate(ID=row_number()) 
+# selecting all non-numeric columns as the meta data
+voc_meta <- voc_transpose2 %>%
+  select(ID,Treatment,Rep,Group_treat)
+# run tSNE
+# calculating perplexity: 3 x perplexity < nrows - 1
+tSNE_fit <- voc_transpose2 %>%
+  select(where(is.numeric)) %>%
+  column_to_rownames("ID") %>%
+  Rtsne(perplexity=15)
+# making dataframe
+tSNE_df <- tSNE_fit$Y %>% 
+  as.data.frame() %>%
+  rename(tSNE1="V1",
+         tSNE2="V2") %>%
+  mutate(ID=row_number())
+# joining w meta data
+tSNE_df <- tSNE_df %>%
+  inner_join(voc_meta, by="ID")
+# tSNE plots
+ggplot(tSNE_df, aes(x = tSNE1, y = tSNE2, color = Treatment)) +
+  geom_point() +
+  theme(legend.position="right") +
+  theme_classic()
+ggplot(tSNE_df, aes(x = tSNE1, y = tSNE2, color = Group_treat)) +
+  geom_point() +
+  theme(legend.position="right") +
+  theme_classic()
 
 
 
