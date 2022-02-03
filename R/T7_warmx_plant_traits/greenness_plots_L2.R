@@ -19,11 +19,6 @@ dir<-Sys.getenv("DATA_DIR")
 # Read in data
 green <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_greenness_L1.csv"))
 
-# Take subplot average
-green2 <- green %>%
-  group_by(rep, footprint, treatment, gall_present) %>%
-  summarize(greenness = mean(greenness, na.rm = TRUE))
-
 # Set ggplot2 plotting
 # This code for ggplot2 sets the theme to mostly black and white 
 # (Arial font, and large font, base size=24)
@@ -34,7 +29,7 @@ theme_update(axis.text.x = element_text(size = 16),
 
 # Boxplot
 png("rex_green.png", units="in", width=8, height=6, res=300)
-ggplot(green2, aes(x = treatment, y = greenness, fill = gall_present)) +
+ggplot(green, aes(x = treatment, y = greenness, fill = gall_present)) +
   geom_boxplot(color = "black", outlier.shape = NA) +
   labs(x = "Treatment", y = "Leaf Greenness", fill = "Gall Presence") +
   scale_fill_manual(values = c("olivedrab", "olivedrab1"), labels = c("Gall", "No Gall")) +
@@ -53,7 +48,7 @@ dev.off()
 
 # Gall average plot
 png("gall_green.png", units="in", width=6, height=5, res=300)
-ggplot(green2, aes(x = gall_present, y = greenness, fill = gall_present)) +
+ggplot(green, aes(x = gall_present, y = greenness, fill = gall_present)) +
   geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = gall_present)) +
   scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab")) +
   geom_boxplot(color = "black", outlier.shape = NA) +

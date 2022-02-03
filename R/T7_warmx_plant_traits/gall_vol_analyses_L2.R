@@ -129,34 +129,34 @@ summary(m4)
 1/(0.025608 + 0.018283*0) # 39.0503 - average for irrigated control
 1/(0.025608 + 0.018283*1) # 22.78371 - average for warmed
 # effect:
-22.78371 - 39.0503 # 16.26659% smaller galls in warmed compared to irrigated
+22.78371 - 39.0503 # 16.26659 cm smaller galls in warmed compared to irrigated
 
 # calculating effect size accounting for inverse link
 1/(0.043890  + -0.016302*0) # 22.78423 - average for warmed
 1/(0.043890 + -0.016302*1) # 36.24764 - average for drought
 # effect:
-36.24764 - 22.78423 # 13.46341% smaller galls in warmed compared to drought
+36.24764 - 22.78423 # 13.46341 cm smaller galls in warmed compared to drought
 
 # calculating effect size accounting for inverse link
 1/(0.043890  + -0.013871*0) # 22.78423 - average for warmed
 1/(0.043890 + -0.013871*1) # 33.31224 - average for warmed drought
 # effect:
-33.31224 - 22.78423 # 10.52801% smaller galls in warmed compared to warmed drought
+33.31224 - 22.78423 # 10.52801cm smaller galls in warmed compared to warmed drought
 
 # calculating effect size accounting for inverse link
 1/(0.043890  + 0.004594*0) # 22.78423 - average for drought
 1/(0.043890 + 0.004594*1) # 20.62536 - average for post-drought
 # effect:
-20.62536 - 22.78423 # 2.15887% smaller galls in post-drought compared to drought
+20.62536 - 22.78423 # 2.15887cm smaller galls in post-drought compared to drought
 
 # calculating effect size accounting for inverse link
 1/(0.043890  + 0.014814*0) # 22.78423 - average for drought
 1/(0.043890 + 0.014814*1) # 17.03461 - average for pre-drought
 # effect:
-17.03461 - 22.78423 # 5.74962% smaller galls in pre-drought compared to drought
+17.03461 - 22.78423 # 5.74962cm smaller galls in pre-drought compared to drought
 
 # calculating effect size accounting for inverse link
 1/(0.058703  + -0.010220*0) # 17.0349 - average for pre-drought
 1/(0.058703 + -0.010220*1) # 20.62579 - average for post-drought
 # effect:
-20.62579 - 17.0349 # 3.59089% smaller galls in pre-drought compared to post-drought
+20.62579 - 17.0349 # 3.59089cm smaller galls in pre-drought compared to post-drought
