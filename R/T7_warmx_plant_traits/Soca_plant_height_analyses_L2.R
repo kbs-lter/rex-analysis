@@ -47,7 +47,7 @@ qqnorm(height$log_height)
 shapiro.test(height$log_height) # slightly better than sqrt
 
 # Assumption checking - log transformation
-m1 <- lmer(log_height ~ treatment + drought_period + (1|rep), data = height, REML=F)
+m1 <- lmer(log_height ~ treatment + drought_period + gall_present + (1|rep), data = height, REML=F)
 # Check Assumptions:
 # (1) Linearity: if covariates are not categorical
 # (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
@@ -56,6 +56,7 @@ plot(m1, main = "Plant height")
 # Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
 leveneTest(residuals(m1) ~ height$treatment)
 leveneTest(residuals(m1) ~ height$drought_period)
+leveneTest(residuals(m1) ~ height$gall_present)
 # Assumption not met - ignoring for now
 # (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
 # Check for normal residuals
@@ -68,10 +69,20 @@ outlierTest(m1)
 m2 <- lmer(log_height ~ treatment + drought_period + (1|rep/footprint), data = height, REML=F)
 m3 <- lmer(log_height ~ treatment + (1|drought_period) + (1|rep), data = height, REML=F)
 m4 <- lmer(log_height ~ treatment * drought_period + (1|rep), data = height, REML=F)
-AICctab(m1, m2, m3, m4, weights=T) # model 2
-leveneTest(residuals(m2) ~ height$treatment)
-leveneTest(residuals(m2) ~ height$drought_period)
-summary(m2)
+m5 <- lmer(log_height ~ treatment + drought_period + (1|rep), data = height, REML=F)
+m6 <- lmer(log_height ~ treatment * gall_present + drought_period + (1|rep), data = height, REML=F)
+m7 <- lmer(log_height ~ treatment * gall_present + drought_period + (1|rep/footprint), data = height, REML=F)
+m8 <- lmer(log_height ~ treatment + gall_present + drought_period + (1|rep/footprint), data = height, REML=F)
+AICctab(m1, m2, m3, m4, m5,m6,m7,m8,weights=T) # model 7
+leveneTest(residuals(m7) ~ height$treatment)
+leveneTest(residuals(m7) ~ height$drought_period)
+summary(m7)
+emmeans(m7, list(pairwise ~ treatment*gall_present), adjust = "tukey")
+png("height_galling_lm.png", units="in", width=7, height=6, res=300)
+emmip(m7, treatment ~ gall_present)
+dev.off()
+
+## note: these comparisons below need to be changed for m7
 # re-leveling the data & checking summary
 height <- within(height, treatment <- relevel(factor(treatment), ref = "Ambient Drought"))
 m2 <- lmer(log_height ~ treatment + drought_period + (1|rep/footprint), data = height, REML=F)
@@ -93,6 +104,7 @@ height <- within(height, drought_period <- relevel(factor(drought_period), ref =
 m2 <- lmer(log_height ~ treatment + drought_period + (1|rep/footprint), data = height, REML=F)
 summary(m2)
 
+## note: these estimates below are slightly different now for m7 - didn't update after adding in interaction term
 # calculating effect size accounting for log
 exp(4.173e+00 + 1.954e-01*0) # 64.90989 - average for ambient
 exp(4.173e+00 + 1.954e-01*1) # 78.91726 - average for warmed
@@ -128,4 +140,11 @@ exp(4.12117 + 0.24208 *0) # 61.63131 - average for irr control
 exp(4.12117 + 0.24208 *1) # 78.51188 - average for warmed
 # effect:
 78.51188 - 61.63131  # 16.88057cm taller plants in warmed drought compared to irr control
+
+# this is updated for m7 values
+# calculating effect size accounting for log
+exp(4.14017 + 0.13394 *0) # 62.8135 - average for gall
+exp(4.14017 + 0.13394 *1) # 71.81619 - average for no gall
+# effect:
+71.81619 - 62.8135  # 9.00269cm taller non galled plants compared to galled plants
 

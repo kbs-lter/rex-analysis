@@ -40,6 +40,10 @@ height_avg3 <- height %>%
   group_by(drought_period) %>%
   summarize(avg_height = mean(plant_height_cm, na.rm = TRUE),
             se = std.error(plant_height_cm, na.rm = TRUE))
+height_avg4 <- height %>%
+  group_by(treatment, gall_present) %>%
+  summarize(avg_height = mean(plant_height_cm, na.rm = TRUE),
+            se = std.error(plant_height_cm, na.rm = TRUE))
 
 # Boxplot of height x treatment
 height_avg <- height_avg %>%
@@ -147,4 +151,37 @@ ggplot(height_avg3, aes(x = drought_period, y = avg_height)) +
   #                          "Warm" = "Warmed",
   #                          "Warm Drought" = "Warmed & \n Drought")) +
   theme(legend.position = "none")
+dev.off()
+
+# Boxplot of height x treatment x gall
+png("height_galling.png", units="in", width=9, height=6, res=300)
+ggplot(height, aes(x = treatment, y = plant_height_cm, fill=gall_present)) +
+  geom_boxplot(color = "black", outlier.shape = NA) +
+  labs(x = "Treatment", y = "Plant Height (cm)") +
+  scale_fill_manual(values = c("olivedrab4","darkseagreen2"), name="Gall Presence",labels=c("Gall","No Gall")) +
+  scale_x_discrete(limits = c("Irrigated Control", "Ambient", "Ambient Drought", "Warm", "Warm Drought"),
+                   labels=c("Ambient" = "Ambient",
+                            "Ambient Drought" = "Drought",
+                            "Irrigated Control" = "Irrigated \n Control",
+                            "Warm" = "Warmed",
+                            "Warm Drought" = "Warmed & \n Drought"),
+                   guide = guide_axis(n.dodge=1)) +
+  theme(legend.position = "right")
+dev.off()
+
+# barplot of treatment X height X galling
+png("height_galling_bar.png", units="in", width=9, height=6, res=300)
+ggplot(height_avg4, aes(x = treatment, y = avg_height, fill=gall_present)) +
+  geom_bar(position = position_dodge(), stat = "identity", color = "black") +
+  geom_errorbar(aes(ymin = avg_height - se, ymax = avg_height + se), width = 0.2,
+                position = position_dodge(0.85)) +
+  labs(x = "Treatment", y = "Plant Height (cm)") +
+  scale_fill_manual(values = c("olivedrab4", "darkseagreen2"), name="Gall Presence",labels=c("Gall","No Gall")) +
+  scale_x_discrete(limits = c("Irrigated Control", "Ambient", "Ambient Drought", "Warm", "Warm Drought"),
+                   labels=c("Ambient" = "Ambient",
+                            "Ambient Drought" = "Drought",
+                            "Irrigated Control" = "Irrigated \n Control",
+                            "Warm" = "Warmed",
+                            "Warm Drought" = "Warmed & \n Drought")) +
+  theme(legend.position = "right")
 dev.off()
