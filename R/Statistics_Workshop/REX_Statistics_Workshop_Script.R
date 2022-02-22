@@ -58,7 +58,7 @@ datlm <- lmer((A) ~ Treatment+Footprint+Subplot+CO2level+Day+
                 (1|CO2level:Subplot:Footprint:Treatment:Replicate), #CO2 level
               data = dataset%>%
                 group_by(Treatment,Replicate,Footprint,Subplot,CO2level,Day)%>%
-                summarise(A=mean(A,na.rm=))) 
+                summarise(A=mean(A,na.rm=T))) 
 
 ### model evaluation
 joint_tests(datlm)
@@ -67,7 +67,7 @@ shapiro.test((resid(datlm)))
 boxplot(resid(datlm)~Treatment+Footprint+Subplot+CO2level+Day,
         data = dataset%>%
           group_by(Treatment,Replicate,Footprint,Subplot,CO2level,Day)%>%
-          summarise(A=mean(A,na.rm=)),
+          summarise(A=mean(A,na.rm=T)),
         col='Blue',xlab="Treatment",ylab="Model Residuals")
 plot(datlm,pch=20,cex=5,col='Blue',xlab="Fitted Values",ylab="Model Residuals")
 qqnorm(resid(datlm))
@@ -75,7 +75,7 @@ qqline(resid(datlm))
 leveneTest((A)~Treatment*Footprint*Subplot*CO2level*Day,
            data = dataset%>%
              group_by(Treatment,Replicate,Footprint,Subplot,CO2level,Day)%>%
-             summarise(A=mean(A,na.rm=)))
+             summarise(A=mean(A,na.rm=T)))
 
 ### Multple Comparisons
 datlm.lsd=emmeans(datlm, specs=c( 'Treatment', 'Footprint','Subplot','Day'),
