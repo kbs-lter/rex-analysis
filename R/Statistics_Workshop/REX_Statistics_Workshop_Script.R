@@ -44,6 +44,11 @@ dataset$A[dataset$Day=='Sep_7']=Sep_7_effect+dataset$A[dataset$Day=='Sep_7']
 head(dataset)
 str(dataset)
 
+### Removing Compromised experimental units
+#dataset$Footprint_ID=paste(dataset$Treatment,dataset$Replicate,dataset$Footprint,sep='_')
+#compromised=c('T1_R1_D1','T2_R2_D1')
+#dataset=subset(dataset,!(dataset$Footprint_ID %in% compromised))
+
 ### model construction
 datlm <- lmer((A) ~ Treatment+Footprint+Subplot+CO2level+Day+
                 (1:Replicate)+                             # block
