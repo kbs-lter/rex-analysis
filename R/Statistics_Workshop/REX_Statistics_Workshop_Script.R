@@ -51,7 +51,7 @@ str(dataset)
 
 ### model construction
 datlm <- lmer((A) ~ Treatment+Footprint+Subplot+CO2level+Day+
-                (1:Replicate)+                             # block
+                (1|Replicate)+                             # block
                 (1|Treatment:Replicate)+                   # whole plot
                 (1|Footprint:Treatment:Replicate)+         # footprint
                 (1|Subplot:Footprint:Treatment:Replicate)+ # subplot 
