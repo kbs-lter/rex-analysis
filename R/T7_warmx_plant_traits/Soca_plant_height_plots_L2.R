@@ -10,6 +10,8 @@
 rm(list=ls())
 
 # Load packages
+# install.packages("tidyverse") - Emily
+# install.packages("plotrix") - Emily
 library(tidyverse)
 library(plotrix)
 
@@ -22,10 +24,12 @@ theme_update(axis.text.x = element_text(size = 12),
              axis.title = element_text(size=16,face="bold"))
 
 # Set working directory
+# Emily doesn't need this line
 dir<-Sys.getenv("DATA_DIR")
 
 # Read in data
 height <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_Soca_plant_height_L1.csv"))
+# height <- read.csv("downloads/T7_warmx_Soca_plant_height_L1.csv") - Emily
 
 # Take averages
 height_avg <- height %>%
