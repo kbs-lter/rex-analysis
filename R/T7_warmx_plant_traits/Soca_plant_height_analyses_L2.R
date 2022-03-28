@@ -76,33 +76,33 @@ m8 <- lmer(log_height ~ treatment + gall_present + drought_period + (1|rep/footp
 AICctab(m1, m2, m3, m4, m5,m6,m7,m8,weights=T) # model 7
 leveneTest(residuals(m7) ~ height$treatment)
 leveneTest(residuals(m7) ~ height$drought_period)
+anova(m7)
 summary(m7)
 emmeans(m7, list(pairwise ~ treatment*gall_present), adjust = "tukey")
 png("height_galling_lm.png", units="in", width=7, height=6, res=300)
 emmip(m7, treatment ~ gall_present)
 dev.off()
 
-## note: these comparisons below need to be changed for m7
 # re-leveling the data & checking summary
 height <- within(height, treatment <- relevel(factor(treatment), ref = "Ambient Drought"))
-m2 <- lmer(log_height ~ treatment + drought_period + (1|rep/footprint), data = height, REML=F)
-summary(m2)
+m7 <- lmer(log_height ~ treatment * gall_present + drought_period + (1|rep/footprint), data = height, REML=F)
+summary(m7)
 height <- within(height, treatment <- relevel(factor(treatment), ref = "Irrigated Control"))
-m2 <- lmer(log_height ~ treatment + drought_period + (1|rep/footprint), data = height, REML=F)
-summary(m2)
+m7 <- lmer(log_height ~ treatment * gall_present + drought_period + (1|rep/footprint), data = height, REML=F)
+summary(m7)
 height <- within(height, treatment <- relevel(factor(treatment), ref = "Warm"))
-m2 <- lmer(log_height ~ treatment + drought_period + (1|rep/footprint), data = height, REML=F)
-summary(m2)
+m7 <- lmer(log_height ~ treatment * gall_present + drought_period + (1|rep/footprint), data = height, REML=F)
+summary(m7)
 height <- within(height, treatment <- relevel(factor(treatment), ref = "Warm Drought"))
-m2 <- lmer(log_height ~ treatment + drought_period + (1|rep/footprint), data = height, REML=F)
-summary(m2)
+m7 <- lmer(log_height ~ treatment * gall_present + drought_period + (1|rep/footprint), data = height, REML=F)
+summary(m7)
 height <- within(height, treatment <- relevel(factor(treatment), ref = "Ambient"))
-m2 <- lmer(log_height ~ treatment + drought_period + (1|rep/footprint), data = height, REML=F)
-summary(m2)
+m7 <- lmer(log_height ~ treatment * gall_present + drought_period + (1|rep/footprint), data = height, REML=F)
+summary(m7)
 
 height <- within(height, drought_period <- relevel(factor(drought_period), ref = "Post-Drought"))
-m2 <- lmer(log_height ~ treatment + drought_period + (1|rep/footprint), data = height, REML=F)
-summary(m2)
+m7 <- lmer(log_height ~ treatment * gall_present + drought_period + (1|rep/footprint), data = height, REML=F)
+summary(m7)
 
 ## note: these estimates below are slightly different now for m7 - didn't update after adding in interaction term
 # calculating effect size accounting for log
