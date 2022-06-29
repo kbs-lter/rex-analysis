@@ -234,7 +234,7 @@ ggplot(voc_transpose, aes(x = factor(Treatment, level = level_order), y = rowsum
   geom_boxplot(color = 'black', fill = "cornflowerblue") +
   #geom_jitter(alpha = 0.5, color = "goldenrod") +
   theme_classic() +
-  labs(x = "Treatment", y = "Relative Abundance", fill = "Treatment") +
+  labs(x = "Treatment", y = "Abundance", fill = "Treatment") +
   theme(axis.text=element_text(size=13),
         axis.title=element_text(size=15,face="bold")) +
   scale_x_discrete(limits = c("Ambient", "Irrigated", "Warmed", "WarmedDrought", "Drought"),
@@ -253,7 +253,7 @@ ggplot(voc_transpose, aes(x = factor(Treatment, level = level_order), y = Caryop
   geom_boxplot(color = 'black', fill = "cornflowerblue") +
   #geom_jitter(alpha = 0.5, color = "goldenrod") +
   theme_classic() +
-  labs(x = "Treatment", y = "Relative Abundance: Caryophyllene", fill = "Treatment") +
+  labs(x = "Treatment", y = "Abundance: Caryophyllene", fill = "Treatment") +
   theme(axis.text=element_text(size=13),
         axis.title=element_text(size=13,face="bold")) +
   scale_x_discrete(limits = c("Ambient", "Irrigated", "Warmed", "WarmedDrought", "Drought"),

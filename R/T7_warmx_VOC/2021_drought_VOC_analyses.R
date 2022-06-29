@@ -32,7 +32,7 @@ ab.dist<-vegdist(ab, method='bray')
 
 # run permanova
 set.seed(123)
-ab.div<-adonis2(ab.dist~Treatment, data=voc_transpose, permutations = 999, method="bray", strata="Rep")
+ab.div<-adonis2(ab.dist~Treatment, data=voc_transpose, permutations = 999, method="bray", strata ="Rep")
 ab.div
 
 # pairwise comparisons of permanova

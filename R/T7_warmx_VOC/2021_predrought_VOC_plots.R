@@ -129,6 +129,8 @@ ggplot() +
 
 
 #### PCoA ####
+ab = voc_transpose[,2:300]
+ab.dist<-vegdist(ab, method='bray')
 dispersion<-betadisper(ab.dist, group=voc_transpose$Treatment)
 dispersion
 # extract the centroids and the site points in multivariate space.  
