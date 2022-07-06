@@ -1,0 +1,165 @@
+---
+title: "REX: T7 Red Clover ANPP Analyses"
+author: "Moriah Young"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+COLLABORATORS: Kara Dobson, Phoebe Zarnetske, Mark Hammond
+DATA INPUT:  csv from the shared Google drive  
+DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
+PROJECT: REX  
+
+DESCRIPTION:
+- Looking at legume species (primarily red clover aka Trifolium pratense - Trpr)
+- Main question: have the treatments (warming & drought) altered the amount of biomass and/or within certain species such as legumes?
+- 2019 is baseline data taken by Mark Hammond before any treatments were imposed (1m2)
+- 2021 is data from the first year of REX (0.25m2)
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(bbmle)
+library(lmerTest)
+library(fitdistrplus)
+library(sjPlot)
+library(car)
+library(emmeans)
+library(tidyverse)
+library(ggpubr)
+library(jtools) #summ 
+library(rstatix)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+ANPP_21 <- read.csv(file.path(dir, "T7_ANPP/L1/T7_Zarnetske_ANPP_L1.csv")) # 2021 ANPP data
+ANPP_19 <- read.csv(file.path(dir, "T7_ANPP/L0/REX_T7_ANPP_all_plots_2019.csv")) # not cleaned data - 2019 data
+meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
+```
+
+Looking at all ANPP from 2019 - baseline data
+```{r}
+# cleaning data
+anpp_19 <- ANPP_19 %>% select(Date, PZ_footprints_Field_Code, Group_Code, Dried_plant_biomass_g_per_metersquare)
+names(anpp_19)[2] <- "Unique_ID" #changing column name to match what's in the meta data file
+anpp_19_merge <- merge(anpp_19, meta)
+
+# select only legume data from ANPP 2019
+legume_19 <- anpp_19_merge[(anpp_19_merge$Group_Code == "Legume"),]
+
+# Take treatment average total biomass
+legume_19_avg <- legume_19 %>%
+        group_by(Subplot_Descriptions) %>%
+        summarize(avg_biomass = mean(Dried_plant_biomass_g_per_metersquare, na.rm = TRUE))
+
+# Plotting data
+ggplot(legume_19_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        #scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab3")) +
+        geom_bar(stat = "identity") +
+        labs(x = "Treatment", y = "Biomass (g)") +
+        #scale_fill_manual(values = c("olivedrab", "olivedrab2")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "drought_insecticide" = "Drought \n Insecticide",
+                                  "insecticide" = "Insecticide",
+                                  "irrigated" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed \n Drought",
+                                  "warmed_drought_insecticide" = "Warmed \n Drought \n Insecticide",
+                                  "warmed_insecticide" = "Warmed \n Insecticide")) +
+        theme(legend.position = "none")
+```
+
+Looking at all ANPP from 2020
+```{r}
+# Take subplot total biomass
+anpp_sum <- ANPP_21 %>%
+        group_by(Field_Loc_Code, Subplot_Descriptions) %>%
+        summarize(sum_biomass = sum(Dried_Plant_Biomass_g, na.rm = TRUE))
+
+# Take treatment average total biomass
+anpp_avg <- anpp_sum %>%
+        group_by(Subplot_Descriptions) %>%
+        summarize(avg_biomass = mean(sum_biomass, na.rm = TRUE))
+
+# Plotting data from average total biomass of each treatment
+ggplot(anpp_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        #scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab3")) +
+        geom_bar(stat = "identity") +
+        labs(x = "Treatment", y = "Biomass (g)") +
+        #scale_fill_manual(values = c("olivedrab", "olivedrab2")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "drought_insecticide" = "Drought \n Insecticide",
+                                  "insecticide" = "Insecticide",
+                                  "irrigated" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed \n Drought",
+                                  "warmed_drought_insecticide" = "Warmed \n Drought \n Insecticide",
+                                  "warmed_insecticide" = "Warmed \n Insecticide")) +
+        theme(legend.position = "none")
+```
+Looking at all legume species (Fabaceae family)
+```{r}
+# select only Fabaceae from ANPP 2021 dataframe
+Fabaceae <- ANPP_21[(ANPP_21$family == "Fabaceae"),]
+Fabaceae <- na.omit(Fabaceae) # remove NAs
+```
+
+Looking only at red clover (Trpr or TRFPR)
+```{r}
+# select only red clover (Trpr) from ANPP dataframe = TRFPR
+Trpr <- ANPP_21[(ANPP_21$Species_Code == "TRFPR"),] 
+
+# multiply biomass values by 4 - biomass was only clipped at 0.25m2 of the 1m2 plot
+Trpr$biomass_scaled <- Trpr$Dried_Plant_Biomass_g*4
+
+# Take subplot average of biomass
+Trpr_avg_scaled <- Trpr %>%
+        group_by(Subplot_Descriptions) %>%
+        summarize(avg_biomass_scaled = mean(biomass_scaled, na.rm = TRUE))
+
+# Take subplot average of biomass
+Trpr_avg <- Trpr %>%
+        group_by(Subplot_Descriptions) %>%
+        summarize(avg_biomass = mean(Dried_Plant_Biomass_g, na.rm = TRUE))
+```
+
+```{r}
+# Plotting data
+ggplot(Trpr_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        #scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab3")) +
+        geom_bar(stat = "identity") +
+        labs(x = "Treatment", y = "Biomass (g)") +
+        #scale_fill_manual(values = c("olivedrab", "olivedrab2")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "drought_insecticide" = "Drought \n Insecticide",
+                                  "insecticide" = "Insecticide",
+                                  "irrigated" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed \n Drought",
+                                  "warmed_drought_insecticide" = "Warmed \n Drought \n Insecticide",
+                                  "warmed_insecticide" = "Warmed \n Insecticide")) +
+        theme(legend.position = "none")
+```
+
+```{r}
+
+```
+
+
+
+
