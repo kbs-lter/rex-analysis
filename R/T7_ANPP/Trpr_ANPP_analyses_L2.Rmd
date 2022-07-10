@@ -13,8 +13,8 @@ PROJECT: REX
 DESCRIPTION:
 - Looking at legume species (primarily red clover aka Trifolium pratense - Trpr)
 - Main question: have the treatments (warming & drought) altered the amount of biomass and/or within certain species such as legumes?
-- 2019 is baseline data taken by Mark Hammond before any treatments were imposed (1m2)
-- 2021 is data from the first year of REX (0.25m2)
+- 2019 is baseline data taken by Mark Hammond before any treatments were imposed (collected all biomass within the 1m2 plot)
+- 2021 is data from the first year of REX (collected biomass within a 0.20m2 area inside the 1m2 plot)
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -35,24 +35,139 @@ library(tidyverse)
 library(ggpubr)
 library(jtools) #summ 
 library(rstatix)
+library(RColorBrewer)
+library(plotrix)
 
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
 
 # Read in data
-ANPP_21 <- read.csv(file.path(dir, "T7_ANPP/L1/T7_Zarnetske_ANPP_L1.csv")) # 2021 ANPP data
-ANPP_19 <- read.csv(file.path(dir, "T7_ANPP/L0/REX_T7_ANPP_all_plots_2019.csv")) # not cleaned data - 2019 data
+anpp_19 <- read.csv(file.path(dir, "T7_ANPP/L0/REX_T7_ANPP_all_plots_2019.csv")) # not cleaned data - 2019 data
+anpp_21 <- read.csv(file.path(dir, "T7_ANPP/L1/T7_Zarnetske_ANPP_L1.csv")) # 2021 ANPP data
 meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
 ```
 
-Looking at all ANPP from 2019 - baseline data
 ```{r}
-# cleaning data
-anpp_19 <- ANPP_19 %>% select(Date, PZ_footprints_Field_Code, Group_Code, Dried_plant_biomass_g_per_metersquare)
+# cleaning 2019 data
+anpp_19 <- anpp_19 %>% select(Date, PZ_footprints_Field_Code, Group_Code, Dried_plant_biomass_g_per_metersquare)
 names(anpp_19)[2] <- "Unique_ID" #changing column name to match what's in the meta data file
 anpp_19_merge <- merge(anpp_19, meta)
+anpp_19_merge <- anpp_19_merge[,-c(5:10)] # delete unnecessary columns
+anpp_19_merge$year <- 2019  
+names(anpp_19_merge)[4] <- "Biomass" #changing column name
+anpp_19_merge <- anpp_19_merge[,-c(1,2)] # delete unnecessary columns
+names(anpp_19_merge)[1] <- "Code" #changing column name
 
+# cleaning 2021 data
+anpp_21 <- anpp_21[,-c(1:5,9:17)] # delete unnecessary columns
+#names(anpp_21)[1] <- "Unique_ID" #changing column name to match what's in the meta data file
+names(anpp_21)[2] <- "Biomass" #changing column name
+anpp_21$year <- 2021
+names(anpp_21)[1] <- "Code" #changing column name
+# multiply biomass values by 5 - biomass was only clipped at 0.20m2 of the 1m2 plot
+anpp_21$biomass_scaled <- anpp_21$Biomass*5
+anpp_21 <- anpp_21[,-c(2)] # delete column
+names(anpp_21)[4] <- "Biomass" #changing column name
+
+# merge 2019 and 2021 data together
+anpp_all <- full_join(anpp_19_merge, anpp_21)
+```
+
+```{r}
+# select only legume data from ANPP 2019
+legumes <- anpp_all[(anpp_all$Code == "Legume" | anpp_all$Code == "TRFPR"),]
+
+# Take treatment average total biomass
+legumes_avg <- legumes %>%
+        group_by(Subplot_Descriptions, year) %>%
+        summarize(avg_biomass = mean(Biomass, na.rm = TRUE))
+
+# Plotting data
+ggplot(legumes_avg, aes(x = year, y = avg_biomass, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        #scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab3")) +
+        geom_bar(position="dodge", stat = "identity") +
+        labs(x = "Treatment", y = "Biomass (g)") +
+        #scale_fill_manual(values = c("olivedrab", "olivedrab2")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "drought_insecticide" = "Drought \n Insecticide",
+                                  "insecticide" = "Insecticide",
+                                  "irrigated" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed \n Drought",
+                                  "warmed_drought_insecticide" = "Warmed \n Drought \n Insecticide",
+                                  "warmed_insecticide" = "Warmed \n Insecticide")) +
+        theme(legend.position = "none")
+```
+
+```{r}
+# select only red clover (Trpr) from ANPP dataframe = TRFPR
+Trpr <- anpp_all[(anpp_all$Code == "TRFPR"),]
+
+# Take subplot average of biomass
+Trpr_avg <- Trpr %>%
+        group_by(Subplot_Descriptions) %>%
+        summarise(avg_biomass = mean(Biomass, na.rm = TRUE),
+        se = std.error(Biomass, na.rm = TRUE))
+```
+
+```{r}
+# Plotting data
+# trying to reorder bars to descending order in plot - not successful
+Trpr_avg <- within(Trpr_avg, 
+                   Subplot_Descriptions <- factor(Subplot_Descriptions, 
+                                      levels=names(sort(table(Subplot_Descriptions), 
+                                                        decreasing=TRUE))))
+ggplot(Trpr_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        #scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab3")) +
+        geom_bar(stat = "identity") +
+        labs(x = "Treatment", y = "Biomass (g)") +
+        #scale_fill_manual(values = c("olivedrab", "olivedrab2")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "drought_insecticide" = "Drought \n Insecticide",
+                                  "insecticide" = "Insecticide",
+                                  "irrigated" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed \n Drought",
+                                  "warmed_drought_insecticide" = "Warmed \n Drought \n Insecticide",
+                                  "warmed_insecticide" = "Warmed \n Insecticide")) +
+        theme(legend.position = "none")
+```
+Trpr minus the insecticide plots
+```{r}
+# select only red clover (Trpr) from ANPP dataframe = TRFPR
+Trpr_noninsecticide <- Trpr_avg[-c(3:4,8:9),]
+
+png("trpr_noninsect_anpp_2021.png", units="in", width=6, height=6, res=300)
+ggplot(Trpr_noninsecticide, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        geom_bar(stat = "identity") +
+        geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
+                         position = "identity") +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment", y = "Biomass (g)") +
+        #scale_fill_manual(values = c("olivedrab", "olivedrab2")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed \n Drought")) +
+        theme_classic() +
+        theme(legend.position = "none")
+dev.off
+```
+
+
+
+Old Code below:
+
+Looking at all ANPP from 2019 - baseline data
+```{r}
 # select only legume data from ANPP 2019
 legume_19 <- anpp_19_merge[(anpp_19_merge$Group_Code == "Legume"),]
 
@@ -80,7 +195,7 @@ ggplot(legume_19_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subp
         theme(legend.position = "none")
 ```
 
-Looking at all ANPP from 2020
+Looking at all ANPP from 2021
 ```{r}
 # Take subplot total biomass
 anpp_sum <- ANPP_21 %>%
@@ -122,8 +237,8 @@ Looking only at red clover (Trpr or TRFPR)
 # select only red clover (Trpr) from ANPP dataframe = TRFPR
 Trpr <- ANPP_21[(ANPP_21$Species_Code == "TRFPR"),] 
 
-# multiply biomass values by 4 - biomass was only clipped at 0.25m2 of the 1m2 plot
-Trpr$biomass_scaled <- Trpr$Dried_Plant_Biomass_g*4
+# multiply biomass values by 5 - biomass was only clipped at 0.20m2 of the 1m2 plot
+Trpr$biomass_scaled <- Trpr$Dried_Plant_Biomass_g*5
 
 # Take subplot average of biomass
 Trpr_avg_scaled <- Trpr %>%
@@ -138,6 +253,11 @@ Trpr_avg <- Trpr %>%
 
 ```{r}
 # Plotting data
+# trying to reorder bars to descending order in plot - not successful
+Trpr_avg <- within(Trpr_avg, 
+                   Subplot_Descriptions <- factor(Subplot_Descriptions, 
+                                      levels=names(sort(table(Subplot_Descriptions), 
+                                                        decreasing=TRUE))))
 ggplot(Trpr_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
         geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
         #scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab3")) +
@@ -157,9 +277,26 @@ ggplot(Trpr_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_D
 ```
 
 ```{r}
+#### Data exploration ###
+# checking raw data
+hist(Trpr$Dried_Plant_Biomass_g)
+qqnorm(Trpr$Dried_Plant_Biomass_g)
 
+# checking model with log transformation (untransformed data was right skewed)
+# is it normally distributed? yes
+m1 <- lm(log(Dried_Plant_Biomass_g) ~ Subplot_Descriptions, data = Trpr)
+hist(resid(m1))
+qqnorm(resid(m1))
+plot(m1)
+# homogeneity of variance? yes, p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1) ~ Trpr$Subplot_Descriptions)
+
+### Model exploration ###
+m2 <- lmer(log(Dried_Plant_Biomass_g) ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data=Trpr, REML=F)
+summary(m2)
+emmeans(m2, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+#emmip(m3, origin ~ Subplot_Descriptions)
 ```
-
 
 
 
