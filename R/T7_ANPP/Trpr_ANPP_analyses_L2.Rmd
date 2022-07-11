@@ -115,11 +115,7 @@ Trpr_avg <- Trpr %>%
 
 ```{r}
 # Plotting data
-# trying to reorder bars to descending order in plot - not successful
-Trpr_avg <- within(Trpr_avg, 
-                   Subplot_Descriptions <- factor(Subplot_Descriptions, 
-                                      levels=names(sort(table(Subplot_Descriptions), 
-                                                        decreasing=TRUE))))
+
 ggplot(Trpr_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
         geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
         #scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab3")) +
@@ -142,6 +138,7 @@ Trpr minus the insecticide plots
 # select only red clover (Trpr) from ANPP dataframe = TRFPR
 Trpr_noninsecticide <- Trpr_avg[-c(3:4,8:9),]
 
+# bar plot
 png("trpr_noninsect_anpp_2021.png", units="in", width=6, height=6, res=300)
 ggplot(Trpr_noninsecticide, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
         geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
@@ -151,7 +148,6 @@ ggplot(Trpr_noninsecticide, aes(x = Subplot_Descriptions, y = avg_biomass, fill 
         scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
         "irrigated" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
         labs(x = "Treatment", y = "Biomass (g)") +
-        #scale_fill_manual(values = c("olivedrab", "olivedrab2")) +
         scale_x_discrete(labels=c("ambient" = "Ambient",
                                   "drought" = "Drought",
                                   "irrigated" = "Irrigated \n Control",
@@ -279,12 +275,13 @@ ggplot(Trpr_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_D
 ```{r}
 #### Data exploration ###
 # checking raw data
-hist(Trpr$Dried_Plant_Biomass_g)
-qqnorm(Trpr$Dried_Plant_Biomass_g)
+hist(Trpr$Biomass)
+
+qqnorm(Trpr$Biomass)
 
 # checking model with log transformation (untransformed data was right skewed)
 # is it normally distributed? yes
-m1 <- lm(log(Dried_Plant_Biomass_g) ~ Subplot_Descriptions, data = Trpr)
+m1 <- lm(log(Biomass) ~ Subplot_Descriptions, data = Trpr)
 hist(resid(m1))
 qqnorm(resid(m1))
 plot(m1)
@@ -292,7 +289,7 @@ plot(m1)
 leveneTest(residuals(m1) ~ Trpr$Subplot_Descriptions)
 
 ### Model exploration ###
-m2 <- lmer(log(Dried_Plant_Biomass_g) ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data=Trpr, REML=F)
+m2 <- lmer(log(Biomass) ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data=Trpr, REML=F)
 summary(m2)
 emmeans(m2, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
 #emmip(m3, origin ~ Subplot_Descriptions)
