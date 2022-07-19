@@ -220,6 +220,11 @@ voc_transpose_sum <- voc_transpose %>%
   summarize(abun = sum(rowsums),
             se = std.error(rowsums))
 
+voc_transpose_sum_rep <- voc_transpose %>%
+  group_by(Rep) %>%
+  summarize(abun = sum(rowsums),
+            se = std.error(rowsums))
+
 level_order <- c('Ambient', 'Irrigated', 'Warmed', "WarmedDrought", "Drought")
 png("drought_ab.png", units="in", width=6, height=5, res=300)
 ggplot(voc_transpose_sum, aes(x = factor(Treatment, level = level_order), y = abun)) + 
@@ -245,6 +250,14 @@ ggplot(voc_transpose, aes(x = factor(Treatment, level = level_order), y = rowsum
                             "WarmedDrought" = "Warmed + Drought"),
                    guide = guide_axis(n.dodge=2))
 dev.off()
+
+# rep
+ggplot(voc_transpose_sum_rep, aes(x = Rep, y = abun)) + 
+  geom_bar(position = "identity", stat = "identity", color = 'black', fill = "goldenrod") +
+  geom_errorbar(aes(ymin = abun - se, ymax = abun + se), width = 0.2,
+                position = "identity") +
+  theme_classic() +
+  labs(x = "Treatment", y = "Relative Abundance", fill = "Treatment")
 
 # plots for each compound - compounds picked based on analyses in analyses script
 level_order <- c('Ambient', 'Irrigated', 'Warmed', "WarmedDrought", "Drought")
