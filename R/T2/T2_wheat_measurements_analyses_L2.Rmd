@@ -1,0 +1,99 @@
+---
+title: "REX: T2 Wheat Height, Greenness & Biomass Analyses"
+author: "Moriah Young"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+COLLABORATORS: Lisa Leonard, Grant Falvo (biomass data)
+DATA INPUT:  csv from the shared Google drive  
+DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
+PROJECT: REX  
+
+DESCRIPTION:
+- 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(bbmle)
+library(lmerTest)
+library(fitdistrplus)
+library(sjPlot)
+library(car)
+library(emmeans)
+library(tidyverse)
+library(ggpubr)
+library(jtools) #summ 
+library(rstatix)
+library(RColorBrewer)
+library(plotrix)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+wheat_data <- read.csv(file.path(dir, "T2_height_greenness_2022_L0.csv"))
+wheat_biomass <- read.csv(file.path(dir, "T2_biomass_2022_L0.csv"))
+
+```
+
+Data Exploration
+```{r}
+# Height
+# checking raw data
+hist(wheat_data$Height_cm) # this looks pretty normal
+qqnorm(wheat_data$Height_cm) # this looks ok
+
+m1_h <- lmer((Height_cm) ~ Subplot_Descriptions + (1|Replicate/Footprint), data = wheat_data, REML=F)
+hist(resid(m1_h))
+qqnorm(resid(m1_h))
+plot(m1_h)
+# homogeneity of variance? yes, p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1_h) ~ wheat_data$Subplot_Descriptions)
+
+summary(m1_h)
+emmeans(m1_h, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+```
+```{r}
+# Greenness
+# checking raw data
+hist(wheat_data$Greenness) # this looks pretty normal
+qqnorm(wheat_data$Greenness) # this looks ok
+
+m1_g <- lmer(sqrt(Greenness) ~ Subplot_Descriptions + (1|Replicate/Footprint), data = wheat_data, REML=F)
+hist(resid(m1_g))
+qqnorm(resid(m1_g))
+plot(m1_g)
+# homogeneity of variance? yes, p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1_g) ~ wheat_data$Subplot_Descriptions)
+
+summary(m1_g)
+emmeans(m1_g, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+```
+
+```{r}
+# Biomass
+# checking raw data
+hist(wheat_biomass$anpp) # this looks normal
+qqnorm(wheat_biomass$anpp) # this looks ok
+
+m1_b <- lmer(anpp ~ Subplot_Descriptions + (1|Replicate/Footprint), data = wheat_biomass, REML=F)
+hist(resid(m1_b))
+qqnorm(resid(m1_b))
+plot(m1_b)
+
+# homogeneity of variance? yes, p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1_b) ~ wheat_biomass$Subplot_Descriptions)
+
+summary(m1_b)
+emmeans(m1_b, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+```
+
