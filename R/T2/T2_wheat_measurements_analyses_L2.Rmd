@@ -33,7 +33,8 @@ library(ggpubr)
 library(jtools) #summ 
 library(rstatix)
 library(RColorBrewer)
-library(plotrix)
+library(plotrix) # std.error() function
+library(olsrr) # ols_test_normality() function
 
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
@@ -51,13 +52,40 @@ Data Exploration
 # checking raw data
 hist(wheat_data$Height_cm) # this looks pretty normal
 qqnorm(wheat_data$Height_cm) # this looks ok
+shapiro.test(wheat_data$Height_cm) # pvalue is < 0.05 so we reject the null hypothesis that the data is normal (aka not normally distributed)
+
+# Exploring distributions for these right-skewed data:
+descdist(wheat_data$Height_cm, discrete = FALSE)
+
+# Leverage plots and detecting Outliers. https://www.statmethods.net/stats/rdiagnostics.html
+# These illustrate whether certain data points have more leverage (more influence), and thus could be outliers. It's a way of detecting outliers. Leverage plots can help identify whether a point has high or low influence, based on its leverage and residual and determining model fit with and without the point in question. Ultimately you decide whether the points are outliers or not, based on the knowledge of the system and how much it changes the model when included vs. excluded from the data used to fit the model. Here is a good overview of the combination of leverage and residual: scroll down to sections beginning at "13.3 Unusual Observations": https://daviddalpiaz.github.io/appliedstats/model-diagnostics.html
+
+# species level data
+# UMBS State-only model
+fit_subplot <- lm(Height_cm ~ Subplot_Descriptions, data = wheat_data)
+outlierTest(fit_subplot) # outliers in row 73 and 152
+qqPlot(fit_subplot, main="QQ Plot") 
+hist(fit_subplot$residuals)
+leveragePlots(fit_subplot)
+ols_test_normality(fit_subplot) # pvalues are < 0.05 so we can reject the null that the errors are not normally distributed - see for further explanation: https://rforpoliticalscience.com/2020/10/22/check-linear-regression-residuals-are-normally-distributed-with-olsrr-package-in-r/
 
 m1_h <- lmer((Height_cm) ~ Subplot_Descriptions + (1|Replicate/Footprint), data = wheat_data, REML=F)
 hist(resid(m1_h))
 qqnorm(resid(m1_h))
 plot(m1_h)
+
+# Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
+# *****Levene’s Test - tests whether or not the variance among two or more groups is equal - If the p-value is less than our chosen significance level, we can reject the null hypothesis and conclude that we have enough evidence to state that the variance among the groups is not equal (which we want).
+
 # homogeneity of variance? yes, p >0.05 (no significant difference between the group variances)
-leveneTest(residuals(m1_h) ~ wheat_data$Subplot_Descriptions)
+leveneTest(residuals(m1_h) ~ wheat_data$Subplot_Descriptions) # Assumption met
+
+# Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
+# Check for normal residuals
+qqPlot(resid(m1_h))
+hist(residuals(m1_h))
+shapiro.test(resid(m1_h)) # not normally distributed resids bc p<0.05
+outlierTest(m1_h) # row 73 outlier
 
 summary(m1_h)
 emmeans(m1_h, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
