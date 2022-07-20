@@ -14,11 +14,12 @@ rm(list=ls())
 # Load packages
 library(tidyverse) # ggplot2 and dplyr are contained within tidyverse
 library(plotrix) # I use this package for the standard error function
+library(ggpubr) # this package has ggarrange, used to align multiple ggplots
 
 # read in data
-#data = read.csv("T7.csv") # Jordan's filepath
-dir <- Sys.getenv("DATA_DIR")
-anpp <- read.csv(file.path(dir, "T7_ANPP/L1/T7_Zarnetske_ANPP_L1.csv")) # Kara's filepath
+anpp = read.csv("T7.csv") # Jordan's filepath
+#dir <- Sys.getenv("DATA_DIR")
+#anpp <- read.csv(file.path(dir, "T7_ANPP/L1/T7_Zarnetske_ANPP_L1.csv")) # Kara's filepath
 str(data)
 
 # removing treatments we aren't interested in
@@ -59,17 +60,22 @@ ggplot(anpp, aes(x = Subplot_Descriptions, y = Dried_Plant_Biomass_g)) +
 # to get average biomass per treatment, first sum total biomass per plot
 # then, take the average of that
 anpp_bar <- anpp %>%
-  group_by(Field_Loc_Code, Subplot_Descriptions) %>%
-  summarize(sum_biomass = sum(Dried_Plant_Biomass_g, na.rm = TRUE)) %>%
+  group_by(Field_Loc_Code, Subplot_Descriptions) %>% 
+  summarize(sum_biomass = sum(Dried_Plant_Biomass_g, na.rm = TRUE)) %>% # summing biomass per plot
   group_by(Subplot_Descriptions) %>%
-  summarize(average_biomass = mean(sum_biomass, na.rm = TRUE),
+  summarize(average_biomass = mean(sum_biomass, na.rm = TRUE), # taking avg biomass of each treatment
             se = std.error(sum_biomass, na.rm = TRUE))
+
+# png code below is to save the figure as high quality to your working directory
+# anything between png and dev.off() will be saved (i.e., the ggplot below will be exported)
+# must run the lines of code below in order (first png, then ggplot, then dev.off)
+# width and height values can be changed to change the size and shape of the figure
 png("ANPP_L2_barplot_overall.png", units="in", width=8, height=6, res=300)
 ggplot(anpp_bar, aes(x = Subplot_Descriptions, y = average_biomass)) +
   geom_bar(position = "identity", stat = "identity", col = "black", fill="sienna1") +
   geom_errorbar(aes(ymin = average_biomass - se, ymax = average_biomass + se), width = 0.2,
                 position = "identity") +
-  labs(x = "Treatment", y = "Average Biomass (g)") +
+  labs(x = "Treatment", y = "Average Biomass (g/0.20m^2)") +
   scale_x_discrete(limits = level_order,
                    labels=c("ambient" = "Ambient",
                             "warmed" = "Warmed",
@@ -79,10 +85,11 @@ ggplot(anpp_bar, aes(x = Subplot_Descriptions, y = average_biomass)) +
   theme_classic()
 dev.off()
 
-# box plot
+# box plot - didn't end up using this
 anpp_box <- anpp %>%
   group_by(Field_Loc_Code, Subplot_Descriptions) %>%
   summarize(sum_biomass = sum(Dried_Plant_Biomass_g, na.rm = TRUE))
+
 ggplot(anpp_box, aes(x = Subplot_Descriptions, y = sum_biomass)) +
   geom_boxplot(outlier.shape=NA, alpha=0.7, fill="sienna1") +
   geom_jitter(aes(alpha=0.6), shape=16, size=2, color="sienna") +
@@ -102,65 +109,115 @@ anpp_growth_bar <- anpp %>%
   group_by(Subplot_Descriptions, growth_habit) %>%
   summarize(average_biomass = mean(sum_biomass, na.rm = TRUE),
             se = std.error(sum_biomass, na.rm = TRUE))
+
 png("ANPP_L2_barplot_growthform.png", units="in", width=8, height=6, res=300)
 ggplot(anpp_growth_bar, aes(x = Subplot_Descriptions, y = average_biomass, fill = growth_habit)) +
   geom_bar(position = "dodge", stat = "identity", col = "black") +
   geom_errorbar(aes(ymin = average_biomass - se, ymax = average_biomass + se), width = 0.2,
                 position = position_dodge(0.9)) +
-  labs(x = "Treatment", y = "Average Biomass (g)", fill="Growth Habit") +
+  labs(x = "Treatment", y = "Average Biomass (g/0.20m^2)", fill="Growth Habit") +
   scale_x_discrete(limits = level_order,
                    labels=c("ambient" = "Ambient",
                             "warmed" = "Warmed",
                             "irrigated" = "Irrigated",
                             "drought" = "Drought",
                             "warmed_drought" = "Warmed Drought")) +
-  scale_fill_manual(values=c("sienna1", "sienna")) +
+  scale_fill_manual(values=c("sienna1", "sienna")) + # specify colors here
   theme_classic()
 dev.off()
 
 # specific species
-anpp_sooca <- anpp %>%
-  filter(Species_Code == "SOOCA") %>%
-  group_by(Field_Loc_Code, Subplot_Descriptions) %>%
+# forbs
+anpp_forbs <- anpp %>%
+  filter(Species_Code == "SOOCA" |
+           Species_Code == "ASTSA") %>%
+  group_by(Species_Code, Field_Loc_Code, Subplot_Descriptions) %>%
   summarize(sum_biomass = sum(Dried_Plant_Biomass_g, na.rm = TRUE)) %>%
-  group_by(Subplot_Descriptions) %>%
+  group_by(Species_Code, Subplot_Descriptions) %>%
   summarize(average_biomass = mean(sum_biomass, na.rm = TRUE),
             se = std.error(sum_biomass, na.rm = TRUE))
-png("ANPP_L2_barplot_sooca.png", units="in", width=8, height=6, res=300)
-ggplot(anpp_sooca, aes(x = Subplot_Descriptions, y = average_biomass)) +
-  geom_bar(position = "identity", stat = "identity", col = "black", fill="sienna1") +
+
+png("ANPP_L2_barplot_forbs.png", units="in", width=8, height=6, res=300)
+ggplot(anpp_forbs, aes(x = Subplot_Descriptions, y = average_biomass, fill=Species_Code)) +
+  geom_bar(position = "dodge", stat = "identity", col = "black") +
   geom_errorbar(aes(ymin = average_biomass - se, ymax = average_biomass + se), width = 0.2,
-                position = "identity") +
-  labs(x = "Treatment", y = "Average Biomass of S. canadensis (g)") +
+                position = position_dodge(0.9)) +
+  labs(x = "Treatment", y = "Average Biomass (g/0.20m^2)", fill="Forb Species", title="Forbs") +
   scale_x_discrete(limits = level_order,
                    labels=c("ambient" = "Ambient",
                             "warmed" = "Warmed",
                             "irrigated" = "Irrigated",
                             "drought" = "Drought",
                             "warmed_drought" = "Warmed Drought")) +
+  scale_fill_manual(values=c("sienna1", "sienna"), # specify colors here
+                    labels=c("Symphyotrichum \n urophyllum","Solidago \n canadensis")) + # specify species names here
   theme_classic()
 dev.off()
 
-anpp_phlpr <- anpp %>%
-  filter(Species_Code == "PHLPR") %>%
-  group_by(Field_Loc_Code, Subplot_Descriptions) %>%
+# graminoids
+anpp_gram <- anpp %>%
+  filter(Species_Code == "PHLPR" |
+           Species_Code == "POAPR") %>%
+  group_by(Species_Code, Field_Loc_Code, Subplot_Descriptions) %>%
   summarize(sum_biomass = sum(Dried_Plant_Biomass_g, na.rm = TRUE)) %>%
-  group_by(Subplot_Descriptions) %>%
+  group_by(Species_Code, Subplot_Descriptions) %>%
   summarize(average_biomass = mean(sum_biomass, na.rm = TRUE),
             se = std.error(sum_biomass, na.rm = TRUE))
-png("ANPP_L2_barplot_phlpr.png", units="in", width=8, height=6, res=300)
-ggplot(anpp_phlpr, aes(x = Subplot_Descriptions, y = average_biomass)) +
-  geom_bar(position = "identity", stat = "identity", col = "black", fill="sienna1") +
+
+png("ANPP_L2_barplot_gram.png", units="in", width=8, height=6, res=300)
+ggplot(anpp_gram, aes(x = Subplot_Descriptions, y = average_biomass, fill=Species_Code)) +
+  geom_bar(position = "dodge", stat = "identity", col = "black") +
   geom_errorbar(aes(ymin = average_biomass - se, ymax = average_biomass + se), width = 0.2,
-                position = "identity") +
-  labs(x = "Treatment", y = "Average Biomass of P. pratense (g)") +
+                position = position_dodge(0.9)) +
+  labs(x = "Treatment", y = "Average Biomass (g/0.20m^2)", fill="Species", title="Graminoids") +
   scale_x_discrete(limits = level_order,
                    labels=c("ambient" = "Ambient",
                             "warmed" = "Warmed",
                             "irrigated" = "Irrigated",
                             "drought" = "Drought",
                             "warmed_drought" = "Warmed Drought")) +
+  scale_fill_manual(values=c("sienna1", "sienna"), # specify colors here
+                    labels=c("Phleum \n pratense","Poa \n pratensis")) + # specify species names here
   theme_classic()
+dev.off()
+
+# forb and graminoid species plots side-by-side
+# re-making forb and graminoid plots, but storing them in a variable instead of plotting them
+forb_plot <- ggplot(anpp_forbs, aes(x = Subplot_Descriptions, y = average_biomass, fill=Species_Code)) +
+  geom_bar(position = "dodge", stat = "identity", col = "black") +
+  geom_errorbar(aes(ymin = average_biomass - se, ymax = average_biomass + se), width = 0.2,
+                position = position_dodge(0.9)) +
+  labs(x = NULL, y = NULL, fill="Forb Species", title="Forbs") +
+  scale_x_discrete(limits = level_order,
+                   labels=c("ambient" = "Ambient",
+                            "warmed" = "Warmed",
+                            "irrigated" = "Irrigated",
+                            "drought" = "Drought",
+                            "warmed_drought" = "Warmed Drought")) +
+  scale_fill_manual(values=c("sienna1", "sienna"), # specify colors here
+                    labels=c("Symphyotrichum \n urophyllum","Solidago \n canadensis")) + # specify species names here
+  theme_classic()
+gram_plot <- ggplot(anpp_gram, aes(x = Subplot_Descriptions, y = average_biomass, fill=Species_Code)) +
+  geom_bar(position = "dodge", stat = "identity", col = "black") +
+  geom_errorbar(aes(ymin = average_biomass - se, ymax = average_biomass + se), width = 0.2,
+                position = position_dodge(0.9)) +
+  labs(x = NULL, y = NULL, fill="Species", title="Graminoids") +
+  scale_x_discrete(limits = level_order,
+                   labels=c("ambient" = "Ambient",
+                            "warmed" = "Warmed",
+                            "irrigated" = "Irrigated",
+                            "drought" = "Drought",
+                            "warmed_drought" = "Warmed Drought")) +
+  scale_fill_manual(values=c("sienna1", "sienna"), # specify colors here
+                    labels=c("Phleum \n pratense","Poa \n pratensis")) + # specify species names here
+  theme_classic()
+
+# combine them into one figure
+combined_plot <- ggarrange(forb_plot, gram_plot, nrow = 1, ncol=2)
+png("ANPP_L2_forb_gram.png", units="in", width=8, height=8, res=300)
+annotate_figure(combined_plot,
+                left = text_grob("Average Biomass (g/0.20m^2)", color = "black", rot = 90),
+                bottom = text_grob("Treatment", color = "black"))
 dev.off()
 
 
