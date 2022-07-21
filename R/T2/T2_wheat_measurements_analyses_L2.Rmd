@@ -54,14 +54,14 @@ hist(wheat_data$Height_cm) # this looks pretty normal
 qqnorm(wheat_data$Height_cm) # this looks ok
 shapiro.test(wheat_data$Height_cm) # pvalue is < 0.05 so we reject the null hypothesis that the data is normal (aka not normally distributed)
 
-# Exploring distributions for these right-skewed data:
+# Exploring distributions for these data:
 descdist(wheat_data$Height_cm, discrete = FALSE)
 
 # Leverage plots and detecting Outliers. https://www.statmethods.net/stats/rdiagnostics.html
 # These illustrate whether certain data points have more leverage (more influence), and thus could be outliers. It's a way of detecting outliers. Leverage plots can help identify whether a point has high or low influence, based on its leverage and residual and determining model fit with and without the point in question. Ultimately you decide whether the points are outliers or not, based on the knowledge of the system and how much it changes the model when included vs. excluded from the data used to fit the model. Here is a good overview of the combination of leverage and residual: scroll down to sections beginning at "13.3 Unusual Observations": https://daviddalpiaz.github.io/appliedstats/model-diagnostics.html
 
-# species level data
-# UMBS State-only model
+# subplot level data
+# model
 fit_subplot <- lm(Height_cm ~ Subplot_Descriptions, data = wheat_data)
 outlierTest(fit_subplot) # outliers in row 73 and 152
 qqPlot(fit_subplot, main="QQ Plot") 
