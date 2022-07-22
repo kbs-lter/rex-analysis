@@ -25,6 +25,13 @@ wheat_data <- read.csv(file.path(dir, "T2_height_greenness_2022_L0.csv")) # Mori
 biomass_data <- read.csv(file.path(dir, "T2_biomass_2022_L0.csv"))
 biomass_data$biomass_meter2 <- biomass_data$anpp/0.8625
 
+# remove outlier from data (row 73 - very low height value)
+wheat_data <- wheat_data[-73,]
+# remove Year 3 drought from the data from the wheat and biomass dataframes
+wheat_data <- filter(wheat_data, Subplot_Descriptions != "drought_corn_control")
+biomass_data <- filter(biomass_data, Subplot_Descriptions != "drought_corn_control" & 
+                               Subplot_Descriptions != "drought_corn_fungicide")
+
 # look at data
 View(wheat_data)
 str(wheat_data)
@@ -82,21 +89,20 @@ ggplot(wheat_data, aes(x = Subplot_Descriptions, y = Height_cm, fill = Subplot_D
         labs(x = "Treatment", y = "Height (cm)", fill = "Subplot_Descriptions") +
         geom_jitter(shape=16, position=position_jitter(0.2)) +
         scale_fill_manual(values = c("control" = "orchid1", "control_fungicide" = "cyan2", 
-                                     "drought_control" = "deepskyblue", "drought_corn_control" = "lightcoral", "drought_fungicide" = "deeppink",
+                                     "drought_control" = "deepskyblue", "drought_fungicide" = "deeppink",
                                      "drought_legacy_control"= "plum4", "drought_legacy_fungicide"= "blue2")) +
         theme(legend.text = element_text(size=16),
               legend.title = element_text(size=16)) +
         scale_x_discrete(labels=c("control" = "Control",
                                   "control_fungicide" = "Fungicide",
                                   "drought_control" = "Drought",
-                                  "drought_corn_control" = "Year 3 \n Drought",
                                   "drought_fungicide" = "Drought \n Fungicide",
                                   "drought_legacy_control"= "Drought \n Legacy",   
                                   "drought_legacy_fungicide"="Drought \n Legacy Fungicide")) +
         theme_classic() +
         theme(legend.position="none")
   
-# now do this for greenness as well as biomass
+# now do this for greenness 
 ggplot(wheat_green_height_biomass, aes(x = Subplot_Descriptions, y = avg_greenness, fill = Subplot_Descriptions)) +
   geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
   geom_bar(stat = "identity") +
@@ -123,14 +129,13 @@ ggplot(wheat_data, aes(x = Subplot_Descriptions, y = Greenness, fill = Subplot_D
         labs(x = "Treatment", y = "Greenness", fill = "Subplot_Descriptions") +
         geom_jitter(shape=16, position=position_jitter(0.2)) +
         scale_fill_manual(values = c("control" = "orchid1", "control_fungicide" = "cyan2", 
-                                     "drought_control" = "deepskyblue", "drought_corn_control" = "lightcoral", "drought_fungicide" = "deeppink",
+                                     "drought_control" = "deepskyblue", "drought_fungicide" = "deeppink",
                                      "drought_legacy_control"= "plum4", "drought_legacy_fungicide"= "blue2")) +
         theme(legend.text = element_text(size=16),
               legend.title = element_text(size=16)) +
         scale_x_discrete(labels=c("control" = "Control",
                                   "control_fungicide" = "Fungicide",
                                   "drought_control" = "Drought",
-                                  "drought_corn_control" = "Year 3 \n Drought",
                                   "drought_fungicide" = "Drought \n Fungicide",
                                   "drought_legacy_control"= "Drought \n Legacy",   
                                   "drought_legacy_fungicide"="Drought \n Legacy Fungicide")) +
@@ -156,27 +161,28 @@ ggplot(wheat_green_height_biomass, aes(x = Subplot_Descriptions, y = biomass_avg
                                   "drought_legacy_fungicide"="Drought \n Legacy Fungicide")) +
         theme_classic()+
         theme(legend.position="none")
+dev.off
 #Try to do some boxplots for the height, greenness, biomass
 #geom_box?
 
 # box plot for biomass
+png("T2_biomass_2022.png", units="in", width=6, height=6, res=300)
 ggplot(biomass_data, aes(x = Subplot_Descriptions, y = biomass_meter2, fill = Subplot_Descriptions)) +
         geom_boxplot(color = "black", outlier.shape = NA) +
         labs(x = "Treatment", y = "Average Biomass (g)", fill = "Subplot_Descriptions") +
         geom_jitter(shape=16, position=position_jitter(0.2)) +
-        #scale_fill_manual(values = c("control" = "orchid1", "control_fungicide" = "cyan2", 
-        #                             "drought_control" = "deepskyblue", "drought_corn_control" = "lightcoral", "drought_fungicide" = "deeppink",
-        #                             "drought_legacy_control"= "plum4", "drought_legacy_fungicide"= "blue2")) +
+        scale_fill_manual(values = c("control" = "orchid1", "control_fungicide" = "cyan2", 
+                                     "drought_control" = "deepskyblue", "drought_fungicide" = "deeppink",
+                                     "drought_legacy_control"= "plum4", "drought_legacy_fungicide"= "blue2")) +
         theme(legend.text = element_text(size=16),
              legend.title = element_text(size=16)) +
         scale_x_discrete(labels=c("control" = "Control",
                                  "control_fungicide" = "Fungicide",
                                  "drought_control" = "Drought",
-                                 "drought_corn_control" = "Year 3 \n Drought",
                                  "drought_fungicide" = "Drought \n Fungicide",
                                 "drought_legacy_control"= "Drought \n Legacy",   
-                                 "drought_legacy_fungicide"="Drought \n Legacy Fungicide")) +
+                                 "drought_legacy_fungicide"="Drought \n Legacy \n Fungicide")) +
         theme_classic() +
         theme(legend.position="none")
-
+dev.off
 

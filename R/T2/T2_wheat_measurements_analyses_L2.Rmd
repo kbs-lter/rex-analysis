@@ -44,6 +44,15 @@ list.files(dir)
 wheat_data <- read.csv(file.path(dir, "T2_height_greenness_2022_L0.csv"))
 wheat_biomass <- read.csv(file.path(dir, "T2_biomass_2022_L0.csv"))
 
+# Adjusting biomass data to reflect 1m2 - the frame used was 115 cm by 75 cm, which is 0.8625m2 in area
+biomass_data$biomass_meter2 <- biomass_data$anpp/0.8625
+
+# remove outlier from data (row 73 - very low height value)
+wheat_data <- wheat_data[-73,]
+# remove Year 3 drought from the data from the wheat and biomass dataframes
+wheat_data <- filter(wheat_data, Subplot_Descriptions != "drought_corn_control")
+biomass_data <- filter(biomass_data, Subplot_Descriptions != "drought_corn_control" & 
+                               Subplot_Descriptions != "drought_corn_fungicide")
 ```
 
 Data Exploration
