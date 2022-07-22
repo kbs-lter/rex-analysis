@@ -23,29 +23,42 @@ list.files(dir)
 wheat_data <- read.csv(file.path(dir, "T2_height_greenness_2022_L0.csv")) # Moriah
 #biomass_data<-read.csv("C:\\Users\\lisal\\Downloads\\T2_biomass_2022_L0 - Sheet1.csv")
 biomass_data <- read.csv(file.path(dir, "T2_biomass_2022_L0.csv"))
-biomass_data$biomass_meter2 <- biomass_data$anpp/0.8625
 
-# remove outlier from data (row 73 - very low height value)
-wheat_data <- wheat_data[-73,]
 # remove Year 3 drought from the data from the wheat and biomass dataframes
 wheat_data <- filter(wheat_data, Subplot_Descriptions != "drought_corn_control")
 biomass_data <- filter(biomass_data, Subplot_Descriptions != "drought_corn_control" & 
                                Subplot_Descriptions != "drought_corn_fungicide")
 
+# make height and greenness into two different data frames
+height <- select(wheat_data, -9)
+greenness <- select(wheat_data, -8)
+
+# remove 6/13/2022 data - just want to look at the 6/27/2022 height data
+height1 <- filter(height, Date == "6/27/2022")
+
+# remove 6/27/2022 data - just want to look at the 6/13/2022 height data
+greenness <- filter(greenness, Date == "6/13/2022") 
+
+# Adjusting biomass data to reflect 1m2 - the frame used was 115 cm by 75 cm, which is 0.8625m2 in area
+biomass_data$biomass_meter2 <- biomass_data$anpp/0.8625
+
+# remove outlier from height data (row 73 - very low height value)
+# height1 <- height1[-73,]
+
 # look at data
-View(wheat_data)
-str(wheat_data)
-summary(wheat_dat$Greenness)
-summary(wheat_dat$Height_cm)
+View(height1)
+str(height1)
+summary(height1$Height_cm)
+summary(greenness$Greenness)
 
 #taking height avg with %>% and summarizing all the heights used in the datasheet, 
-height_avg <-wheat_data %>% 
+height_avg <-height1 %>% 
         group_by(Subplot_Descriptions) %>%
         summarize(height_avg=mean(Height_cm,na.rm=TRUE),
                   se_height=std.error(Height_cm,na.rm=TRUE))
 
 #now do this for avg_greenness by plugging in greenness. 
-avg_greenness <-wheat_data %>%
+avg_greenness <-greenness %>%
         group_by(Subplot_Descriptions)%>%
         summarize(avg_greenness=mean(Greenness,na.rm=TRUE),
                   se_greenness=std.error(Greenness,na.rm=TRUE))
@@ -64,7 +77,7 @@ wheat_green_height_biomass<-merge(wheat_green_height,biomass_avg)
 
 #Steal Moriah's code from Github,thx
 #Plot for height
-ggplot(wheat_green_height_biomass, aes(x = Subplot_Descriptions, y = height_avg, fill = Subplot_Descriptions)) +
+ggplot(height_avg, aes(x = Subplot_Descriptions, y = height_avg, fill = Subplot_Descriptions)) +
   geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
   geom_bar(stat = "identity") +
   geom_errorbar(aes(ymin = height_avg - se_height, ymax = height_avg + se_height), width = 0.2,
@@ -84,7 +97,8 @@ ggplot(wheat_green_height_biomass, aes(x = Subplot_Descriptions, y = height_avg,
   theme(legend.position = "none")
 
 # box plot for height
-ggplot(wheat_data, aes(x = Subplot_Descriptions, y = Height_cm, fill = Subplot_Descriptions)) +
+png("T2_height_2022.png", units="in", width=6, height=5, res=300)
+ggplot(height1, aes(x = Subplot_Descriptions, y = Height_cm, fill = Subplot_Descriptions)) +
         geom_boxplot(color = "black", outlier.shape = NA) +
         labs(x = "Treatment", y = "Height (cm)", fill = "Subplot_Descriptions") +
         geom_jitter(shape=16, position=position_jitter(0.2)) +
@@ -98,9 +112,10 @@ ggplot(wheat_data, aes(x = Subplot_Descriptions, y = Height_cm, fill = Subplot_D
                                   "drought_control" = "Drought",
                                   "drought_fungicide" = "Drought \n Fungicide",
                                   "drought_legacy_control"= "Drought \n Legacy",   
-                                  "drought_legacy_fungicide"="Drought \n Legacy Fungicide")) +
+                                  "drought_legacy_fungicide"="Drought \n Legacy \n Fungicide")) +
         theme_classic() +
         theme(legend.position="none")
+dev.off()
   
 # now do this for greenness 
 ggplot(wheat_green_height_biomass, aes(x = Subplot_Descriptions, y = avg_greenness, fill = Subplot_Descriptions)) +
@@ -124,7 +139,7 @@ ggplot(wheat_green_height_biomass, aes(x = Subplot_Descriptions, y = avg_greenne
   #Fungicide=red colors, drought=blue, both purple idk wjnrw;vofr.erw
 
 # box plot for greenness
-ggplot(wheat_data, aes(x = Subplot_Descriptions, y = Greenness, fill = Subplot_Descriptions)) +
+ggplot(greenness, aes(x = Subplot_Descriptions, y = Greenness, fill = Subplot_Descriptions)) +
         geom_boxplot(color = "black", outlier.shape = NA) +
         labs(x = "Treatment", y = "Greenness", fill = "Subplot_Descriptions") +
         geom_jitter(shape=16, position=position_jitter(0.2)) +
@@ -161,12 +176,11 @@ ggplot(wheat_green_height_biomass, aes(x = Subplot_Descriptions, y = biomass_avg
                                   "drought_legacy_fungicide"="Drought \n Legacy Fungicide")) +
         theme_classic()+
         theme(legend.position="none")
-dev.off
 #Try to do some boxplots for the height, greenness, biomass
 #geom_box?
 
 # box plot for biomass
-png("T2_biomass_2022.png", units="in", width=6, height=6, res=300)
+png("T2_biomass_2022.png", units="in", width=6, height=5, res=300)
 ggplot(biomass_data, aes(x = Subplot_Descriptions, y = biomass_meter2, fill = Subplot_Descriptions)) +
         geom_boxplot(color = "black", outlier.shape = NA) +
         labs(x = "Treatment", y = "Average Biomass (g)", fill = "Subplot_Descriptions") +
@@ -184,5 +198,5 @@ ggplot(biomass_data, aes(x = Subplot_Descriptions, y = biomass_meter2, fill = Su
                                  "drought_legacy_fungicide"="Drought \n Legacy \n Fungicide")) +
         theme_classic() +
         theme(legend.position="none")
-dev.off
+dev.off()
 
