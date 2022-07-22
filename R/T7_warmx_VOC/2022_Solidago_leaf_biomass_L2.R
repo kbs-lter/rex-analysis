@@ -51,14 +51,24 @@ warm_drought <- length_weight %>%
 # regression btwn length and weight for leaves in each treatment
 w_mod <- lm(Weight_g ~ Length_cm, data = warmed)
 summary(w_mod)$coef
+plot(Weight_g ~ Length_cm, data=warmed)
+abline(w_mod)
 a_mod <- lm(Weight_g ~ Length_cm, data = ambient)
 summary(a_mod)$coef
+plot(Weight_g ~ Length_cm, data=ambient)
+abline(a_mod)
 i_mod <- lm(Weight_g ~ Length_cm, data = irr)
 summary(i_mod)$coef
+plot(Weight_g ~ Length_cm, data=irr)
+abline(i_mod)
 d_mod <- lm(Weight_g ~ Length_cm, data = drought)
 summary(d_mod)$coef
+plot(Weight_g ~ Length_cm, data=drought)
+abline(d_mod)
 wd_mod <- lm(Weight_g ~ Length_cm, data = warm_drought)
 summary(wd_mod)$coef
+plot(Weight_g ~ Length_cm, data=warm_drought)
+abline(wd_mod)
 
 # making dataframe for each treatment in voc_leaves dataframe
 warmed_voc <- voc_leaves %>%
