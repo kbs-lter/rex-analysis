@@ -76,7 +76,7 @@ m8 <- lmer(log(Dried_Plant_Biomass_g) ~ Subplot_Descriptions * growth_habit + (1
 m9 <- lmer(log(Dried_Plant_Biomass_g) ~ Subplot_Descriptions + MH_rhizomatous_suggestion + (1|Replicate/Footprint_Location), data=anpp, REML=F)
 m10 <- lmer(log(Dried_Plant_Biomass_g) ~ Subplot_Descriptions * MH_rhizomatous_suggestion + (1|Replicate/Footprint_Location), data=anpp, REML=F)
 AICctab(m2, m3, m4, m5, m6, m7, m8, m9, m10)
-summary(m7)
+summary(m4)
 emmeans(m5, list(pairwise ~ Subplot_Descriptions * Species_Code), adjust = "tukey")
 emmip(m5, Species_Code ~ Subplot_Descriptions)
 
@@ -99,10 +99,26 @@ summary(two.way)
 two.way2 <- aov(log(Dried_Plant_Biomass_g) ~ Subplot_Descriptions + Species_Code, data = anpp)
 summary(two.way2)
 
+# summing data to plot-level for analyses
+anpp_plot <- anpp %>%
+  group_by(Treatment, Replicate, Footprint_Location, Subplot_Location, Subplot_Descriptions) %>% 
+  summarize(sum_biomass = sum(Dried_Plant_Biomass_g, na.rm = TRUE))
+m_plot1 <- lmer(sum_biomass ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data=anpp_plot, REML=F)
+summary(m_plot1)
+anpp_plot <- within(anpp_plot, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "irrigated"))
+
+anpp_plot_growth <- anpp %>%
+  group_by(Treatment, Replicate, Footprint_Location, Subplot_Location, Subplot_Descriptions, growth_habit) %>% 
+  summarize(sum_biomass = sum(Dried_Plant_Biomass_g, na.rm = TRUE)) %>%
+  filter(!(growth_habit == "Vine"))
+m_plot2 <- lmer(sum_biomass ~ growth_habit + (1|Replicate/Footprint_Location), data=anpp_plot_growth, REML=F)
+summary(m_plot2)
+anpp_plot <- within(anpp_plot, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "warmed_drought"))
+
 
 ### species specific models ###
 anpp_spp <- anpp %>%
-  filter(Species_Code == "TRFPR")
+  filter(Species_Code == "POAPR")
 ## list of species to test: ACHMI, SOOGR, ASTPI, ERIAN, SOOCA, ASTSA, HYPPE, PHLPR, DACGL, POAPR, AGRRE, POACO, TRFPR
 m_spp <- lmer(log(Dried_Plant_Biomass_g) ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data=anpp_spp, REML=F)
 summary(m_spp)
@@ -112,6 +128,14 @@ anpp_spp <- within(anpp_spp, Subplot_Descriptions <- relevel(factor(Subplot_Desc
 anpp_spp <- within(anpp_spp, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "warmed"))
 anpp_spp <- within(anpp_spp, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "warmed_drought"))
 anpp_spp <- within(anpp_spp, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "ambient"))
+
+# summing to plot level
+anpp_spp_plot <- anpp_spp %>%
+  group_by(Treatment, Replicate, Footprint_Location, Subplot_Location, Subplot_Descriptions) %>% 
+  summarize(sum_biomass = sum(Dried_Plant_Biomass_g, na.rm = TRUE))
+m_spp_plot <- lmer(sum_biomass~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data=anpp_spp_plot, REML=F)
+summary(m_spp_plot)
+anpp_spp_plot <- within(anpp_spp_plot, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "ambient"))
 
 
 ### origin specific models ###
@@ -129,7 +153,7 @@ anpp_org <- within(anpp_org, Subplot_Descriptions <- relevel(factor(Subplot_Desc
 
 ### growth form specific models ###
 anpp_growth <- anpp %>%
-  filter(growth_habit == "Forb")
+  filter(growth_habit == "Graminoid")
 m_growth <- lmer(log(Dried_Plant_Biomass_g) ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data=anpp_growth, REML=F)
 summary(m_growth)
 # re-leveling the dataframe & re-running model for post-hoc comparisions
@@ -138,6 +162,14 @@ anpp_growth <- within(anpp_growth, Subplot_Descriptions <- relevel(factor(Subplo
 anpp_growth <- within(anpp_growth, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "warmed"))
 anpp_growth <- within(anpp_growth, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "warmed_drought"))
 anpp_growth <- within(anpp_growth, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "ambient"))
+
+# summing to plot-level
+anpp_growth_2 <- anpp_growth %>%
+  group_by(Treatment, Replicate, Footprint_Location, Subplot_Location, Subplot_Descriptions) %>% 
+  summarize(sum_biomass = sum(Dried_Plant_Biomass_g, na.rm = TRUE))
+m_growth2 <- lmer(log(sum_biomass) ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data=anpp_growth_2, REML=F)
+summary(m_growth2)
+anpp_growth_2 <- within(anpp_growth_2, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "warmed_drought"))
 
 
 ### rhizomatous specific models ###
