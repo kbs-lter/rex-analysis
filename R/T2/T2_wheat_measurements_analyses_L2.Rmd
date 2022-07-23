@@ -44,41 +44,53 @@ list.files(dir)
 wheat_data <- read.csv(file.path(dir, "T2_height_greenness_2022_L0.csv"))
 wheat_biomass <- read.csv(file.path(dir, "T2_biomass_2022_L0.csv"))
 
-# Adjusting biomass data to reflect 1m2 - the frame used was 115 cm by 75 cm, which is 0.8625m2 in area
-biomass_data$biomass_meter2 <- biomass_data$anpp/0.8625
+# make height and greenness into two different data frames
+height <- select(wheat_data, -9)
+greenness <- select(wheat_data, -8)
 
-# remove outlier from data (row 73 - very low height value)
-wheat_data <- wheat_data[-73,]
+# remove 6/13/2022 data - just want to look at the 6/27/2022 height data
+height1 <- filter(height, Date == "6/27/2022")
+
+# remove 6/27/2022 data - just want to look at the 6/13/2022 height data
+greenness <- filter(greenness, Date == "6/13/2022") 
+
+# Adjusting biomass data to reflect 1m2 - the frame used was 115 cm by 75 cm, which is 0.8625m2 in area
+wheat_biomass$biomass_meter2 <- wheat_biomass$anpp/0.8625
+
+# remove outlier from height data (row 73 - very low height value)
+# height1 <- height1[-73,]
+
 # remove Year 3 drought from the data from the wheat and biomass dataframes
 wheat_data <- filter(wheat_data, Subplot_Descriptions != "drought_corn_control")
-biomass_data <- filter(biomass_data, Subplot_Descriptions != "drought_corn_control" & 
+wheat_biomass <- filter(wheat_biomass, Subplot_Descriptions != "drought_corn_control" & 
                                Subplot_Descriptions != "drought_corn_fungicide")
+
 ```
 
 Data Exploration
 ```{r}
 # Height
 # checking raw data
-hist(wheat_data$Height_cm) # this looks pretty normal
-qqnorm(wheat_data$Height_cm) # this looks ok
-shapiro.test(wheat_data$Height_cm) # pvalue is < 0.05 so we reject the null hypothesis that the data is normal (aka not normally distributed)
+hist(height1$Height_cm) # this looks pretty normal
+qqnorm(height1$Height_cm) # this looks ok
+shapiro.test(height1$Height_cm) # pvalue is < 0.05 so we reject the null hypothesis that the data is normal (aka not normally distributed)
 
 # Exploring distributions for these data:
-descdist(wheat_data$Height_cm, discrete = FALSE)
+descdist(height1$Height_cm, discrete = FALSE)
 
 # Leverage plots and detecting Outliers. https://www.statmethods.net/stats/rdiagnostics.html
 # These illustrate whether certain data points have more leverage (more influence), and thus could be outliers. It's a way of detecting outliers. Leverage plots can help identify whether a point has high or low influence, based on its leverage and residual and determining model fit with and without the point in question. Ultimately you decide whether the points are outliers or not, based on the knowledge of the system and how much it changes the model when included vs. excluded from the data used to fit the model. Here is a good overview of the combination of leverage and residual: scroll down to sections beginning at "13.3 Unusual Observations": https://daviddalpiaz.github.io/appliedstats/model-diagnostics.html
 
 # subplot level data
 # model
-fit_subplot <- lm(Height_cm ~ Subplot_Descriptions, data = wheat_data)
-outlierTest(fit_subplot) # outliers in row 73 and 152
+fit_subplot <- lm(Height_cm ~ Subplot_Descriptions, data = height1)
+outlierTest(fit_subplot) # outliers in row 19 and 32
 qqPlot(fit_subplot, main="QQ Plot") 
 hist(fit_subplot$residuals)
 leveragePlots(fit_subplot)
 ols_test_normality(fit_subplot) # pvalues are < 0.05 so we can reject the null that the errors are not normally distributed - see for further explanation: https://rforpoliticalscience.com/2020/10/22/check-linear-regression-residuals-are-normally-distributed-with-olsrr-package-in-r/
 
-m1_h <- lmer((Height_cm) ~ Subplot_Descriptions + (1|Replicate/Footprint), data = wheat_data, REML=F)
+m1_h <- lmer((Height_cm) ~ Subplot_Descriptions + (1|Replicate/Footprint), data = height1, REML=F)
 hist(resid(m1_h))
 qqnorm(resid(m1_h))
 plot(m1_h)
@@ -87,7 +99,7 @@ plot(m1_h)
 # *****Levene’s Test - tests whether or not the variance among two or more groups is equal - If the p-value is less than our chosen significance level, we can reject the null hypothesis and conclude that we have enough evidence to state that the variance among the groups is not equal (which we want).
 
 # homogeneity of variance? yes, p >0.05 (no significant difference between the group variances)
-leveneTest(residuals(m1_h) ~ wheat_data$Subplot_Descriptions) # Assumption met
+leveneTest(residuals(m1_h) ~ height1$Subplot_Descriptions) # Assumption met
 
 # Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
 # Check for normal residuals
@@ -102,8 +114,12 @@ emmeans(m1_h, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
 ```{r}
 # Greenness
 # checking raw data
-hist(wheat_data$Greenness) # this looks pretty normal
-qqnorm(wheat_data$Greenness) # this looks ok
+hist(wheat_data$Greenness) # this does not look normal
+qqnorm(wheat_data$Greenness) 
+shapiro.test(wheat_data$Greenness) # pvalue is < 0.05 so we reject the null hypothesis that the data is normal (aka not normally distributed)
+
+# Exploring distributions for these data:
+descdist(wheat_data$Greenness, discrete = FALSE)
 
 m1_g <- lmer(sqrt(Greenness) ~ Subplot_Descriptions + (1|Replicate/Footprint), data = wheat_data, REML=F)
 hist(resid(m1_g))
@@ -119,10 +135,10 @@ emmeans(m1_g, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
 ```{r}
 # Biomass
 # checking raw data
-hist(wheat_biomass$anpp) # this looks normal
-qqnorm(wheat_biomass$anpp) # this looks ok
+hist(wheat_biomass$biomass_meter2) # this looks normal
+qqnorm(wheat_biomass$biomass_meter2) # this looks ok
 
-m1_b <- lmer(anpp ~ Subplot_Descriptions + (1|Replicate/Footprint), data = wheat_biomass, REML=F)
+m1_b <- lmer(biomass_meter2 ~ Subplot_Descriptions + (1|Replicate/Footprint), data = wheat_biomass, REML=F)
 hist(resid(m1_b))
 qqnorm(resid(m1_b))
 plot(m1_b)
