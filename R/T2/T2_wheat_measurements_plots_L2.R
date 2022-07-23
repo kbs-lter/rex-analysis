@@ -79,7 +79,7 @@ biomass_avg <- biomass_data %>%
                   se_biomass=std.error(biomass_meter2,na.rm=TRUE))
 
 #lastly,take biomass avg and do standard error
-biomass_avg <- biomass_data_noyear3 %>%
+biomass_avg_noyear3 <- biomass_data_noyear3 %>%
         group_by(Subplot_Descriptions) %>%
         summarize(biomass_avg=mean(biomass_meter2,na.rm=TRUE),
                   se_biomass=std.error(biomass_meter2,na.rm=TRUE))
