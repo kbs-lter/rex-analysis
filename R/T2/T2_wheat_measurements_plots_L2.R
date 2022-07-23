@@ -123,7 +123,7 @@ ggplot(height1, aes(x = Subplot_Descriptions, y = Height_cm, fill = Subplot_Desc
                                      "drought_legacy_control"= "plum4", "drought_legacy_fungicide"= "blue2")) +
         theme(legend.text = element_text(size=16),
               legend.title = element_text(size=16)) +
-        scale_x_discrete(labels=c("control" = "Irrigated Control",
+        scale_x_discrete(labels=c("control" = "Irrigated \n Control",
                                   "control_fungicide" = "Irrigated Control \n Fungicide",
                                   "drought_control" = "Drought",
                                   "drought_fungicide" = "Drought \n Fungicide",
@@ -208,7 +208,7 @@ ggplot(biomass_data_noyear3, aes(x = Subplot_Descriptions, y = biomass_meter2, f
                                      "drought_legacy_control"= "plum4", "drought_legacy_fungicide"= "blue2")) +
         theme(legend.text = element_text(size=16),
              legend.title = element_text(size=16)) +
-        scale_x_discrete(labels=c("control" = "Irrigated Control",
+        scale_x_discrete(labels=c("control" = "Irrigated \n Control",
                                  "control_fungicide" = "Irrigated Control \n Fungicide",
                                  "drought_control" = "Drought",
                                  "drought_fungicide" = "Drought \n Fungicide",
