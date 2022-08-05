@@ -36,13 +36,14 @@ library(RColorBrewer)
 library(plotrix) # std.error() function
 library(olsrr) # ols_test_normality() function
 
-# Set working directory from .Renviron
+# Set working directory from .Renviron 
+# ignore this, this is how Moriah reads in data
 dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
 
 # Read in data
-wheat_data <- read.csv(file.path(dir, "T2_height_greenness_2022_L0.csv"))
-wheat_biomass <- read.csv(file.path(dir, "T2_biomass_2022_L0.csv"))
+wheat_data <- read.csv(file.path(dir, "T2/T2_height_greenness_2022_L0.csv"))
+wheat_biomass <- read.csv(file.path(dir, "T2/T2_biomass_2022_L0.csv"))
 
 # make height and greenness into two different data frames
 height <- select(wheat_data, -9)
@@ -58,7 +59,7 @@ greenness <- filter(greenness, Date == "6/13/2022")
 wheat_biomass$biomass_meter2 <- wheat_biomass$anpp/0.8625
 
 # remove outlier from height data (row 73 - very low height value)
-# height1 <- height1[-73,]
+height1 <- height1[-73,]
 
 # remove Year 3 drought from the data from the wheat and biomass dataframes
 wheat_data <- filter(wheat_data, Subplot_Descriptions != "drought_corn_control")
@@ -121,6 +122,8 @@ shapiro.test(wheat_data$Greenness) # pvalue is < 0.05 so we reject the null hypo
 # Exploring distributions for these data:
 descdist(wheat_data$Greenness, discrete = FALSE)
 
+#this data needs some transformation bc it's not normal but I never got around to this
+
 m1_g <- lmer(sqrt(Greenness) ~ Subplot_Descriptions + (1|Replicate/Footprint), data = wheat_data, REML=F)
 hist(resid(m1_g))
 qqnorm(resid(m1_g))
@@ -137,16 +140,40 @@ emmeans(m1_g, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
 # checking raw data
 hist(wheat_biomass$biomass_meter2) # this looks normal
 qqnorm(wheat_biomass$biomass_meter2) # this looks ok
+shapiro.test(wheat_biomass$biomass_meter2) # pvalue is > 0.05 so we accept the null hypothesis that the data is normal (aka data normally distributed)
+
+# Exploring distributions for these data:
+descdist(wheat_biomass$biomass_meter2, discrete = FALSE)
+
+# Leverage plots and detecting Outliers. https://www.statmethods.net/stats/rdiagnostics.html
+# subplot level data
+# model
+fit_subplot <- lm(biomass_meter2 ~ Subplot_Descriptions, data = wheat_biomass)
+outlierTest(fit_subplot) # no outliers
+qqPlot(fit_subplot, main="QQ Plot") 
+hist(fit_subplot$residuals)
+leveragePlots(fit_subplot)
+ols_test_normality(fit_subplot) # for further explanation: https://rforpoliticalscience.com/2020/10/22/check-linear-regression-residuals-are-normally-distributed-with-olsrr-package-in-r/
 
 m1_b <- lmer(biomass_meter2 ~ Subplot_Descriptions + (1|Replicate/Footprint), data = wheat_biomass, REML=F)
 hist(resid(m1_b))
 qqnorm(resid(m1_b))
 plot(m1_b)
 
+# Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
+# *****Levene’s Test - tests whether or not the variance among two or more groups is equal - If the p-value is less than our chosen significance level, we can reject the null hypothesis and conclude that we have enough evidence to state that the variance among the groups is not equal (which we want).
+
 # homogeneity of variance? yes, p >0.05 (no significant difference between the group variances)
 leveneTest(residuals(m1_b) ~ wheat_biomass$Subplot_Descriptions)
+
+# Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
+# Check for normal residuals
+qqPlot(resid(m1_b))
+hist(residuals(m1_b))
+shapiro.test(resid(m1_b)) # normally distributed resids bc p>0.05
+outlierTest(m1_b) # no outliers
+
 
 summary(m1_b)
 emmeans(m1_b, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
 ```
-

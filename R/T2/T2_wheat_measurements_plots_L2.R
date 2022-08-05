@@ -14,7 +14,7 @@ library(tidyverse)
 library(ggplot2)
 library(plotrix)
 
-# Set working directory from .Renviron
+# Set working directory from .Renviron (ignore this if you aren't Moriah)
 dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
 
