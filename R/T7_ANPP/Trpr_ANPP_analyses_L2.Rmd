@@ -43,35 +43,39 @@ dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
 
 # Read in data
-anpp_19 <- read.csv(file.path(dir, "T7_ANPP/L0/REX_T7_ANPP_all_plots_2019.csv")) # not cleaned data - 2019 data
-anpp_21 <- read.csv(file.path(dir, "T7_ANPP/L1/T7_Zarnetske_ANPP_L1.csv")) # 2021 ANPP data
+anpp19 <- read.csv(file.path(dir, "T7_ANPP/L1/T7_warmx_ANPP_2019_L1.csv")) # 2019 ANPP data
+anpp21 <- read.csv(file.path(dir, "T7_ANPP/L1/T7_warmx_ANPP_2021_L1.csv")) # 2021 ANPP data
 meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
 ```
 
 ```{r}
 # cleaning 2019 data
-anpp_19 <- anpp_19 %>% select(Date, PZ_footprints_Field_Code, Group_Code, Dried_plant_biomass_g_per_metersquare)
-names(anpp_19)[2] <- "Unique_ID" #changing column name to match what's in the meta data file
-anpp_19_merge <- merge(anpp_19, meta)
-anpp_19_merge <- anpp_19_merge[,-c(5:10)] # delete unnecessary columns
-anpp_19_merge$year <- 2019  
-names(anpp_19_merge)[4] <- "Biomass" #changing column name
-anpp_19_merge <- anpp_19_merge[,-c(1,2)] # delete unnecessary columns
-names(anpp_19_merge)[1] <- "Code" #changing column name
+names(anpp19)[names(anpp19)=="Dried_plant_biomass_g_per_metersquare"] <- "Biomass_metersq" # changing column name
+names(anpp19)[names(anpp19)=="Group_Code"] <- "Code" # changing column name
+anpp19 <- anpp19[,-c(2, 5, 11:13)] # delete unnecessary columns
 
 # cleaning 2021 data
-anpp_21 <- anpp_21[,-c(1:5,9:17)] # delete unnecessary columns
-#names(anpp_21)[1] <- "Unique_ID" #changing column name to match what's in the meta data file
-names(anpp_21)[2] <- "Biomass" #changing column name
-anpp_21$year <- 2021
-names(anpp_21)[1] <- "Code" #changing column name
+anpp21 <- anpp21[,-c(5, 8, 11:19)] # delete unnecessary columns
+anpp21$Year <- 2021 # add year column
+names(anpp21)[names(anpp21)=="Dried_Plant_Biomass_g"] <- "Biomass" # changing column name
+names(anpp21)[names(anpp21)=="Species_Code"] <- "Code" # changing column name
 # multiply biomass values by 5 - biomass was only clipped at 0.20m2 of the 1m2 plot
-anpp_21$biomass_scaled <- anpp_21$Biomass*5
-anpp_21 <- anpp_21[,-c(2)] # delete column
-names(anpp_21)[4] <- "Biomass" #changing column name
+anpp21$biomass_scaled <- anpp21$Biomass*5
+anpp21_scaled <- anpp21[,-6] # delete column
+names(anpp21_scaled)[9] <- "Biomass" #changing column name
 
 # merge 2019 and 2021 data together
-anpp_all <- full_join(anpp_19_merge, anpp_21)
+anpp_all <- full_join(anpp19, anpp21_scaled)
+```
+
+```{r}
+# calculate total biomass per plot
+anpp_total19 <- anpp19 %>%
+  group_by(Unique_ID, Subplot_Descriptions) %>% 
+  summarize(total_biomass = sum(Biomass_metersq, na.rm = TRUE)) %>% # summing biomass per plot
+  group_by(Subplot_Descriptions) %>%
+  summarize(average_biomass = mean(total_biomass, na.rm = TRUE), # taking avg biomass of each treatment
+            se = std.error(total_biomass, na.rm = TRUE))
 ```
 
 ```{r}
@@ -221,6 +225,7 @@ ggplot(anpp_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_D
                                   "warmed_insecticide" = "Warmed \n Insecticide")) +
         theme(legend.position = "none")
 ```
+
 Looking at all legume species (Fabaceae family)
 ```{r}
 # select only Fabaceae from ANPP 2021 dataframe

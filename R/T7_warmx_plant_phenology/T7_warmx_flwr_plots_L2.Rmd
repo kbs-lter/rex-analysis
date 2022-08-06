@@ -1,0 +1,160 @@
+---
+title: "REX: T7 warmx Phenology Flowering Plots"
+author: "Moriah Young"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+COLLABORATORS: Kara Dobson, Phoebe Zarnetske, Mark Hammond
+DATA INPUT:  L1 csv cleaned data from the shared Google drive  
+DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
+PROJECT: REX  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(bbmle)
+library(lmerTest)
+library(fitdistrplus)
+library(sjPlot)
+library(car)
+library(emmeans)
+library(tidyverse)
+library(ggpubr)
+library(jtools) #summ 
+library(rstatix)
+library(RColorBrewer)
+library(plotrix)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+phen <- read.csv(file.path(dir, "T7_plant_phenology/L1/T7_warmx_plant_phenology_2021_L1.csv"))
+
+# selecting just "Flower" action 
+flwr <- subset(phen, Action == "Flower")
+flwr$Date <- as.Date(flwr$Date)
+```
+
+```{r}
+# Select by date of first flower
+first_flwr <- flwr %>%
+  group_by(Unique_ID, Subplot_Descriptions, Species, Action) %>%
+  summarize(min_julian = min(Julian, na.rm=T))
+
+# Average first Flower Date by plot
+avg_first_flwr <- first_flwr %>%
+  group_by(Subplot_Descriptions, Action) %>%
+  summarize(avg_min_julian = mean(min_julian, na.rm=T),
+            se = std.error(min_julian, na.rm = TRUE))
+
+# create a seperate dataframe for select species of interest
+soca <- subset(first_flwr, Species == "Soca") # goldenrod
+trpr <- subset(first_flwr, Species == "Trpr") # red clover
+```
+
+```{r}
+# Box plot
+ggplot(first_flwr, aes(x = Subplot_Descriptions, y = min_julian, fill = Subplot_Descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        labs(x = "Treatment", y = "Average Julian Date of Flower", fill = "Subplot_Descriptions") +
+        geom_jitter(shape=16, position=position_jitter(0.2)) +
+        #scale_fill_manual(values = c("control" = "orchid1", "control_fungicide" = "cyan2", 
+        #                             "drought_control" = "deepskyblue", "drought_fungicide" = "deeppink",
+        #                             "drought_legacy_control"= "plum4", "drought_legacy_fungicide"= "blue2")) +
+        theme(legend.text = element_text(size=16),
+              legend.title = element_text(size=16)) +
+        scale_x_discrete(labels=c("irrigated_control" = "Irrigated \n Control",
+                                  "ambient" = "Ambient",
+                                  "insecticide" = "insecticde",
+                                  "warmed" = "Warmed",
+                                  "warmed_insecticide"= "Warmed +\n Insecticide",   
+                                  "drought"="Drought",
+                                  "drought_insecticide"="Drought +\n Insecticide",
+                                  "warmed_drought"="Warmed +\n Drought",
+                                  "warmed_drought_insecticide"="Warmed +\n Drought +\n Insecticide")) +
+        theme_classic() +
+        theme(legend.position="none")
+
+# Bar plot 
+ggplot(avg_first_flwr, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = Subplot_Descriptions)) +
+  geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+  geom_bar(stat = "identity") +
+  geom_errorbar(aes(ymin = avg_min_julian - se, ymax = avg_min_julian + se), width = 0.2,
+                position = "identity") +
+  #scale_fill_manual(values = c("control" = "orchid1", "control_fungicide" = "cyan2", 
+  #     "drought_control" = "deepskyblue", "drought_corn_control" = "chartreuse1", "drought_fungicide"
+  #     ="lightsteelblue2",
+  #     "drought_legacy_control"= "seagreen2", "drought_legacy_fungicide"= "turquoise")) +
+  labs(x = "Treatment", y = "Average height (cm)") +
+  scale_x_discrete(labels=c("irrigated_control" = "Irrigated \n Control",
+                                  "ambient" = "Ambient",
+                                  "insecticide" = "insecticde",
+                                  "warmed" = "Warmed",
+                                  "warmed_insecticide"= "Warmed +\n Insecticide",   
+                                  "drought"="Drought",
+                                  "drought_insecticide"="Drought +\n Insecticide",
+                                  "warmed_drought"="Warmed +\n Drought",
+                                  "warmed_drought_insecticide"="Warmed +\n Drought +\n Insecticide")) +
+  theme_classic() +
+  theme(legend.position = "none")
+```
+Soca plots
+```{r}
+# Box plot
+ggplot(soca, aes(x = Subplot_Descriptions, y = min_julian, fill = Subplot_Descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        labs(x = "Treatment", y = "Average Julian Date of Flower", fill = "Subplot_Descriptions") +
+        geom_jitter(shape=16, position=position_jitter(0.2)) +
+        #scale_fill_manual(values = c("control" = "orchid1", "control_fungicide" = "cyan2", 
+        #                             "drought_control" = "deepskyblue", "drought_fungicide" = "deeppink",
+        #                             "drought_legacy_control"= "plum4", "drought_legacy_fungicide"= "blue2")) +
+        theme(legend.text = element_text(size=16),
+              legend.title = element_text(size=16)) +
+        scale_x_discrete(labels=c("irrigated_control" = "Irrigated \n Control",
+                                  "ambient" = "Ambient",
+                                  "insecticide" = "insecticde",
+                                  "warmed" = "Warmed",
+                                  "warmed_insecticide"= "Warmed +\n Insecticide",   
+                                  "drought"="Drought",
+                                  "drought_insecticide"="Drought +\n Insecticide",
+                                  "warmed_drought"="Warmed +\n Drought",
+                                  "warmed_drought_insecticide"="Warmed +\n Drought +\n Insecticide")) +
+        theme_classic() +
+        theme(legend.position="none")
+```
+
+
+Trpr plots
+```{r}
+# Box plot
+ggplot(trpr, aes(x = Subplot_Descriptions, y = min_julian, fill = Subplot_Descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        labs(x = "Treatment", y = "Average Julian Date of Flower", fill = "Subplot_Descriptions") +
+        geom_jitter(shape=16, position=position_jitter(0.2)) +
+        #scale_fill_manual(values = c("control" = "orchid1", "control_fungicide" = "cyan2", 
+        #                             "drought_control" = "deepskyblue", "drought_fungicide" = "deeppink",
+        #                             "drought_legacy_control"= "plum4", "drought_legacy_fungicide"= "blue2")) +
+        theme(legend.text = element_text(size=16),
+              legend.title = element_text(size=16)) +
+        scale_x_discrete(labels=c("irrigated_control" = "Irrigated \n Control",
+                                  "ambient" = "Ambient",
+                                  "insecticide" = "insecticde",
+                                  "warmed" = "Warmed",
+                                  "warmed_insecticide"= "Warmed +\n Insecticide",   
+                                  "drought"="Drought",
+                                  "drought_insecticide"="Drought +\n Insecticide",
+                                  "warmed_drought"="Warmed +\n Drought",
+                                  "warmed_drought_insecticide"="Warmed +\n Drought +\n Insecticide")) +
+        theme_classic() +
+        theme(legend.position="none")
+```
+
