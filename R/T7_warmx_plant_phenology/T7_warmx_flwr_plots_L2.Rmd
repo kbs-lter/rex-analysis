@@ -218,11 +218,17 @@ ggplot(avg_first_trpr, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = 
 ```
 ```{r}
 # delete insecticide treatments
-Trpr_noninsecticide <- avg_first_trpr[-c(3:4,8:9),]
+Trpr_noninsecticide_avg <- avg_first_trpr[-c(3:4,8:9),]
+# removing treatments we aren't interested in
+Trpr_noninsecticide <- trpr %>%
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
 
 # bar plot
 png("trpr_noninsect_flwr_2021.png", units="in", width=6, height=6, res=300)
-ggplot(Trpr_noninsecticide, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = Subplot_Descriptions)) +
+ggplot(Trpr_noninsecticide_avg, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = Subplot_Descriptions)) +
         geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
         geom_bar(stat = "identity") +
         geom_errorbar(aes(ymin = avg_min_julian - se, ymax = avg_min_julian + se), width = 0.2,
@@ -238,5 +244,24 @@ ggplot(Trpr_noninsecticide, aes(x = Subplot_Descriptions, y = avg_min_julian, fi
         theme_classic() +
         theme(legend.position = "none")
 dev.off
+
+# Box plot
+ggplot(Trpr_noninsecticide, aes(x = Subplot_Descriptions, y = min_julian, fill = Subplot_Descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        labs(x = "Treatment", y = "Average Julian Date of Flower", fill = "Subplot_Descriptions") +
+        geom_jitter(shape=16, position=position_jitter(0.2)) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" =
+                                             "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        theme(legend.text = element_text(size=16),
+              legend.title = element_text(size=16)) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme_classic() +
+        theme(legend.position="none")
+
 ```
+
 

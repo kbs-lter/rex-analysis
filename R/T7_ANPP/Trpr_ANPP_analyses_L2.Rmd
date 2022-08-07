@@ -112,14 +112,34 @@ Trpr <- anpp_all[(anpp_all$Code == "TRFPR"),]
 
 # Take subplot average of biomass
 Trpr_avg <- Trpr %>%
-        group_by(Subplot_Descriptions) %>%
+        group_by(Subplot_Descriptions, Code) %>%
+        summarise(avg_biomass = mean(Biomass, na.rm = TRUE),
+        se = std.error(Biomass, na.rm = TRUE))
+
+# select only red clover (Trpr) from ANPP dataframe = TRFPR
+trpr21 <- anpp21[(anpp21$Code == "TRFPR"),]
+
+# Take subplot average of biomass
+trpr_avg21 <- trpr21 %>%
+        group_by(Subplot_Descriptions, Code) %>%
         summarise(avg_biomass = mean(Biomass, na.rm = TRUE),
         se = std.error(Biomass, na.rm = TRUE))
 ```
 
 ```{r}
-# Plotting data
+# select only red clover (Trpr) from ANPP dataframe = TRFPR
+soca <- anpp21[(anpp21$Code == "SOOCA"),]
 
+# Take subplot average of biomass
+soca_avg21 <- soca %>%
+        group_by(Subplot_Descriptions, Code) %>%
+        summarise(avg_biomass = mean(Biomass, na.rm = TRUE),
+        se = std.error(Biomass, na.rm = TRUE))
+```
+
+
+```{r}
+# Plotting data
 ggplot(Trpr_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
         geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
         #scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab3")) +
@@ -137,24 +157,38 @@ ggplot(Trpr_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_D
                                   "warmed_insecticide" = "Warmed \n Insecticide")) +
         theme(legend.position = "none")
 ```
+
 Trpr minus the insecticide plots
 ```{r}
-# select only red clover (Trpr) from ANPP dataframe = TRFPR
-Trpr_noninsecticide <- Trpr_avg[-c(3:4,8:9),]
+# Specifying the order that we want the treatments to be listed in the figures on the x-axis
+level_order <- c('irrigated_control', 'ambient', 'drought','warmed','warmed_drought')
+
+# removing treatments we aren't interested in
+trpr_noninsecticide <- Trpr %>% 
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
+
+trpr_noninsecticide_avg <- Trpr_avg %>%
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
 
 # bar plot
 png("trpr_noninsect_anpp_2021.png", units="in", width=6, height=6, res=300)
-ggplot(Trpr_noninsecticide, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
+ggplot(trpr_noninsecticide_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
         geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
         geom_bar(stat = "identity") +
         geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
                          position = "identity") +
         scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
-        "irrigated" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
-        labs(x = "Treatment", y = "Biomass (g)") +
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment", y = "Biomass (g/0.20m^2)") +
         scale_x_discrete(labels=c("ambient" = "Ambient",
                                   "drought" = "Drought",
-                                  "irrigated" = "Irrigated \n Control",
+                                  "irrigated_control" = "Irrigated \n Control",
                                   "warmed" = "Warmed",
                                   "warmed_drought" = "Warmed \n Drought")) +
         theme_classic() +
@@ -162,120 +196,83 @@ ggplot(Trpr_noninsecticide, aes(x = Subplot_Descriptions, y = avg_biomass, fill 
 dev.off
 ```
 
-
-
-Old Code below:
-
-Looking at all ANPP from 2019 - baseline data
+Soca plots
 ```{r}
-# select only legume data from ANPP 2019
-legume_19 <- anpp_19_merge[(anpp_19_merge$Group_Code == "Legume"),]
+# Specifying the order that we want the treatments to be listed in the figures on the x-axis
+level_order <- c('irrigated_control', 'ambient', 'drought','warmed','warmed_drought')
 
-# Take treatment average total biomass
-legume_19_avg <- legume_19 %>%
-        group_by(Subplot_Descriptions) %>%
-        summarize(avg_biomass = mean(Dried_plant_biomass_g_per_metersquare, na.rm = TRUE))
+# removing treatments we aren't interested in
+soca_noninsecticide <- soca %>% 
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
 
-# Plotting data
-ggplot(legume_19_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
+soca_noninsecticide_avg <- soca_avg %>%
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
+
+# bar plot
+png("soca_noninsect_anpp_2021.png", units="in", width=6, height=6, res=300)
+ggplot(soca_noninsecticide_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
         geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
-        #scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab3")) +
         geom_bar(stat = "identity") +
-        labs(x = "Treatment", y = "Biomass (g)") +
-        #scale_fill_manual(values = c("olivedrab", "olivedrab2")) +
+        geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
+                         position = "identity") +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment", y = "Biomass (g/0.20m^2)") +
         scale_x_discrete(labels=c("ambient" = "Ambient",
                                   "drought" = "Drought",
-                                  "drought_insecticide" = "Drought \n Insecticide",
-                                  "insecticide" = "Insecticide",
-                                  "irrigated" = "Irrigated \n Control",
+                                  "irrigated_control" = "Irrigated \n Control",
                                   "warmed" = "Warmed",
-                                  "warmed_drought" = "Warmed \n Drought",
-                                  "warmed_drought_insecticide" = "Warmed \n Drought \n Insecticide",
-                                  "warmed_insecticide" = "Warmed \n Insecticide")) +
+                                  "warmed_drought" = "Warmed \n Drought")) +
+        theme_classic() +
         theme(legend.position = "none")
+dev.off
 ```
-
-Looking at all ANPP from 2021
 ```{r}
-# Take subplot total biomass
-anpp_sum <- ANPP_21 %>%
-        group_by(Field_Loc_Code, Subplot_Descriptions) %>%
-        summarize(sum_biomass = sum(Dried_Plant_Biomass_g, na.rm = TRUE))
+# Specifying the order that we want the treatments to be listed in the figures on the x-axis
+level_order <- c('irrigated_control', 'ambient', 'drought','warmed','warmed_drought')
 
-# Take treatment average total biomass
-anpp_avg <- anpp_sum %>%
-        group_by(Subplot_Descriptions) %>%
-        summarize(avg_biomass = mean(sum_biomass, na.rm = TRUE))
+soca_trpr <- full_join(soca, trpr21)
 
-# Plotting data from average total biomass of each treatment
-ggplot(anpp_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
-        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
-        #scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab3")) +
-        geom_bar(stat = "identity") +
-        labs(x = "Treatment", y = "Biomass (g)") +
-        #scale_fill_manual(values = c("olivedrab", "olivedrab2")) +
-        scale_x_discrete(labels=c("ambient" = "Ambient",
-                                  "drought" = "Drought",
-                                  "drought_insecticide" = "Drought \n Insecticide",
-                                  "insecticide" = "Insecticide",
-                                  "irrigated" = "Irrigated \n Control",
-                                  "warmed" = "Warmed",
-                                  "warmed_drought" = "Warmed \n Drought",
-                                  "warmed_drought_insecticide" = "Warmed \n Drought \n Insecticide",
-                                  "warmed_insecticide" = "Warmed \n Insecticide")) +
-        theme(legend.position = "none")
+soca_trpr_avg <- full_join(soca_avg21, trpr_avg21)
+
+# removing treatments we aren't interested in
+soca_trpr_noninsecticide <- soca_trpr %>% 
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
+
+soca_trpr_noninsecticide_avg <- soca_trpr_avg %>% 
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
+
+png("ANPP_L2_barplot_Trpr_Soca.png", units="in", width=8, height=6, res=300)
+ggplot(soca_trpr_noninsecticide_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Code)) +
+  geom_bar(position = "dodge", stat = "identity", col = "black") +
+  geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
+                position = position_dodge(0.9)) +
+  labs(x = "Treatment", y = "Average Biomass (g/0.20m^2)", fill="Species") +
+  scale_x_discrete(limits = level_order,
+                   labels=c("ambient" = "Ambient",
+                            "warmed" = "Warmed",
+                            "irrigated_control" = "Irrigated",
+                            "drought" = "Drought",
+                            "warmed_drought" = "Warmed Drought")) +
+  scale_fill_manual(values=c("sienna1", "sienna"),# specify colors here
+                    labels=c("Solidago \n canadensis","Trifolium \n pratense")) + # specify species names here)
+  theme_classic()
+dev.off()
 ```
 
-Looking at all legume species (Fabaceae family)
-```{r}
-# select only Fabaceae from ANPP 2021 dataframe
-Fabaceae <- ANPP_21[(ANPP_21$family == "Fabaceae"),]
-Fabaceae <- na.omit(Fabaceae) # remove NAs
-```
 
-Looking only at red clover (Trpr or TRFPR)
-```{r}
-# select only red clover (Trpr) from ANPP dataframe = TRFPR
-Trpr <- ANPP_21[(ANPP_21$Species_Code == "TRFPR"),] 
-
-# multiply biomass values by 5 - biomass was only clipped at 0.20m2 of the 1m2 plot
-Trpr$biomass_scaled <- Trpr$Dried_Plant_Biomass_g*5
-
-# Take subplot average of biomass
-Trpr_avg_scaled <- Trpr %>%
-        group_by(Subplot_Descriptions) %>%
-        summarize(avg_biomass_scaled = mean(biomass_scaled, na.rm = TRUE))
-
-# Take subplot average of biomass
-Trpr_avg <- Trpr %>%
-        group_by(Subplot_Descriptions) %>%
-        summarize(avg_biomass = mean(Dried_Plant_Biomass_g, na.rm = TRUE))
-```
-
-```{r}
-# Plotting data
-# trying to reorder bars to descending order in plot - not successful
-Trpr_avg <- within(Trpr_avg, 
-                   Subplot_Descriptions <- factor(Subplot_Descriptions, 
-                                      levels=names(sort(table(Subplot_Descriptions), 
-                                                        decreasing=TRUE))))
-ggplot(Trpr_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
-        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
-        #scale_color_manual(values = c("gall" = "olivedrab", "no_gall" = "olivedrab3")) +
-        geom_bar(stat = "identity") +
-        labs(x = "Treatment", y = "Biomass (g)") +
-        #scale_fill_manual(values = c("olivedrab", "olivedrab2")) +
-        scale_x_discrete(labels=c("ambient" = "Ambient",
-                                  "drought" = "Drought",
-                                  "drought_insecticide" = "Drought \n Insecticide",
-                                  "insecticide" = "Insecticide",
-                                  "irrigated" = "Irrigated \n Control",
-                                  "warmed" = "Warmed",
-                                  "warmed_drought" = "Warmed \n Drought",
-                                  "warmed_drought_insecticide" = "Warmed \n Drought \n Insecticide",
-                                  "warmed_insecticide" = "Warmed \n Insecticide")) +
-        theme(legend.position = "none")
-```
 
 ```{r}
 #### Data exploration ###
