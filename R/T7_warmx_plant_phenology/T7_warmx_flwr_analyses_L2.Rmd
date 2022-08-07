@@ -1,0 +1,138 @@
+---
+title: "REX: T7 warmx Phenology Flowering Analyses"
+author: "Moriah Young"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+COLLABORATORS: Kara Dobson, Phoebe Zarnetske, Mark Hammond
+DATA INPUT:  L1 csv cleaned data from the shared Google drive  
+DATA OUTPUT: Code and Rmd are in the scripts folder in Github L2 folder
+PROJECT: REX  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(bbmle)
+library(lmerTest)
+library(fitdistrplus)
+library(sjPlot)
+library(car)
+library(emmeans)
+library(tidyverse)
+library(ggpubr)
+library(jtools) #summ 
+library(rstatix)
+library(RColorBrewer)
+library(plotrix)
+library(stats)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+phen <- read.csv(file.path(dir, "T7_plant_phenology/L1/T7_warmx_plant_phenology_2021_L1.csv"))
+
+# selecting just "Flower" action 
+flwr <- subset(phen, Action == "Flower")
+flwr$Date <- as.Date(flwr$Date)
+
+# Select by date of first flower
+first_flwr <- flwr %>%
+  group_by(Unique_ID, Subplot_Descriptions, Replicate, Footprint_Location, Species, Action) %>%
+  summarize(min_julian = min(Julian, na.rm=T))
+
+# create a separate dataframe for select species of interest
+soca <- subset(first_flwr, Species == "Soca") # goldenrod
+trpr <- subset(first_flwr, Species == "Trpr") # red clover
+```
+
+Data Exploration for all species
+```{r}
+# checking raw data
+hist(first_flwr$min_julian)
+qqnorm(first_flwr$min_julian)
+shapiro.test(first_flwr$min_julian) # pvalue is < 0.05 so we cannot reject the null hypothesis that the data is normal (aka not normally distributed)
+
+# Exploring distributions for these data:
+descdist(first_flwr$min_julian, discrete = FALSE)
+
+m1 <- lmer(log(min_julian) ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data = first_flwr, REML=F)
+hist(resid(m1))
+qqnorm(resid(m1))
+plot(m1)
+```
+
+Data Exploration for Soca
+```{r}
+# checking raw data
+hist(soca$min_julian)
+qqnorm(soca$min_julian)
+shapiro.test(soca$min_julian) # pvalue is < 0.05 so we cannot reject the null hypothesis that the data is normal (aka not normally distributed) but it is close (p-value = 0.04623)
+
+# Exploring distributions for these data:
+descdist(soca$min_julian, discrete = FALSE) # normal
+
+m1s <- lmer(min_julian ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data = soca, REML=F)
+hist(resid(m1s))
+qqnorm(resid(m1s))
+plot(m1s)
+
+# homogeneity of variance? yes, p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1s) ~ soca$Subplot_Descriptions)
+```
+
+Model Exploration
+```{r}
+summary(m1s)
+emmeans(m1s, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+```
+
+Data Exploration for Trpr
+```{r}
+# checking raw data
+hist(trpr$min_julian)
+qqnorm(trpr$min_julian)
+shapiro.test(trpr$min_julian) # pvalue is < 0.05 so we cannot reject the null hypothesis that the data is normal (aka not normally distributed) but it is close (p-value = 0.04623)
+
+# Exploring distributions for these data:
+descdist(trpr$min_julian, discrete = FALSE) # normal
+
+m1t <- lmer(min_julian ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data = trpr, REML=F)
+hist(resid(m1t))
+qqnorm(resid(m1t))
+plot(m1t)
+outlierTest(m1t) # row 5
+
+trpr_nooutlier <- trpr[-5,] # remove outlier
+
+# checking raw data without outlier
+hist(trpr_nooutlier$min_julian)
+qqnorm(trpr_nooutlier$min_julian)
+shapiro.test(trpr_nooutlier$min_julian) # pvalue is < 0.05 so we cannot reject the null hypothesis that the data is normal (aka not normally distributed) 
+
+# Exploring distributions for these data:
+descdist(trpr_nooutlier$min_julian, discrete = FALSE)
+
+m1t <- lmer(min_julian ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data = trpr_nooutlier, REML=F)
+hist(resid(m1t))
+qqnorm(resid(m1t))
+plot(m1t)
+outlierTest(m1t) # no outliers
+
+# homogeneity of variance? yes, p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1s) ~ soca$Subplot_Descriptions)
+```
+Model Exploration
+```{r}
+summary(m1t)
+emmeans(m1t, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+```
+
