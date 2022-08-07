@@ -37,38 +37,79 @@ dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
 
 # Read in data
-phen <- read.csv(file.path(dir, "T7_plant_phenology/L1/T7_warmx_plant_phenology_2021_L1.csv"))
+phen <- read.csv(file.path(dir, "T7_plant_phenology/L1/T7_warmx_plant_phenology_L1.csv"))
 
 # selecting just "Flower" action 
 flwr <- subset(phen, Action == "Flower")
 flwr$Date <- as.Date(flwr$Date)
+
+# make a column for Year
+flwr$Year <- format(flwr$Date, "%Y")
+
+flwr_21 <- subset(flwr, Year == "2021")
+flwr_22 <- subset(flwr, Year == "2022")
+
+# Specifying the order that we want the treatments to be listed in the figures on the x-axis
+level_order <- c('irrigated_control', 'ambient', 'drought','warmed','warmed_drought')
 ```
 
+2021
 ```{r}
 # Select by date of first flower
-first_flwr <- flwr %>%
-  group_by(Unique_ID, Subplot_Descriptions, Species, Action) %>%
+first_flwr_21 <- flwr_21 %>%
+  group_by(Unique_ID, Subplot_Descriptions, Code, Action) %>%
   summarize(min_julian = min(Julian, na.rm=T))
 
 # Average first Flower Date by plot
-avg_first_flwr <- first_flwr %>%
+avg_first_flwr_21 <- first_flwr_21 %>%
   group_by(Subplot_Descriptions, Action) %>%
   summarize(avg_min_julian = mean(min_julian, na.rm=T),
             se = std.error(min_julian, na.rm = TRUE))
 
 # create a separate dataframe for select species of interest
 # first flower
-soca <- subset(first_flwr, Species == "Soca") # goldenrod
+soca_21 <- subset(first_flwr_21, Code == "Soca") # goldenrod
 # Average first Flower Date by plot
-avg_first_soca <- soca %>%
+avg_first_soca_21 <- soca_21 %>%
   group_by(Subplot_Descriptions, Action) %>%
   summarize(avg_min_julian = mean(min_julian, na.rm=T),
             se = std.error(min_julian, na.rm = TRUE))
 
 # first flower
-trpr <- subset(first_flwr, Species == "Trpr") # red clover
+trpr_21 <- subset(first_flwr_21, Code == "Trpr") # red clover
 # Average first Flower Date by plot
-avg_first_trpr <- trpr %>%
+avg_first_trpr_21 <- trpr_21 %>%
+  group_by(Subplot_Descriptions, Action) %>%
+  summarize(avg_min_julian = mean(min_julian, na.rm=T),
+            se = std.error(min_julian, na.rm = TRUE))
+```
+
+2022
+```{r}
+# Select by date of first flower
+first_flwr_22 <- flwr_22 %>%
+  group_by(Unique_ID, Subplot_Descriptions, Code, Action) %>%
+  summarize(min_julian = min(Julian, na.rm=T))
+
+# Average first Flower Date by plot
+avg_first_flwr_22 <- first_flwr_22 %>%
+  group_by(Subplot_Descriptions, Action) %>%
+  summarize(avg_min_julian = mean(min_julian, na.rm=T),
+            se = std.error(min_julian, na.rm = TRUE))
+
+# create a separate dataframe for select species of interest
+# first flower
+soca_22 <- subset(first_flwr_22, Code == "Soca") # goldenrod
+# Average first Flower Date by plot
+avg_first_soca_22 <- soca_22 %>%
+  group_by(Subplot_Descriptions, Action) %>%
+  summarize(avg_min_julian = mean(min_julian, na.rm=T),
+            se = std.error(min_julian, na.rm = TRUE))
+
+# first flower
+trpr_22 <- subset(first_flwr_22, Code == "Trpr") # red clover
+# Average first Flower Date by plot
+avg_first_trpr_22 <- trpr_22 %>%
   group_by(Subplot_Descriptions, Action) %>%
   summarize(avg_min_julian = mean(min_julian, na.rm=T),
             se = std.error(min_julian, na.rm = TRUE))
@@ -264,4 +305,59 @@ ggplot(Trpr_noninsecticide, aes(x = Subplot_Descriptions, y = min_julian, fill =
 
 ```
 
+2022 Red Clover Plots
+```{r}
+# removing treatments we aren't interested in
+Trpr22_noninsecticide <- trpr_22 %>%
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
+
+Trpr22_noninsecticide_avg <- avg_first_trpr_22 %>%
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
+
+# bar plot
+png("trpr_noninsect_flwr_2022.png", units="in", width=6, height=6, res=300)
+ggplot(Trpr22_noninsecticide_avg, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        geom_bar(stat = "identity") +
+        geom_errorbar(aes(ymin = avg_min_julian - se, ymax = avg_min_julian + se), width = 0.2,
+                         position = "identity") +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment", y = "Average Julian Date of First Flower") +
+        scale_x_discrete(limits = level_order, 
+                         labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme_classic() +
+        theme(legend.position = "none")
+dev.off()
+
+# Box plot
+png("trpr_noninsect_flwr_2022_boxplot.png", units="in", width=6, height=6, res=300)
+ggplot(Trpr22_noninsecticide, aes(x = Subplot_Descriptions, y = min_julian, fill = Subplot_Descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        labs(x = "Treatment", y = "Average Julian Date of First Flower", fill = "Subplot_Descriptions") +
+        geom_jitter(shape=16, position=position_jitter(0.2)) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" =
+                                             "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        theme(legend.text = element_text(size=16),
+              legend.title = element_text(size=16)) +
+        scale_x_discrete(limits = level_order,
+                         labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme_classic() +
+        theme(legend.position="none")
+dev.off()
+```
 
