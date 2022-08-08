@@ -1,0 +1,63 @@
+---
+title: "REX: T7 warmx Phenology Green-up Analyses"
+author: "Moriah Young"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+COLLABORATORS: Kara Dobson, Phoebe Zarnetske, Mark Hammond
+DATA INPUT:  L1 csv cleaned data from the shared Google drive  
+DATA OUTPUT: Code and Rmd are in the scripts folder in Github L2 folder
+PROJECT: REX  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(bbmle)
+library(lmerTest)
+library(fitdistrplus)
+library(sjPlot)
+library(car)
+library(emmeans)
+library(tidyverse)
+library(ggpubr)
+library(jtools) #summ 
+library(rstatix)
+library(RColorBrewer)
+library(plotrix)
+library(stats)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+plantcomp <- read.csv(file.path(dir, "T7_plant_comp/L1/T7_warmx_plantcomp_L1.csv"))
+
+# make a column for Year
+plantcomp$Date <- as.Date(plantcomp$Date)
+plantcomp$Year <- format(plantcomp$Date, "%Y")
+
+# remove climate treatment plots we aren't interested in here (i.e., insecticide plots)
+plantcomp_noinsect <- plantcomp %>%
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
+
+# Select by date of first flower
+first_flwr <- flwr %>%
+  group_by(Unique_ID, Subplot_Descriptions, Replicate, Footprint_Location, Code, Action, Year) %>%
+  summarize(min_julian = min(Julian, na.rm=T))
+
+# create a separate dataframe for select species of interest
+soca <- subset(first_flwr, Code == "Soca") # goldenrod
+trpr <- subset(first_flwr, Code == "Trpr") # red clover
+trpr22 <- subset(first_flwr, Year == "2022") # just 2022 data
+```

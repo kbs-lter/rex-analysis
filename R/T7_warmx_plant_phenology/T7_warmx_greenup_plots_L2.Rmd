@@ -50,6 +50,18 @@ plantcomp_noinsect <- plantcomp %>%
              Subplot_Descriptions=='warmed_drought_insecticide' |
              Subplot_Descriptions=='warmed_insecticide'))
 
+# remove species we aren't interested in (i.e., unknowns and unsorted plant material)
+plantcomp_noinsect <- plantcomp_noinsect %>%
+  filter(!(Code=='Living Vegetation' |
+             Code=='Non-Living Vegetation' |
+             Code=='Moss' |
+             Code=='Soil' |
+             Code == 'total_living' |
+             Code == 'total_non_living' |
+             Code == 'soil_char' |
+             Code == 'standing_dead' |
+             Code =='Litter')) 
+
 # Specifying the order that we want the treatments to be listed in the figures on the x-axis
 level_order <- c('ambient', 'drought','warmed','warmed_drought')
 ```
@@ -61,7 +73,7 @@ greenup_noinsect <- plantcomp_noinsect %>%
   summarize(min_julian = min(Julian, na.rm=T))
 
 # Average date of first record of plant comp
-avg_greenup <- plantcomp_noinsect_first %>%
+avg_greenup <- greenup_noinsect %>%
   group_by(Subplot_Descriptions, Year) %>%
   summarize(avg_min_julian = mean(min_julian, na.rm=T),
             se = std.error(min_julian, na.rm = TRUE))
@@ -74,6 +86,7 @@ avg_greenup_21 <- subset(avg_greenup, Year == "2021")
 greenup_noinsect_22 <- subset(greenup_noinsect, Year == "2022")
 avg_greenup_22 <- subset(avg_greenup, Year == "2022")
 ```
+
 2021 Data
 ```{r}
 # bar plot
@@ -156,7 +169,7 @@ ggplot(greenup_noinsect_22, aes(x = Subplot_Descriptions, y = min_julian, fill =
         theme(legend.position="none")
 dev.off()
 ```
-
+Red Clover
 ```{r}
 # Select by date of first record of plant comp
 trpr <- subset(greenup_noinsect, Code == "Trpr")
@@ -186,60 +199,55 @@ ggplot(trpr_avg_greenup, aes(x = Subplot_Descriptions, y = avg_min_julian, fill 
 dev.off()
 ```
 
-
-Trpr
+Goldenrod
 ```{r}
-# select red clover only
-trpr <- subset(plantcomp_noinsect, Code == "Trpr")
+# Select by date of first record of plant comp
+soca <- subset(greenup_noinsect, Code == "Soca")
 
-# Select by first record of plant comp cover
-trpr_first <- trpr %>%
-  group_by(Unique_ID, Subplot_Descriptions, Code) %>%
-  summarize(min_julian = min(Julian, na.rm=T))
-
-# Average record of plant comp cover
-avg_trpr_first <- trpr_first %>%
-  group_by(Subplot_Descriptions) %>%
+# Average date of first record of plant comp
+soca_avg_greenup <- soca %>%
+  group_by(Subplot_Descriptions, Year) %>%
   summarize(avg_min_julian = mean(min_julian, na.rm=T),
             se = std.error(min_julian, na.rm = TRUE))
+
+soca_avg_greenup <- soca_avg_greenup[-5,] # remove irrigated control
+
+png("greenup_soca_L2_barplot.png", units="in", width=8, height=6, res=300)
+ggplot(soca_avg_greenup, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = Year)) +
+  geom_bar(position = "dodge", stat = "identity", col = "black") +
+  geom_errorbar(aes(ymin = avg_min_julian - se, ymax = avg_min_julian + se), width = 0.2,
+                position = position_dodge(0.9)) +
+  labs(x = "Treatment", y = "Average Julian Date of Green Up", fill="Year") +
+  scale_x_discrete(limits = level_order,
+                   labels=c("ambient" = "Ambient",
+                            "warmed" = "Warmed",
+                            "drought" = "Drought",
+                            "warmed_drought" = "Warmed Drought")) +
+  scale_fill_manual(values=c("sienna1", "sienna"),# specify colors here
+                    labels=c("2021","2022")) + # specify species names here)
+  theme_classic()
+dev.off()
 ```
 
-Trpr only plots
 ```{r}
-# bar plot
-png("trpr_greenup_2022_barplot.png", units="in", width=6, height=6, res=300)
-ggplot(avg_trpr_first, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = Subplot_Descriptions)) +
-        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
-        geom_bar(stat = "identity") +
-        geom_errorbar(aes(ymin = avg_min_julian - se, ymax = avg_min_julian + se), width = 0.2,
-                         position = "identity") +
-        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", "warmed" = "red2", "warmed_drought"
-                                     = "darkred")) +
-        labs(x = "Treatment", y = "Average Julian Date of Green Up") +
-        scale_x_discrete(limits = level_order, 
-                         labels=c("ambient" = "Ambient",
-                                  "drought" = "Drought",
-                                  "warmed" = "Warmed",
-                                  "warmed_drought" = "Warmed +\n Drought")) +
-        theme_classic() +
-        theme(legend.position = "none")
-dev.off()
+# Select only trpr from plantcomp
+trpr_plantcomp <- subset(plantcomp_noinsect, Code == "Trpr")
+trpr_plantcomp21 <- subset(trpr_plantcomp, Year == "2021")
+trpr_plantcomp21 <- subset(trpr_plantcomp21, Subplot_Descriptions != "irrigated_control")
 
-# Box plot
-ggplot(trpr_first, aes(x = Subplot_Descriptions, y = min_julian, fill = Subplot_Descriptions)) +
-        geom_boxplot(color = "black", outlier.shape = NA) +
-        labs(x = "Treatment", y = "Average Julian Date of Green Up", fill = "Subplot_Descriptions") +
-        geom_jitter(shape=16, position=position_jitter(0.2)) +
-        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", "warmed" = "red2", "warmed_drought"
-                                     = "darkred")) +
-        theme(legend.text = element_text(size=16),
-              legend.title = element_text(size=16)) +
-        scale_x_discrete(limits = level_order,
-                         labels=c("ambient" = "Ambient",
-                                  "drought" = "Drought",
-                                  "warmed" = "Warmed",
-                                  "warmed_drought" = "Warmed +\n Drought")) +
-        theme_classic() +
-        theme(legend.position="none")
+# Average cover by date?
+avg_trpr_cover <- trpr_plantcomp21 %>%
+  group_by(Subplot_Descriptions, Julian) %>%
+  summarize(avg_cover = mean(Cover, na.rm=T),
+            se = std.error(Cover, na.rm = TRUE))
+
+
+ggplot(avg_trpr_cover, aes(x = Julian, y = avg_cover, group = Subplot_Descriptions)) +
+                 #geom_errorbar(aes(ymin=avg_shannon-se, ymax=avg_shannon+se), width=.1, position=position_dodge(0.15)) +
+           geom_line(aes(color=Subplot_Descriptions), size = 1) +
+           geom_point(aes(color=Subplot_Descriptions), size = 2) +
+           #scale_color_manual(values = c("#a6bddb", "#fb6a4a"), labels=c("Ambient","Warmed")) +
+           labs(x = NULL, y = "Percent Cover", color = "Subplot_Descriptions") +
+        theme_classic() 
 ```
 

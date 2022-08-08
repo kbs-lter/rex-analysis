@@ -1,0 +1,114 @@
+---
+title: "REX: T7 warmx Phenology Green-up Analyses"
+author: "Moriah Young"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+COLLABORATORS: Kara Dobson, Phoebe Zarnetske, Mark Hammond
+DATA INPUT:  L1 csv cleaned data from the shared Google drive  
+DATA OUTPUT: Code and Rmd are in the scripts folder in Github L2 folder
+PROJECT: REX  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(bbmle)
+library(lmerTest)
+library(fitdistrplus)
+library(sjPlot)
+library(car)
+library(emmeans)
+library(tidyverse)
+library(ggpubr)
+library(jtools) #summ 
+library(rstatix)
+library(RColorBrewer)
+library(plotrix)
+library(stats)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+plantcomp <- read.csv(file.path(dir, "T7_plant_comp/L1/T7_warmx_plantcomp_L1.csv"))
+
+# make a column for Year
+plantcomp$Date <- as.Date(plantcomp$Date)
+plantcomp$Year <- format(plantcomp$Date, "%Y")
+
+# Select by date of percent cover occurrence
+greenup <- plantcomp %>%
+  group_by(Unique_ID, Subplot_Descriptions, Replicate, Footprint_Location, Code, Year) %>%
+  summarize(min_julian = min(Julian, na.rm=T))
+
+# remove climate treatment plots we aren't interested in here (i.e., insecticide plots)
+greenup_noinsect <- greenup %>%
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
+
+greenup21 <- subset(greenup_noinsect, Year == "2021") # just 2021 data
+greenup22 <- subset(greenup_noinsect, Year == "2022") # just 2022 data
+
+# create a separate dataframe for select species of interest
+soca <- subset(greenup_noinsect, Code == "Soca") # goldenrod
+soca21 <- subset(soca, Year == "2021") # just 2021 data
+soca22 <- subset(soca, Year == "2022") # just 2022 data
+trpr <- subset(greenup_noinsect, Code == "Trpr") # red clover
+trpr21 <- subset(trpr, Year == "2021") # just 2021 data
+trpr22 <- subset(trpr, Year == "2022") # just 2022 data
+```
+
+Data Exploration for all species green-up 2021
+```{r}
+# checking raw data
+hist(greenup21$min_julian)
+qqnorm(greenup21$min_julian)
+shapiro.test(greenup21$min_julian) # pvalue is < 0.05 so we cannot reject the null hypothesis that the data is normal (aka not normally distributed)
+
+# Exploring distributions for these data:
+descdist(greenup21$min_julian, discrete = FALSE)
+
+m1 <- lmer(log(min_julian) ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data = greenup21, REML=F)
+hist(resid(m1))
+qqnorm(resid(m1))
+plot(m1)
+```
+
+Data Exploration for all species green-up
+```{r}
+# checking raw data
+hist(greenup_noinsect$min_julian)
+qqnorm(greenup_noinsect$min_julian)
+shapiro.test(greenup_noinsect$min_julian) # pvalue is < 0.05 so we cannot reject the null hypothesis that the data is normal (aka not normally distributed)
+
+# Exploring distributions for these data:
+descdist(greenup_noinsect$min_julian, discrete = FALSE)
+
+m1 <- lmer(log(min_julian) ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data = greenup_noinsect, REML=F)
+hist(resid(m1))
+qqnorm(resid(m1))
+plot(m1)
+```
+
+Model Exploration
+```{r}
+m2 <- lmer(log(min_julian) ~ Subplot_Descriptions + as.factor(Year) + (1|Replicate/Footprint_Location), data = greenup_noinsect, REML=F)
+summary(m1)
+emmeans(m1, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+
+summary(m2)
+emmeans(m2, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+emmeans(m2, list(pairwise ~ Subplot_Descriptions + as.factor(Year)), adjust = "tukey")
+```
+
+
