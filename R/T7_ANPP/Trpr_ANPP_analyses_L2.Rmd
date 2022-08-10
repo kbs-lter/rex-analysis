@@ -46,6 +46,9 @@ list.files(dir)
 anpp19 <- read.csv(file.path(dir, "T7_ANPP/L1/T7_warmx_ANPP_2019_L1.csv")) # 2019 ANPP data
 anpp21 <- read.csv(file.path(dir, "T7_ANPP/L1/T7_warmx_ANPP_2021_L1.csv")) # 2021 ANPP data
 meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
+
+# Specifying the order that we want the treatments to be listed in the figures on the x-axis
+level_order <- c('irrigated_control', 'ambient', 'drought','warmed','warmed_drought')
 ```
 
 ```{r}
@@ -234,9 +237,6 @@ ggplot(soca_noninsecticide_avg, aes(x = Subplot_Descriptions, y = avg_biomass, f
 dev.off
 ```
 ```{r}
-# Specifying the order that we want the treatments to be listed in the figures on the x-axis
-level_order <- c('irrigated_control', 'ambient', 'drought','warmed','warmed_drought')
-
 soca_trpr <- full_join(soca, trpr21)
 
 soca_trpr_avg <- full_join(soca_avg21, trpr_avg21)
@@ -254,22 +254,22 @@ soca_trpr_noninsecticide_avg <- soca_trpr_avg %>%
              Subplot_Descriptions=='warmed_drought_insecticide' |
              Subplot_Descriptions=='warmed_insecticide'))
 
-png("ANPP_L2_barplot_Trpr_Soca.png", units="in", width=8, height=6, res=300)
+png("ANPP_L2_barplot_Trpr_Soca.png", units="in", width=6, height=6, res=300)
 ggplot(soca_trpr_noninsecticide_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Code)) +
-  geom_bar(position = "dodge", stat = "identity", col = "black") +
-  geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
-                position = position_dodge(0.9)) +
-  labs(x = "Treatment", y = "Average Biomass (g/0.20m^2)", fill="Species") +
-  scale_x_discrete(limits = level_order,
-                   labels=c("ambient" = "Ambient",
-                            "warmed" = "Warmed",
-                            "irrigated_control" = "Irrigated",
-                            "drought" = "Drought",
-                            "warmed_drought" = "Warmed Drought")) +
-  scale_fill_manual(values=c("sienna1", "sienna"),# specify colors here
-                    labels=c("Solidago \n canadensis","Trifolium \n pratense")) + # specify species names here)
-  theme_classic()
-dev.off()
+        geom_bar(position = "dodge", stat = "identity", col = "black") +
+        geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
+                      position = position_dodge(0.9)) +
+        labs(x = "Treatment", y = bquote("2021 Average Biomass g/0.20m^2"), fill="Species") +
+        scale_x_discrete(limits = level_order,
+                         labels=c("ambient" = "Ambient",
+                                  "warmed" = "Warmed",
+                                  "irrigated_control" = "Irrigated",
+                                  "drought" = "Drought",
+                                  "warmed_drought" = "Warmed Drought")) +
+        scale_fill_manual(values=c("#edae49", "#d1495b"),
+                          labels=c("Solidago canadensis","Trifolium pratense")) +
+        theme(legend.position = "top")
+dev.off
 ```
 
 

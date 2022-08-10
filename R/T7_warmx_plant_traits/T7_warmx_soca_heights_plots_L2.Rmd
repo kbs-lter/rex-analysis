@@ -1,0 +1,147 @@
+---
+title: "REX: T7 warmx Soca Heights (2021) Plots"
+author: "Moriah Young"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+COLLABORATORS: Kara Dobson, Phoebe Zarnetske, Mark Hammond
+DATA INPUT:  L1 csv cleaned data from the shared Google drive  
+DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
+PROJECT: REX  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(bbmle)
+library(lmerTest)
+library(fitdistrplus)
+library(sjPlot)
+library(car)
+library(emmeans)
+library(tidyverse)
+library(ggpubr)
+library(jtools) #summ 
+library(rstatix)
+library(RColorBrewer)
+library(plotrix)
+library(ggtext)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+height <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_Soca_plant_height_L1.csv"))
+
+unique(sort(height[["treatment"]])) # check that there aren't any misspellings
+
+# change action names
+height$treatment[height$treatment == "Ambient"] <- "ambient"
+height$treatment[height$treatment == "Ambient Drought"] <- "drought"
+height$treatment[height$treatment == "Irrigated Control"] <- "irrigated_control"
+height$treatment[height$treatment == "Warm"] <- "warmed"
+height$treatment[height$treatment == "Warm Drought"] <- "warmed_drought"
+
+names(height)[names(height)=="footprint"] <- "Footprint_Location"
+names(height)[names(height)=="treatment"] <- "Subplot_Descriptions"
+names(height)[names(height)=="rep"] <- "Rep"
+
+# selecting only non-galled plants
+height <- subset(height, gall_present == "no_gall")
+drought_height <- subset(height, drought_period == "Drought")
+predrought_height <- subset(height, drought_period == "Pre-Drought")
+postdrought_height <- subset(height, drought_period == "Post-Drought")
+
+# Specifying the order that we want the treatments to be listed in the figures on the x-axis
+level_order <- c('irrigated_control', 'ambient', 'drought','warmed','warmed_drought')
+```
+
+Take averages
+```{r}
+height_avg <- height %>%
+  group_by(Subplot_Descriptions, drought_period) %>%
+  summarize(avg_height = mean(plant_height_cm, na.rm = TRUE),
+            se = std.error(plant_height_cm, na.rm = TRUE))
+
+droughtheight_avg <- drought_height %>%
+  group_by(Subplot_Descriptions) %>%
+  summarize(avg_height = mean(plant_height_cm, na.rm = TRUE),
+            se = std.error(plant_height_cm, na.rm = TRUE))
+
+predroughtheight_avg <- predrought_height %>%
+  group_by(Subplot_Descriptions) %>%
+  summarize(avg_height = mean(plant_height_cm, na.rm = TRUE),
+            se = std.error(plant_height_cm, na.rm = TRUE))
+
+postdroughtheight_avg <- postdrought_height %>%
+  group_by(Subplot_Descriptions) %>%
+  summarize(avg_height = mean(plant_height_cm, na.rm = TRUE),
+            se = std.error(plant_height_cm, na.rm = TRUE))
+```
+
+Plots - all time points
+```{r}
+ggplot(height_avg, aes(x = Subplot_Descriptions, y = avg_height, fill = drought_period)) +
+  geom_bar(position = "dodge", stat = "identity", col = "black") +
+  geom_errorbar(aes(ymin = avg_height - se, ymax = avg_height + se), width = 0.2,
+                position = position_dodge(0.9)) +
+  labs(x = "Treatment", y = "Average Height (cm)", fill="drought_period") +
+  scale_x_discrete(limits = level_order,
+                   labels=c("ambient" = "Ambient",
+                            "irrigated_control" = "Irrigated \n Control",
+                            "warmed" = "Warmed",
+                            "drought" = "Drought", 
+                            "warmed_drought" = "Warmed +\n Drought")) +
+  #scale_fill_manual(values=c("sienna1", "sienna"),# specify colors here
+  #                  labels=c("2021","2022")) + # specify species names here)
+  theme_classic()
+
+```
+Plots - drought
+```{r}
+png("soca_drought_height_barplot_2021.png", units="in", width=6, height=6, res=300)
+ggplot(droughtheight_avg, aes(x = Subplot_Descriptions, y = avg_height, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        geom_bar(stat = "identity") +
+        geom_errorbar(aes(ymin = avg_height - se, ymax = avg_height + se), width = 0.2,
+                         position = "identity") +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment", y = "Average Height (cm)") +
+        scale_x_discrete(limits = level_order, 
+                         labels=c("ambient" = "Ambient",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme_classic() +
+        theme(legend.position = "none")
+dev.off()
+
+png("soca_drought_height_boxplot_2021.png", units="in", width=6, height=6, res=300)
+ggplot(drought_height, aes(x = Subplot_Descriptions, y = plant_height_cm, fill = Subplot_Descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        labs(x = "Treatment", y = "S. canadensis Heights (cm) 2021", fill = "Subplot_Descriptions") +
+        geom_jitter(shape=16, position=position_jitter(0.2)) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" =
+                                             "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        theme(legend.text = element_text(size=16),
+              legend.title = element_text(size=16)) +
+        scale_x_discrete(limits = level_order,
+                         labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme_classic() +
+        theme(legend.position="none")
+dev.off
+```
+

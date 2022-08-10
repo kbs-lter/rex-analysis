@@ -50,7 +50,40 @@ flwr_21 <- subset(flwr, Year == "2021")
 flwr_22 <- subset(flwr, Year == "2022")
 
 # Specifying the order that we want the treatments to be listed in the figures on the x-axis
-level_order <- c('irrigated_control', 'ambient', 'drought','warmed','warmed_drought')
+level_order <- c('ambient', 'drought','warmed','warmed_drought')
+```
+
+All years
+```{r}
+# need to subset by Julian date bc 2022 is not finished yet - last julian date of data collected for 2022 at this time is 2010
+flwr_21_subset <- subset(flwr_21, Julian <= "208")
+flwr_22_subset <- subset(flwr_22, Julian <= "208")
+flwr_subset <- full_join(flwr_21_subset, flwr_22_subset)
+flwr_subset <- subset(flwr_subset, Subplot_Descriptions != "irrigated_control")
+
+# Select by date of first flower
+first_flwr_subset <- flwr_subset %>%
+  group_by(Unique_ID, Subplot_Descriptions, Code, Action, Year) %>%
+  summarize(min_julian = min(Julian, na.rm=T))
+
+# Average first Flower Date by plot
+avg_first_flwr_subset <- first_flwr_subset%>%
+  group_by(Subplot_Descriptions, Action, Year) %>%
+  summarize(avg_min_julian = mean(min_julian, na.rm=T),
+            se = std.error(min_julian, na.rm = TRUE))
+
+ggplot(avg_first_flwr_subset, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = as.factor(Year))) +
+        geom_bar(position = "dodge", stat = "identity", col = "black") +
+        geom_errorbar(aes(ymin = avg_min_julian - se, ymax = avg_min_julian + se), width = 0.2,
+                      position = position_dodge(0.9)) +
+        labs(x = "Treatment", y = bquote("Julian Date of First Flower"), fill="Year") +
+        scale_x_discrete(limits = level_order,
+                         labels=c("ambient" = "Ambient",
+                                  "warmed" = "Warmed",
+                                  "drought" = "Drought",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        #scale_fill_manual(labels=c("2021","2022")) +
+        theme(legend.position = "top")
 ```
 
 2021
@@ -115,161 +148,103 @@ avg_first_trpr_22 <- trpr_22 %>%
             se = std.error(min_julian, na.rm = TRUE))
 ```
 
+2021 Soca plots
 ```{r}
-# Box plot
-ggplot(first_flwr, aes(x = Subplot_Descriptions, y = min_julian, fill = Subplot_Descriptions)) +
-        geom_boxplot(color = "black", outlier.shape = NA) +
-        labs(x = "Treatment", y = "Average Julian Date of Flower", fill = "Subplot_Descriptions") +
-        geom_jitter(shape=16, position=position_jitter(0.2)) +
-        #scale_fill_manual(values = c("control" = "orchid1", "control_fungicide" = "cyan2", 
-        #                             "drought_control" = "deepskyblue", "drought_fungicide" = "deeppink",
-        #                             "drought_legacy_control"= "plum4", "drought_legacy_fungicide"= "blue2")) +
-        theme(legend.text = element_text(size=16),
-              legend.title = element_text(size=16)) +
-        scale_x_discrete(labels=c("irrigated_control" = "Irrigated \n Control",
-                                  "ambient" = "Ambient",
-                                  "insecticide" = "Insecticde",
-                                  "warmed" = "Warmed",
-                                  "warmed_insecticide"= "Warmed +\n Insecticide",   
-                                  "drought"="Drought",
-                                  "drought_insecticide"="Drought +\n Insecticide",
-                                  "warmed_drought"="Warmed +\n Drought",
-                                  "warmed_drought_insecticide"="Warmed +\n Drought +\n Insecticide")) +
-        theme_classic() +
-        theme(legend.position="none")
-
-# Bar plot 
-ggplot(avg_first_flwr, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = Subplot_Descriptions)) +
-  geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
-  geom_bar(stat = "identity") +
-  geom_errorbar(aes(ymin = avg_min_julian - se, ymax = avg_min_julian + se), width = 0.2,
-                position = "identity") +
-  #scale_fill_manual(values = c("control" = "orchid1", "control_fungicide" = "cyan2", 
-  #     "drought_control" = "deepskyblue", "drought_corn_control" = "chartreuse1", "drought_fungicide"
-  #     ="lightsteelblue2",
-  #     "drought_legacy_control"= "seagreen2", "drought_legacy_fungicide"= "turquoise")) +
-  labs(x = "Treatment", y = "Average Julian Date of First Flower") +
-  scale_x_discrete(labels=c("irrigated_control" = "Irrigated \n Control",
-                                  "ambient" = "Ambient",
-                                  "insecticide" = "Insecticde",
-                                  "warmed" = "Warmed",
-                                  "warmed_insecticide"= "Warmed +\n Insecticide",   
-                                  "drought"="Drought",
-                                  "drought_insecticide"="Drought +\n Insecticide",
-                                  "warmed_drought"="Warmed +\n Drought",
-                                  "warmed_drought_insecticide"="Warmed +\n Drought +\n Insecticide")) +
-  theme_classic() +
-  theme(legend.position = "none")
-```
-Soca plots
-```{r}
-# Box plot
-ggplot(soca, aes(x = Subplot_Descriptions, y = min_julian, fill = Subplot_Descriptions)) +
-        geom_boxplot(color = "black", outlier.shape = NA) +
-        labs(x = "Treatment", y = "Average Julian Date of First Flower", fill = "Subplot_Descriptions") +
-        geom_jitter(shape=16, position=position_jitter(0.2)) +
-        #scale_fill_manual(values = c("control" = "orchid1", "control_fungicide" = "cyan2", 
-        #                             "drought_control" = "deepskyblue", "drought_fungicide" = "deeppink",
-        #                             "drought_legacy_control"= "plum4", "drought_legacy_fungicide"= "blue2")) +
-        theme(legend.text = element_text(size=16),
-              legend.title = element_text(size=16)) +
-        scale_x_discrete(labels=c("irrigated_control" = "Irrigated \n Control",
-                                  "ambient" = "Ambient",
-                                  "insecticide" = "Insecticde",
-                                  "warmed" = "Warmed",
-                                  "warmed_insecticide"= "Warmed +\n Insecticide",   
-                                  "drought"="Drought",
-                                  "drought_insecticide"="Drought +\n Insecticide",
-                                  "warmed_drought"="Warmed +\n Drought",
-                                  "warmed_drought_insecticide"="Warmed +\n Drought +\n Insecticide")) +
-        theme_classic() +
-        theme(legend.position="none")
-
-# Bar plot 
-ggplot(avg_first_soca, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = Subplot_Descriptions)) +
-  geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
-  geom_bar(stat = "identity") +
-  geom_errorbar(aes(ymin = avg_min_julian - se, ymax = avg_min_julian + se), width = 0.2,
-                position = "identity") +
-  #scale_fill_manual(values = c("control" = "orchid1", "control_fungicide" = "cyan2", 
-  #     "drought_control" = "deepskyblue", "drought_corn_control" = "chartreuse1", "drought_fungicide"
-  #     ="lightsteelblue2",
-  #     "drought_legacy_control"= "seagreen2", "drought_legacy_fungicide"= "turquoise")) +
-  labs(x = "Treatment", y = "Average Julian Date of First Flower") +
-  scale_x_discrete(labels=c("irrigated_control" = "Irrigated \n Control",
-                                  "ambient" = "Ambient",
-                                  "insecticide" = "Insecticde",
-                                  "warmed" = "Warmed",
-                                  "warmed_insecticide"= "Warmed +\n Insecticide",   
-                                  "drought"="Drought",
-                                  "drought_insecticide"="Drought +\n Insecticide",
-                                  "warmed_drought"="Warmed +\n Drought",
-                                  "warmed_drought_insecticide"="Warmed +\n Drought +\n Insecticide")) +
-  theme_classic() +
-  theme(legend.position = "none")
-```
-
-
-Trpr plots
-```{r}
-# Box plot
-ggplot(trpr, aes(x = Subplot_Descriptions, y = min_julian, fill = Subplot_Descriptions)) +
-        geom_boxplot(color = "black", outlier.shape = NA) +
-        labs(x = "Treatment", y = "Average Julian Date of Flower", fill = "Subplot_Descriptions") +
-        geom_jitter(shape=16, position=position_jitter(0.2)) +
-        #scale_fill_manual(values = c("control" = "orchid1", "control_fungicide" = "cyan2", 
-        #                             "drought_control" = "deepskyblue", "drought_fungicide" = "deeppink",
-        #                             "drought_legacy_control"= "plum4", "drought_legacy_fungicide"= "blue2")) +
-        theme(legend.text = element_text(size=16),
-              legend.title = element_text(size=16)) +
-        scale_x_discrete(labels=c("irrigated_control" = "Irrigated \n Control",
-                                  "ambient" = "Ambient",
-                                  "insecticide" = "Insecticde",
-                                  "warmed" = "Warmed",
-                                  "warmed_insecticide"= "Warmed +\n Insecticide",   
-                                  "drought"="Drought",
-                                  "drought_insecticide"="Drought +\n Insecticide",
-                                  "warmed_drought"="Warmed +\n Drought",
-                                  "warmed_drought_insecticide"="Warmed +\n Drought +\n Insecticide")) +
-        theme_classic() +
-        theme(legend.position="none")
-
-# Bar plot 
-ggplot(avg_first_trpr, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = Subplot_Descriptions)) +
-  geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
-  geom_bar(stat = "identity") +
-  geom_errorbar(aes(ymin = avg_min_julian - se, ymax = avg_min_julian + se), width = 0.2,
-                position = "identity") +
-  #scale_fill_manual(values = c("control" = "orchid1", "control_fungicide" = "cyan2", 
-  #     "drought_control" = "deepskyblue", "drought_corn_control" = "chartreuse1", "drought_fungicide"
-  #     ="lightsteelblue2",
-  #     "drought_legacy_control"= "seagreen2", "drought_legacy_fungicide"= "turquoise")) +
-  labs(x = "Treatment", y = "Average Julian Date of First Flower") +
-  scale_x_discrete(labels=c("irrigated_control" = "Irrigated \n Control",
-                                  "ambient" = "Ambient",
-                                  "insecticide" = "Insecticde",
-                                  "warmed" = "Warmed",
-                                  "warmed_insecticide"= "Warmed +\n Insecticide",   
-                                  "drought"="Drought",
-                                  "drought_insecticide"="Drought +\n Insecticide",
-                                  "warmed_drought"="Warmed +\n Drought",
-                                  "warmed_drought_insecticide"="Warmed +\n Drought +\n Insecticide")) +
-  theme_classic() +
-  theme(legend.position = "none")
-```
-```{r}
-# delete insecticide treatments
-Trpr_noninsecticide_avg <- avg_first_trpr[-c(3:4,8:9),]
-# removing treatments we aren't interested in
-Trpr_noninsecticide <- trpr %>%
+soca_21_noinsect <- soca_21 %>%
   filter(!(Subplot_Descriptions=='drought_insecticide' |
              Subplot_Descriptions=='insecticide' |
              Subplot_Descriptions=='warmed_drought_insecticide' |
-             Subplot_Descriptions=='warmed_insecticide'))
+             Subplot_Descriptions=='warmed_insecticide' |
+                   Subplot_Descriptions == "irrigated_control"))
 
+avg_first_soca_21_noinsect <- avg_first_soca_21 %>% 
+        filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'|
+                   Subplot_Descriptions == "irrigated_control"))
+
+# Box plot
+ggplot(soca_21_noinsect, aes(x = Subplot_Descriptions, y = min_julian, fill = Subplot_Descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        labs(x = "Treatment", y = "Average Julian Date of First Flower", fill = "Subplot_Descriptions") +
+        geom_jitter(shape=16, position=position_jitter(0.2)) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" =
+                                             "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        theme(legend.text = element_text(size=16),
+              legend.title = element_text(size=16)) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "warmed" = "Warmed",
+                                  "drought"="Drought",
+                                  "warmed_drought"="Warmed +\n Drought")) +
+        theme_classic() +
+        theme(legend.position="none")
+
+# Bar plot 
+ggplot(avg_first_soca_21_noinsect, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = Subplot_Descriptions)) +
+  geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+  geom_bar(stat = "identity") +
+  geom_errorbar(aes(ymin = avg_min_julian - se, ymax = avg_min_julian + se), width = 0.2,
+                position = "identity") +
+  scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" =
+                                             "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+  labs(x = "Treatment", y = "Average Julian Date of First Flower") +
+  scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "warmed" = "Warmed",
+                                  "drought"="Drought",
+                                  "warmed_drought"="Warmed +\n Drought")) +
+  theme_classic() +
+  theme(legend.position = "none")
+```
+
+Trpr plots both years
+```{r}
+trpr_21$Year <- 2021
+trpr_22$Year <- 2022
+trpr <- full_join(trpr_21, trpr_22)
+
+# Average first Flower Date by plot
+avg_first_flwr_trpr <- trpr %>%
+  group_by(Subplot_Descriptions, Action, Year) %>%
+  summarize(avg_min_julian = mean(min_julian, na.rm=T),
+            se = std.error(min_julian, na.rm = TRUE))
+
+avg_first_flwr_trpr_noinsect <- avg_first_flwr_trpr %>% 
+        filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'|
+                   Subplot_Descriptions == "irrigated_control"))
+
+ggplot(avg_first_flwr_trpr_noinsect, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = as.factor(Year))) +
+        geom_bar(position = "dodge", stat = "identity", col = "black") +
+        geom_errorbar(aes(ymin = avg_min_julian - se, ymax = avg_min_julian + se), width = 0.2,
+                      position = position_dodge(0.9)) +
+        labs(x = "Treatment", y = "T. pratense Julian Date of First Flower", fill="Year") +
+        scale_x_discrete(limits = level_order,
+                         labels=c("ambient" = "Ambient",
+                                  "warmed" = "Warmed",
+                                  "drought" = "Drought",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        #scale_fill_manual(labels=c("2021","2022")) +
+        theme(legend.position = "top")
+```
+
+```{r}
+# delete insecticide treatments
+Trpr_noninsect_avg_21 <- avg_first_trpr_21[-c(3:4,8:9),]
+
+# removing treatments we aren't interested in
+Trpr_noninsect_21 <- trpr_21 %>%
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+                   Subplot_Descriptions=='insecticide' |
+                   Subplot_Descriptions=='warmed_drought_insecticide' |
+                   Subplot_Descriptions=='warmed_insecticide' |
+                   Subplot_Descriptions=='irrigated_control'))
+        
 # bar plot
-png("trpr_noninsect_flwr_2021.png", units="in", width=6, height=6, res=300)
-ggplot(Trpr_noninsecticide_avg, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = Subplot_Descriptions)) +
+png("trpr_noninsect_firstflwr_2021_barplot.png", units="in", width=6, height=6, res=300)
+ggplot(Trpr_noninsect_avg_21, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = Subplot_Descriptions)) +
         geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
         geom_bar(stat = "identity") +
         geom_errorbar(aes(ymin = avg_min_julian - se, ymax = avg_min_julian + se), width = 0.2,
@@ -287,9 +262,10 @@ ggplot(Trpr_noninsecticide_avg, aes(x = Subplot_Descriptions, y = avg_min_julian
 dev.off
 
 # Box plot
-ggplot(Trpr_noninsecticide, aes(x = Subplot_Descriptions, y = min_julian, fill = Subplot_Descriptions)) +
+png("trpr_noninsect_firstflwr_2021_boxplot.png", units="in", width=6, height=6, res=300)
+ggplot(Trpr_noninsect_21, aes(x = Subplot_Descriptions, y = min_julian, fill = Subplot_Descriptions)) +
         geom_boxplot(color = "black", outlier.shape = NA) +
-        labs(x = "Treatment", y = "Average Julian Date of Flower", fill = "Subplot_Descriptions") +
+        labs(x = "Treatment", y = "2021 Average Julian Date of First Flower", fill = "Subplot_Descriptions") +
         geom_jitter(shape=16, position=position_jitter(0.2)) +
         scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" =
                                              "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
@@ -300,9 +276,8 @@ ggplot(Trpr_noninsecticide, aes(x = Subplot_Descriptions, y = min_julian, fill =
                                   "irrigated_control" = "Irrigated \n Control",
                                   "warmed" = "Warmed",
                                   "warmed_drought" = "Warmed +\n Drought")) +
-        theme_classic() +
         theme(legend.position="none")
-
+dev.off
 ```
 
 2022 Red Clover Plots
@@ -359,5 +334,26 @@ ggplot(Trpr22_noninsecticide, aes(x = Subplot_Descriptions, y = min_julian, fill
         theme_classic() +
         theme(legend.position="none")
 dev.off()
+```
+
+```{r}
+trpr_noinsect <- full_join(Trpr22_noninsecticide, Trpr_noninsect_21)
+Trpr22_noninsecticide_avg$Year <- 2022
+Trpr_noninsect_avg_21$Year <- 2021
+trpr_noinsect_avg <- full_join(Trpr22_noninsecticide_avg, Trpr_noninsect_avg_21)
+trpr_noinsect_avg <- trpr_noinsect_avg[-c(3,8),]
+
+ggplot(trpr_noinsect_avg, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = as.factor(Year))) +
+        geom_bar(position = "dodge", stat = "identity", col = "black") +
+        geom_errorbar(aes(ymin = avg_min_julian - se, ymax = avg_min_julian + se), width = 0.2,
+                      position = position_dodge(0.9)) +
+        labs(x = "Treatment", y = "T. pratense Average Julian Date of First Flower", fill= "Year") +
+        scale_x_discrete(limits = level_order,
+                         labels=c("ambient" = "Ambient",
+                                  "warmed" = "Warmed",
+                                  "drought" = "Drought",
+                                  "warmed_drought" = "Warmed Drought")) +
+        #scale_fill_manual(values=c("#edae49", "#d1495b")) +
+        theme(legend.position = "top")
 ```
 

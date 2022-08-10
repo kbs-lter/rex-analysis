@@ -1,0 +1,101 @@
+---
+title: "REX: T7 warmx Soca Heights (2021) Analyses"
+author: "Moriah Young"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+COLLABORATORS: Kara Dobson, Phoebe Zarnetske, Mark Hammond
+DATA INPUT:  L1 csv cleaned data from the shared Google drive  
+DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
+PROJECT: REX  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(bbmle)
+library(lmerTest)
+library(fitdistrplus)
+library(sjPlot)
+library(car)
+library(emmeans)
+library(tidyverse)
+library(ggpubr)
+library(jtools) #summ 
+library(rstatix)
+library(RColorBrewer)
+library(plotrix)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+height <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_Soca_plant_height_L1.csv"))
+
+unique(sort(height[["treatment"]])) # check that there aren't any misspellings
+
+# change action names
+height$treatment[height$treatment == "Ambient"] <- "ambient"
+height$treatment[height$treatment == "Ambient Drought"] <- "drought"
+height$treatment[height$treatment == "Irrigated Control"] <- "irrigated_control"
+height$treatment[height$treatment == "Warm"] <- "warmed"
+height$treatment[height$treatment == "Warm Drought"] <- "warmed_drought"
+
+names(height)[names(height)=="footprint"] <- "Footprint_Location"
+names(height)[names(height)=="treatment"] <- "Subplot_Descriptions"
+names(height)[names(height)=="rep"] <- "Rep"
+
+# selecting only non-galled plants
+height <- subset(height, gall_present == "no_gall")
+drought_height <- subset(height, drought_period == "Drought")
+predrought_height <- subset(height, drought_period == "Pre-Drought")
+postdrought_height <- subset(height, drought_period == "Post-Drought")
+```
+
+```{r}
+# Data exploration
+hist(drought_height$plant_height_cm) # looks normal
+qqnorm(drought_height$plant_height_cm)
+shapiro.test(drought_height$plant_height_cm) 
+
+descdist(drought_height$plant_height_cm, discrete = FALSE)
+
+# log transformation
+drought_height$log_height <- log(drought_height$plant_height_cm)
+descdist(drought_height$log_height, discrete = FALSE)
+hist(drought_height$log_height)
+qqnorm(drought_height$log_height)
+shapiro.test(drought_height$log_height) 
+
+# no log transformation was better
+
+
+# Assumption checking - log transformation
+m1 <- lmer(plant_height_cm ~ Subplot_Descriptions + (1|Rep/Footprint_Location), data = drought_height, REML=F)
+# Check Assumptions:
+# (1) Linearity: if covariates are not categorical
+# (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
+plot(m1, main = "Plant height")
+# Homogeneity of variance is ok here (increasing variance in resids is not increasing with fitted values)
+# Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
+leveneTest(residuals(m1) ~ drought_height$Subplot_Descriptions)
+# Assumption not met - ignoring for now
+
+# (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
+# Check for normal residuals
+qqPlot(resid(m1), main = "Plant height")
+hist(residuals(m1), main = "Plant height")
+shapiro.test(resid(m1))
+outlierTest(m1) # no outliers
+
+summary(m1)
+emmeans(m1, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+```
+
