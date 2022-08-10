@@ -46,9 +46,10 @@ plantcomp$Year <- format(plantcomp$Date, "%Y")
 # removing treatments we aren't interested in
 plantcomp_noinsect <- plantcomp %>%
   filter(!(Subplot_Descriptions=='drought_insecticide' |
-             Subplot_Descriptions=='insecticide' |
-             Subplot_Descriptions=='warmed_drought_insecticide' |
-             Subplot_Descriptions=='warmed_insecticide'))
+                   Subplot_Descriptions=='insecticide' |
+                   Subplot_Descriptions=='warmed_drought_insecticide' |
+                   Subplot_Descriptions=='irrigated_control' |
+                   Subplot_Descriptions=='warmed_insecticide'))
 
 # remove species we aren't interested in (i.e., unknowns and unsorted plant material)
 plantcomp_noinsect <- plantcomp_noinsect %>%
@@ -61,6 +62,24 @@ plantcomp_noinsect <- plantcomp_noinsect %>%
              Code == 'soil_char' |
              Code == 'standing_dead' |
              Code =='Litter')) 
+
+plantcomp_noinsect21 <- subset(plantcomp_noinsect, Year == "2021")
+plantcomp_noinsect22 <- subset(plantcomp_noinsect, Year == "2022")
+
+# removing rep 2, footprint 2, subplot a because OTC blew over 3/31/2022 and wasn't fixed until 4/25/2022
+# "T7_R2_OC_W_2a" = UniqueID
+plantcomp_noinsect22 <- plantcomp_noinsect22 %>%
+  filter(!(Unique_ID =='T7_R2_OC_W_2a'))
+
+# remove dates before prescribed burn took place
+# 2022 = 3/29/2022 = Julian date 
+# 2021 = ~3/17/2021
+plantcomp_noinsect21 <- plantcomp_noinsect21 %>%
+  filter(!(Julian < 89))
+plantcomp_noinsect22 <- plantcomp_noinsect22 %>%
+  filter(!(Julian < 104))
+
+plantcomp_noinsect <- full_join(plantcomp_noinsect21, plantcomp_noinsect22)
 
 # Specifying the order that we want the treatments to be listed in the figures on the x-axis
 level_order <- c('ambient', 'drought','warmed','warmed_drought')
@@ -98,7 +117,7 @@ ggplot(avg_greenup_21, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = 
                          position = "identity") +
         scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", "warmed" = "red2", 
                                      "warmed_drought" = "darkred")) +
-        labs(x = "Treatment", y = "Average Julian Date of Green Up") +
+        labs(x = "Treatment", y = "2021 Average Julian Date of Green Up") +
         scale_x_discrete(limits = level_order, 
                          labels=c("ambient" = "Ambient",
                                   "drought" = "Drought",
@@ -140,7 +159,7 @@ ggplot(avg_greenup_22, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = 
                          position = "identity") +
         scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", "warmed" = "red2", 
                                      "warmed_drought" = "darkred")) +
-        labs(x = "Treatment", y = "Average Julian Date of Green Up") +
+        labs(x = "Treatment", y = "2022 Average Julian Date of Green Up") +
         scale_x_discrete(limits = level_order, 
                          labels=c("ambient" = "Ambient",
                                   "drought" = "Drought",
@@ -154,7 +173,7 @@ ggplot(avg_greenup_22, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = 
 png("greenup_noninsect_2022_boxplot.png", units="in", width=6, height=6, res=300)
 ggplot(greenup_noinsect_22, aes(x = Subplot_Descriptions, y = min_julian, fill = Subplot_Descriptions)) +
         geom_boxplot(color = "black", outlier.shape = NA) +
-        labs(x = "Treatment", y = "Average Julian Date of Green Up", fill = "Subplot_Descriptions") +
+        labs(x = "Treatment", y = "2022 Average Julian Date of Green Up", fill = "Subplot_Descriptions") +
         geom_jitter(shape=16, position=position_jitter(0.2)) +
         scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", "warmed" = "red2", 
                                      "warmed_drought" = "darkred")) +
@@ -180,14 +199,12 @@ trpr_avg_greenup <- trpr %>%
   summarize(avg_min_julian = mean(min_julian, na.rm=T),
             se = std.error(min_julian, na.rm = TRUE))
 
-trpr_avg_greenup <- trpr_avg_greenup[-5,]
-
-png("greenup_trpr_L2_barplot.png", units="in", width=8, height=6, res=300)
+png("greenup_trpr_L2_barplot.png", units="in", width=6, height=6, res=300)
 ggplot(trpr_avg_greenup, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = Year)) +
   geom_bar(position = "dodge", stat = "identity", col = "black") +
   geom_errorbar(aes(ymin = avg_min_julian - se, ymax = avg_min_julian + se), width = 0.2,
                 position = position_dodge(0.9)) +
-  labs(x = "Treatment", y = "Average Julian Date of Green Up", fill="Year") +
+  labs(x = "Treatment", y = "T. pratense \n Average Julian Date of Green Up", fill="Year") +
   scale_x_discrete(limits = level_order,
                    labels=c("ambient" = "Ambient",
                             "warmed" = "Warmed",
@@ -195,8 +212,8 @@ ggplot(trpr_avg_greenup, aes(x = Subplot_Descriptions, y = avg_min_julian, fill 
                             "warmed_drought" = "Warmed Drought")) +
   scale_fill_manual(values=c("sienna1", "sienna"),# specify colors here
                     labels=c("2021","2022")) + # specify species names here)
-  theme_classic()
-dev.off()
+  theme(legend.position = "top")
+dev.off
 ```
 
 Goldenrod
@@ -210,14 +227,12 @@ soca_avg_greenup <- soca %>%
   summarize(avg_min_julian = mean(min_julian, na.rm=T),
             se = std.error(min_julian, na.rm = TRUE))
 
-soca_avg_greenup <- soca_avg_greenup[-5,] # remove irrigated control
-
 png("greenup_soca_L2_barplot.png", units="in", width=8, height=6, res=300)
 ggplot(soca_avg_greenup, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = Year)) +
   geom_bar(position = "dodge", stat = "identity", col = "black") +
   geom_errorbar(aes(ymin = avg_min_julian - se, ymax = avg_min_julian + se), width = 0.2,
                 position = position_dodge(0.9)) +
-  labs(x = "Treatment", y = "Average Julian Date of Green Up", fill="Year") +
+  labs(x = "Treatment", y = "S. canadensis \n Average Julian Date of Green Up", fill="Year") +
   scale_x_discrete(limits = level_order,
                    labels=c("ambient" = "Ambient",
                             "warmed" = "Warmed",
@@ -225,7 +240,7 @@ ggplot(soca_avg_greenup, aes(x = Subplot_Descriptions, y = avg_min_julian, fill 
                             "warmed_drought" = "Warmed Drought")) +
   scale_fill_manual(values=c("sienna1", "sienna"),# specify colors here
                     labels=c("2021","2022")) + # specify species names here)
-  theme_classic()
+  theme(legend.position = "top")
 dev.off()
 ```
 

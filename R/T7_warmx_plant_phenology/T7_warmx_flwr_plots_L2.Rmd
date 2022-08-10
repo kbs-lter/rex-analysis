@@ -130,15 +130,6 @@ avg_first_flwr_22 <- first_flwr_22 %>%
   summarize(avg_min_julian = mean(min_julian, na.rm=T),
             se = std.error(min_julian, na.rm = TRUE))
 
-# create a separate dataframe for select species of interest
-# first flower
-soca_22 <- subset(first_flwr_22, Code == "Soca") # goldenrod
-# Average first Flower Date by plot
-avg_first_soca_22 <- soca_22 %>%
-  group_by(Subplot_Descriptions, Action) %>%
-  summarize(avg_min_julian = mean(min_julian, na.rm=T),
-            se = std.error(min_julian, na.rm = TRUE))
-
 # first flower
 trpr_22 <- subset(first_flwr_22, Code == "Trpr") # red clover
 # Average first Flower Date by plot
@@ -165,9 +156,10 @@ avg_first_soca_21_noinsect <- avg_first_soca_21 %>%
                    Subplot_Descriptions == "irrigated_control"))
 
 # Box plot
+png("soca_noninsect_firstflwr_2021_boxplot_L2.png", units="in", width=6, height=6, res=300)
 ggplot(soca_21_noinsect, aes(x = Subplot_Descriptions, y = min_julian, fill = Subplot_Descriptions)) +
         geom_boxplot(color = "black", outlier.shape = NA) +
-        labs(x = "Treatment", y = "Average Julian Date of First Flower", fill = "Subplot_Descriptions") +
+        labs(x = "Treatment", y = "2021 S. canadensis\n Average Julian Date of First Flower", fill = "Subplot_Descriptions") +
         geom_jitter(shape=16, position=position_jitter(0.2)) +
         scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" =
                                              "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
@@ -177,8 +169,8 @@ ggplot(soca_21_noinsect, aes(x = Subplot_Descriptions, y = min_julian, fill = Su
                                   "warmed" = "Warmed",
                                   "drought"="Drought",
                                   "warmed_drought"="Warmed +\n Drought")) +
-        theme_classic() +
         theme(legend.position="none")
+dev.off
 
 # Bar plot 
 ggplot(avg_first_soca_21_noinsect, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = Subplot_Descriptions)) +
@@ -228,6 +220,27 @@ ggplot(avg_first_flwr_trpr_noinsect, aes(x = Subplot_Descriptions, y = avg_min_j
                                   "warmed_drought" = "Warmed +\n Drought")) +
         #scale_fill_manual(labels=c("2021","2022")) +
         theme(legend.position = "top")
+
+trpr_noinsect <- trpr_noinsect %>% 
+        filter(!(Subplot_Descriptions=='irrigated_control'))
+
+png("trpr_noninsect_firstflwr_both_years_boxplot_L2.png", units="in", width=6, height=6, res=300)
+ggplot(trpr_noinsect, aes(x = Subplot_Descriptions, y = min_julian, fill = as.factor(Year))) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        labs(x = "Treatment", y = "T. pratense Average Julian Date of First Flower", fill = "Year") +
+        geom_jitter(shape=16, position=position_jitter(0.2)) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" =
+                                             "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        theme(legend.text = element_text(size=16),
+              legend.title = element_text(size=16)) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+          scale_fill_manual(values=c("sienna1", "sienna"), # specify colors here
+                    labels=c("2021","2022")) + # specify species names here
+        theme(legend.position="top")
+dev.off
 ```
 
 ```{r}
@@ -265,7 +278,7 @@ dev.off
 png("trpr_noninsect_firstflwr_2021_boxplot.png", units="in", width=6, height=6, res=300)
 ggplot(Trpr_noninsect_21, aes(x = Subplot_Descriptions, y = min_julian, fill = Subplot_Descriptions)) +
         geom_boxplot(color = "black", outlier.shape = NA) +
-        labs(x = "Treatment", y = "2021 Average Julian Date of First Flower", fill = "Subplot_Descriptions") +
+        labs(x = "Treatment", y = "2021 T. pratense\n Average Julian Date of First Flower", fill = "Subplot_Descriptions") +
         geom_jitter(shape=16, position=position_jitter(0.2)) +
         scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" =
                                              "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +

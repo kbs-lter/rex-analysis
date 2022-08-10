@@ -43,9 +43,10 @@ phen <- read.csv(file.path(dir, "T7_plant_phenology/L1/T7_warmx_plant_phenology_
 # remove climate treatment plots we aren't interested in here (i.e., insecticide plots)
 phen <- phen %>%
   filter(!(Subplot_Descriptions=='drought_insecticide' |
-             Subplot_Descriptions=='insecticide' |
-             Subplot_Descriptions=='warmed_drought_insecticide' |
-             Subplot_Descriptions=='warmed_insecticide'))
+                   Subplot_Descriptions=='insecticide' |
+                   Subplot_Descriptions=='warmed_drought_insecticide' |
+                   Subplot_Descriptions=='irrigated_control' |  
+                   Subplot_Descriptions=='warmed_insecticide'))
 
 # make a column for Year
 phen$Date <- as.Date(phen$Date)
@@ -64,6 +65,7 @@ first_flwr <- flwr %>%
 soca <- subset(first_flwr, Code == "Soca") # goldenrod
 trpr <- subset(first_flwr, Code == "Trpr") # red clover
 trpr22 <- subset(first_flwr, Year == "2022") # just 2022 data
+trpr21 <- subset(first_flwr, Year == "2021") # just 2022 data
 ```
 
 Data Exploration for all species
@@ -82,7 +84,22 @@ qqnorm(resid(m1))
 plot(m1)
 ```
 
-Data Exploration for Soca
+Model Exploration
+```{r}
+summary(m1)
+emmeans(m1, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+
+m2 <- lmer(log(min_julian) ~ Subplot_Descriptions + as.factor(Year) + (1|Replicate/Footprint_Location), data = first_flwr, REML=F)
+m3 <- lmer(log(min_julian) ~ Subplot_Descriptions + as.factor(Year) + Code + (1|Replicate/Footprint_Location), data = first_flwr, REML=F)
+
+AICctab(m1, m2, m3)
+summary(m2)
+emmeans(m2, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+emmeans(m2, list(pairwise ~ Subplot_Descriptions + as.factor(Year)), adjust = "tukey")
+```
+
+
+Data Exploration for Soca 2021
 ```{r}
 # checking raw data
 hist(soca$min_julian)
@@ -121,30 +138,30 @@ m1t <- lmer(min_julian ~ Subplot_Descriptions + (1|Replicate/Footprint_Location)
 hist(resid(m1t))
 qqnorm(resid(m1t))
 plot(m1t)
-outlierTest(m1t) # row 9
+outlierTest(m1t) #  no outliers
 
-trpr_nooutlier <- trpr[-9,] # remove outlier
+# trpr_nooutlier <- trpr[-9,] # remove outlier
 
 # checking raw data without outlier
-hist(trpr_nooutlier$min_julian)
-qqnorm(trpr_nooutlier$min_julian)
-shapiro.test(trpr_nooutlier$min_julian) # pvalue is < 0.05 so we cannot reject the null hypothesis that the data is normal (aka not normally distributed) 
+#hist(trpr_nooutlier$min_julian)
+#qqnorm(trpr_nooutlier$min_julian)
+#shapiro.test(trpr_nooutlier$min_julian) # pvalue is < 0.05 so we cannot reject the null hypothesis that the data is #normal (aka not normally distributed) 
 
 # Exploring distributions for these data:
-descdist(trpr_nooutlier$min_julian, discrete = FALSE)
+#descdist(trpr_nooutlier$min_julian, discrete = FALSE)
 
-m1t <- lmer(log(min_julian) ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data = trpr_nooutlier, REML=F)
+m1t <- lmer(log(min_julian) ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data = trpr, REML=F)
 hist(resid(m1t))
 qqnorm(resid(m1t))
 plot(m1t)
-outlierTest(m1t) # row 43
+outlierTest(m1t) # no outliers
 
 # homogeneity of variance? yes, p >0.05 (no significant difference between the group variances)
-leveneTest(residuals(m1t) ~ trpr_nooutlier$Subplot_Descriptions)
+leveneTest(residuals(m1t) ~ trpr$Subplot_Descriptions)
 ```
 Model Exploration
 ```{r}
-m2t <- lmer(log(min_julian) ~ Subplot_Descriptions + Year + (1|Replicate/Footprint_Location), data = trpr_nooutlier, REML=F)
+m2t <- lmer(log(min_julian) ~ Subplot_Descriptions + as.factor(Year) + (1|Replicate/Footprint_Location), data = trpr, REML=F)
 summary(m1t)
 summary(m2t)
 emmeans(m1t, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
@@ -191,10 +208,48 @@ Model Exploration
 ```{r}
 # re-leveling the dataframe & re-running model for post-hoc comparisions
 trpr22 <- within(trpr22, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "drought"))
-trpr22 <- within(trpr22, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "irrigated_control"))
 trpr22 <- within(trpr22, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "warmed"))
 trpr22 <- within(trpr22, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "warmed_drought"))
 trpr22 <- within(trpr22, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "ambient"))
+
+summary(m1t)
+emmeans(m1t, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+```
+
+Just trpr 2021 data
+```{r}
+# checking raw data
+hist(trpr21$min_julian)
+qqnorm(trpr21$min_julian)
+shapiro.test(trpr21$min_julian) # pvalue is < 0.05 so we cannot reject the null hypothesis that the data is normal (aka not normally distributed) but it is close (p-value = 0.04623)
+
+# Exploring distributions for these data:
+descdist(trpr21$min_julian, discrete = FALSE) 
+
+m1t <- lmer(min_julian ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data = trpr21, REML=F)
+hist(resid(m1t))
+qqnorm(resid(m1t))
+plot(m1t)
+outlierTest(m1t) # row 189
+
+trpr_nooutlier21 <- trpr21[-124,] # remove outlier
+
+# checking raw data without outlier
+hist(trpr_nooutlier21$min_julian)
+qqnorm(trpr_nooutlier21$min_julian)
+shapiro.test(trpr_nooutlier21$min_julian) # pvalue is < 0.05 so we cannot reject the null hypothesis that the data is normal (aka not normally distributed) 
+
+# Exploring distributions for these data:
+descdist(trpr_nooutlier21$min_julian, discrete = FALSE)
+
+m1t <- lmer(log(min_julian) ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data = trpr21, REML=F)
+hist(resid(m1t))
+qqnorm(resid(m1t))
+plot(m1t)
+outlierTest(m1t) # no outliers
+
+# homogeneity of variance? yes, p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1t) ~ trpr21$Subplot_Descriptions)
 
 summary(m1t)
 emmeans(m1t, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")

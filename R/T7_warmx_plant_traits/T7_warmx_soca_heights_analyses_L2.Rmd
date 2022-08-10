@@ -74,9 +74,6 @@ hist(drought_height$log_height)
 qqnorm(drought_height$log_height)
 shapiro.test(drought_height$log_height) 
 
-# no log transformation was better
-
-
 # Assumption checking - log transformation
 m1 <- lmer(plant_height_cm ~ Subplot_Descriptions + (1|Rep/Footprint_Location), data = drought_height, REML=F)
 # Check Assumptions:

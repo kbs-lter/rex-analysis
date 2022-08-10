@@ -44,20 +44,48 @@ plantcomp <- read.csv(file.path(dir, "T7_plant_comp/L1/T7_warmx_plantcomp_L1.csv
 plantcomp$Date <- as.Date(plantcomp$Date)
 plantcomp$Year <- format(plantcomp$Date, "%Y")
 
-# Select by date of percent cover occurrence
-greenup <- plantcomp %>%
-  group_by(Unique_ID, Subplot_Descriptions, Replicate, Footprint_Location, Code, Year) %>%
-  summarize(min_julian = min(Julian, na.rm=T))
-
-# remove climate treatment plots we aren't interested in here (i.e., insecticide plots)
-greenup_noinsect <- greenup %>%
+# removing treatments we aren't interested in
+plantcomp_noinsect <- plantcomp %>%
   filter(!(Subplot_Descriptions=='drought_insecticide' |
-             Subplot_Descriptions=='insecticide' |
-             Subplot_Descriptions=='warmed_drought_insecticide' |
-             Subplot_Descriptions=='warmed_insecticide'))
+                   Subplot_Descriptions=='insecticide' |
+                   Subplot_Descriptions=='warmed_drought_insecticide' |
+                   Subplot_Descriptions=='irrigated_control' |
+                   Subplot_Descriptions=='warmed_insecticide'))
 
-greenup21 <- subset(greenup_noinsect, Year == "2021") # just 2021 data
-greenup22 <- subset(greenup_noinsect, Year == "2022") # just 2022 data
+# remove species we aren't interested in (i.e., unknowns and unsorted plant material)
+plantcomp_noinsect <- plantcomp_noinsect %>%
+  filter(!(Code=='Living Vegetation' |
+             Code=='Non-Living Vegetation' |
+             Code=='Moss' |
+             Code=='Soil' |
+             Code == 'total_living' |
+             Code == 'total_non_living' |
+             Code == 'soil_char' |
+             Code == 'standing_dead' |
+             Code =='Litter')) 
+
+plantcomp_noinsect21 <- subset(plantcomp_noinsect, Year == "2021")
+plantcomp_noinsect22 <- subset(plantcomp_noinsect, Year == "2022")
+
+# removing rep 2, footprint 2, subplot a because OTC blew over 3/31/2022 and wasn't fixed until 4/25/2022
+# "T7_R2_OC_W_2a" = UniqueID
+plantcomp_noinsect22 <- plantcomp_noinsect22 %>%
+  filter(!(Unique_ID =='T7_R2_OC_W_2a'))
+
+# remove dates before prescribed burn took place
+# 2022 = 3/29/2022 = Julian date 
+# 2021 = ~3/17/2021
+plantcomp_noinsect21 <- plantcomp_noinsect21 %>%
+  filter(!(Julian < 89))
+plantcomp_noinsect22 <- plantcomp_noinsect22 %>%
+  filter(!(Julian < 104))
+
+plantcomp_noinsect <- full_join(plantcomp_noinsect21, plantcomp_noinsect22)
+
+# Select by date of first record of plant comp
+greenup_noinsect <- plantcomp_noinsect %>%
+  group_by(Unique_ID, Subplot_Descriptions, Code, Replicate, Footprint_Location, Year) %>%
+  summarize(min_julian = min(Julian, na.rm=T))
 
 # create a separate dataframe for select species of interest
 soca <- subset(greenup_noinsect, Code == "Soca") # goldenrod
@@ -68,23 +96,7 @@ trpr21 <- subset(trpr, Year == "2021") # just 2021 data
 trpr22 <- subset(trpr, Year == "2022") # just 2022 data
 ```
 
-Data Exploration for all species green-up 2021
-```{r}
-# checking raw data
-hist(greenup21$min_julian)
-qqnorm(greenup21$min_julian)
-shapiro.test(greenup21$min_julian) # pvalue is < 0.05 so we cannot reject the null hypothesis that the data is normal (aka not normally distributed)
-
-# Exploring distributions for these data:
-descdist(greenup21$min_julian, discrete = FALSE)
-
-m1 <- lmer(log(min_julian) ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data = greenup21, REML=F)
-hist(resid(m1))
-qqnorm(resid(m1))
-plot(m1)
-```
-
-Data Exploration for all species green-up
+Data Exploration for green-up all species and both years
 ```{r}
 # checking raw data
 hist(greenup_noinsect$min_julian)
@@ -111,4 +123,29 @@ emmeans(m2, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
 emmeans(m2, list(pairwise ~ Subplot_Descriptions + as.factor(Year)), adjust = "tukey")
 ```
 
+Data Exploration for Trpr
+```{r}
+# checking raw data
+hist(trpr$min_julian)
+qqnorm(trpr$min_julian)
+shapiro.test(trpr$min_julian) # pvalue is < 0.05 so we cannot reject the null hypothesis that the data is normal (aka not normally distributed)
 
+# Exploring distributions for these data:
+descdist(trpr$min_julian, discrete = FALSE)
+
+m1t <- lmer(log(min_julian) ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data = trpr, REML=F)
+hist(resid(m1t))
+qqnorm(resid(m1t))
+plot(m1t)
+```
+
+Model Exploration
+```{r}
+m2t <- lmer(log(min_julian) ~ Subplot_Descriptions + as.factor(Year) + (1|Replicate/Footprint_Location), data = greenup_noinsect, REML=F)
+summary(m1t)
+emmeans(m1t, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+
+summary(m2t)
+emmeans(m2t, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+emmeans(m2t, list(pairwise ~ Subplot_Descriptions + as.factor(Year)), adjust = "tukey")
+```
