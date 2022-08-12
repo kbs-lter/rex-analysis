@@ -32,6 +32,7 @@ library(rstatix)
 library(RColorBrewer)
 library(plotrix)
 library(stats)
+library(glmmTMB) # beta transformation
 
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
@@ -55,6 +56,14 @@ phen$Year <- format(phen$Date, "%Y")
 # selecting just "Flower" action 
 flwr <- subset(phen, Action == "Flower")
 flwr$Date <- as.Date(flwr$Date)
+
+# need to subset by Julian date bc 2022 is not finished yet - last julian date of data collected for 2022 at this time is 210
+flwr_21 <- subset(flwr, Year == "2021")
+flwr_22 <- subset(flwr, Year == "2022")
+flwr_21_subset <- subset(flwr_21, Julian <= "208")
+flwr_22_subset <- subset(flwr_22, Julian <= "208")
+flwr_subset <- full_join(flwr_21_subset, flwr_22_subset)
+flwr_subset <- subset(flwr_subset, Subplot_Descriptions != "irrigated_control")
 
 # Select by date of first flower
 first_flwr <- flwr %>%

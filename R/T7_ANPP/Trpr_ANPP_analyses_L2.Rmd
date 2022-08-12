@@ -73,13 +73,50 @@ anpp_all <- full_join(anpp19, anpp21_scaled)
 ```
 
 ```{r}
-# calculate total biomass per plot
-anpp_total19 <- anpp19 %>%
-  group_by(Unique_ID, Subplot_Descriptions) %>% 
-  summarize(total_biomass = sum(Biomass_metersq, na.rm = TRUE)) %>% # summing biomass per plot
-  group_by(Subplot_Descriptions) %>%
-  summarize(average_biomass = mean(total_biomass, na.rm = TRUE), # taking avg biomass of each treatment
-            se = std.error(total_biomass, na.rm = TRUE))
+# removing treatments we aren't interested in
+anpp21 <- anpp21 %>%
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
+
+# Take subplot average of biomass
+anpp21_avg <- anpp21 %>%
+        group_by(Subplot_Descriptions) %>%
+        summarise(avg_biomass = mean(Biomass, na.rm = TRUE),
+        se = std.error(Biomass, na.rm = TRUE))
+
+png("avg_anpp_2021.png", units="in", width=6, height=6, res=300)
+ggplot(anpp21_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        geom_bar(stat = "identity") +
+        geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
+                         position = "identity") +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment", y = "2021 Average Biomass (g/0.20m^2)") +
+        scale_x_discrete(limits = level_order,
+                         labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none")
+dev.off
+
+ggplot(anpp21, aes(x = Subplot_Descriptions, y = Biomass, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment", y = "2021 Average Biomass (g/0.20m^2)") +
+        scale_x_discrete(limits = level_order,
+                         labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none")
 ```
 
 ```{r}
@@ -319,3 +356,60 @@ summary(m2s)
 emmeans(m2s, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
 ```
 
+
+Data Exploration all biomass - 2021
+```{r}
+# checking raw data
+hist(anpp21$Biomass)
+qqnorm(anpp21$Biomass)
+shapiro.test(anpp21$Biomass) # pvalue is > 0.05 so we can reject the null hypothesis that the data is normal (aka normally distributed)
+
+# Exploring distributions for these data:
+descdist(anpp21$Biomass, discrete = FALSE)
+
+# checking model 
+# is it normally distributed? yes
+m1 <- lm(log(Biomass) ~ Subplot_Descriptions, data = anpp21)
+hist(resid(m1))
+qqnorm(resid(m1))
+plot(m1)
+# homogeneity of variance? yes, p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1) ~ anpp21$Subplot_Descriptions)
+
+### Model exploration ###
+m2 <- lmer(Biomass ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data=anpp21, REML=F)
+summary(m2)
+emmeans(m2, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+```
+
+Data Exploration all biomass - 2021
+```{r}
+# remove species we aren't interested in (i.e., unknowns and unsorted plant material)
+anpp21_1 <- anpp21 %>%
+  filter(!(Code=='UNASTAE' |
+           Code=='UNDIC' |
+           Code=='UNFABAE' |
+           Code=='UNSRT'))
+
+# checking raw data
+hist(anpp21_1$Biomass)
+qqnorm(anpp21_1$Biomass)
+shapiro.test(anpp21_1$Biomass) # pvalue is > 0.05 so we can reject the null hypothesis that the data is normal (aka normally distributed)
+
+# Exploring distributions for these data:
+descdist(anpp21_1$Biomass, discrete = FALSE)
+
+# checking model 
+# is it normally distributed? yes
+m1 <- lm(log(Biomass) ~ Subplot_Descriptions, data = anpp21)
+hist(resid(m1))
+qqnorm(resid(m1))
+plot(m1)
+# homogeneity of variance? yes, p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1) ~ anpp21_1$Subplot_Descriptions)
+
+### Model exploration ###
+m2 <- lmer(Biomass ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data=anpp21_1, REML=F)
+summary(m2)
+emmeans(m2, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+```

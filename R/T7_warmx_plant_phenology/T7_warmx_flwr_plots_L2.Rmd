@@ -55,7 +55,7 @@ level_order <- c('ambient', 'drought','warmed','warmed_drought')
 
 All years
 ```{r}
-# need to subset by Julian date bc 2022 is not finished yet - last julian date of data collected for 2022 at this time is 2010
+# need to subset by Julian date bc 2022 is not finished yet - last julian date of data collected for 2022 at this time is 210
 flwr_21_subset <- subset(flwr_21, Julian <= "208")
 flwr_22_subset <- subset(flwr_22, Julian <= "208")
 flwr_subset <- full_join(flwr_21_subset, flwr_22_subset)
@@ -72,6 +72,20 @@ avg_first_flwr_subset <- first_flwr_subset%>%
   summarize(avg_min_julian = mean(min_julian, na.rm=T),
             se = std.error(min_julian, na.rm = TRUE))
 
+first_flwr_subset <- first_flwr_subset %>% 
+        filter(!(Subplot_Descriptions=='drought_insecticide' |
+                         Subplot_Descriptions=='insecticide' |
+                         Subplot_Descriptions=='warmed_drought_insecticide' |
+                         Subplot_Descriptions=='warmed_insecticide'|
+                         Subplot_Descriptions == "irrigated_control"))
+
+avg_first_flwr_subset <- avg_first_flwr_subset %>% 
+        filter(!(Subplot_Descriptions=='drought_insecticide' |
+                         Subplot_Descriptions=='insecticide' |
+                         Subplot_Descriptions=='warmed_drought_insecticide' |
+                         Subplot_Descriptions=='warmed_insecticide'|
+                         Subplot_Descriptions == "irrigated_control"))
+
 ggplot(avg_first_flwr_subset, aes(x = Subplot_Descriptions, y = avg_min_julian, fill = as.factor(Year))) +
         geom_bar(position = "dodge", stat = "identity", col = "black") +
         geom_errorbar(aes(ymin = avg_min_julian - se, ymax = avg_min_julian + se), width = 0.2,
@@ -84,6 +98,22 @@ ggplot(avg_first_flwr_subset, aes(x = Subplot_Descriptions, y = avg_min_julian, 
                                   "warmed_drought" = "Warmed +\n Drought")) +
         #scale_fill_manual(labels=c("2021","2022")) +
         theme(legend.position = "top")
+
+png("firstflwr_noninsect_both_years_boxplot_L2.png", units="in", width=6, height=6, res=300)
+ggplot(first_flwr_subset, aes(x = Subplot_Descriptions, y = min_julian, fill = Year)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        labs(x = "Treatment", y = "Average Julian Date of First Flower", fill = "Year") +
+        geom_jitter(shape=16, position=position_jitter(0.2)) +
+        scale_fill_manual(values=c("deepskyblue", "darkslategray"), # specify colors here
+                    labels=c("2021","2022")) + # specify species names here
+        theme(legend.text = element_text(size=16),
+              legend.title = element_text(size=16)) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "warmed" = "Warmed",
+                                  "drought"="Drought",
+                                  "warmed_drought"="Warmed +\n Drought")) +
+        theme(legend.position="top")
+dev.off
 ```
 
 2021
