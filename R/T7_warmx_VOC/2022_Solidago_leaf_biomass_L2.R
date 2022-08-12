@@ -29,10 +29,13 @@ unique(voc_leaves$Treatment)
 # removing plants from voc_leaves dataframe
 # removing these because I lost their VOC data, so I need to make sure I am not calculating more biomass than what was measured for VOCs
 voc_leaves <- voc_leaves %>%
-  filter(!(Rep == 1 & Treatment == "Warmed" & Plant_Number == 1)) %>%
-  filter(!(Rep == 2 & Treatment == "Ambient" & Plant_Number == 1)) %>%
   filter(!(Rep == 4 & Treatment == "Warmed" & Plant_Number == 1)) %>%
-  filter(!(Rep == 4 & Treatment == "Warmed_Drought" & Plant_Number == 1))
+  filter(!(Rep == 4 & Treatment == "Warmed_Drought" & Plant_Number == 1)) %>%
+  filter(!(Rep == 3 & Treatment == "Warmed_Drought" & Plant_Number == 1)) %>%
+  filter(!(Rep == 2 & Treatment == "Drought" & Plant_Number == 1)) %>%
+  filter(!(Rep == 2 & Treatment == "Ambient" & Plant_Number == 1)) %>%
+  filter(!(Rep == 2 & Treatment == "Ambient" & Plant_Number == 2)) %>%
+  filter(!(Rep == 1 & Treatment == "Warmed" & Plant_Number == 1))
 
 
 ### Getting regression btwn leaf length and weight for each treatment ###
@@ -89,9 +92,9 @@ warm_drought_voc <- voc_leaves %>%
 
 # predicting biomass from leaf lengths
 sum(predict(w_mod, warmed_voc)) # 65.61699 g sampled
-sum(predict(a_mod, ambient_voc)) # 60.93225 g sampled
+sum(predict(a_mod, ambient_voc)) # 56.35235 g sampled
 sum(predict(i_mod, irr_voc)) # 65.71546 g sampled
-sum(predict(d_mod, drought_voc)) # 57.64733 g sampled
-sum(predict(wd_mod, warm_drought_voc)) # 51.75015 g sampled
+sum(predict(d_mod, drought_voc)) # 54.81802 g sampled
+sum(predict(wd_mod, warm_drought_voc)) # 50.26868 g sampled
 
 
