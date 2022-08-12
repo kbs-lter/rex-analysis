@@ -75,6 +75,37 @@ soca <- subset(first_flwr, Code == "Soca") # goldenrod
 trpr <- subset(first_flwr, Code == "Trpr") # red clover
 trpr22 <- subset(first_flwr, Year == "2022") # just 2022 data
 trpr21 <- subset(first_flwr, Year == "2021") # just 2022 data
+
+first_flwr_plot <- first_flwr %>%
+  group_by(Unique_ID, Subplot_Descriptions, Replicate, Footprint_Location, Action, Year) %>%
+  summarize(min_julian_plot = mean(min_julian, na.rm=T))
+```
+
+Data Exploration for first flwr subplot level
+```{r}
+# checking raw data
+hist(first_flwr_plot$min_julian_plot)
+qqnorm(first_flwr_plot$min_julian_plot)
+shapiro.test(first_flwr_plot$min_julian_plot) # pvalue is < 0.05 so we cannot reject the null hypothesis that the data is normal (aka not normally distributed)
+
+# Exploring distributions for these data:
+descdist(first_flwr_plot$min_julian_plot, discrete = FALSE)
+
+m1plot <- lmer(log(min_julian_plot) ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), data = first_flwr_plot, REML=F)
+hist(resid(m1plot))
+qqnorm(resid(m1plot))
+plot(m1plot)
+
+# model exploration
+summary(m1plot)
+emmeans(m1plot, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+
+m2plot <- lmer(log(min_julian_plot) ~ Subplot_Descriptions + as.factor(Year) + (1|Replicate/Footprint_Location), data = first_flwr_plot, REML=F)
+
+AICctab(m1plot, m2plot)
+summary(m2plot)
+emmeans(m2plot, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+emmeans(m2plot, list(pairwise ~ Subplot_Descriptions + as.factor(Year)), adjust = "tukey")
 ```
 
 Data Exploration for all species
