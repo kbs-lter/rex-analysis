@@ -22,13 +22,13 @@ library(emmeans)
 dir<-Sys.getenv("DATA_DIR")
 
 # Read in data
-voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_VOC_2022_L1.csv"))
+voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_total_VOC_2022_L1.csv"))
 #voc_transpose <- voc_transpose[!grepl("Irrigated_Control", voc_transpose$Treatment),] # removing irrigated control (just to test)
 
 
 #### VOC Composition - PERMANOVA ####
 # make community matrix - extract columns with abundance information
-ab = voc_transpose[,2:1455]
+ab = voc_transpose[,2:1493]
 
 # dissimilarity matrix
 ab.dist<-vegdist(ab, method='bray')
@@ -54,6 +54,7 @@ permutest(dispersion)
 plot(dispersion, hull=F, ellipse=T)
 
 
+# note: update the section below with new matrix information
 #### VOC Abundance - Mixed model ####
 # Data exploration
 voc_transpose$rowsums <- rowSums(voc_transpose[2:1455])

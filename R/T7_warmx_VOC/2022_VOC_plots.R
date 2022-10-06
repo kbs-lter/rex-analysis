@@ -21,12 +21,12 @@ library(Rtsne)
 dir<-Sys.getenv("DATA_DIR")
 
 # Read in data
-voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_VOC_2022_L1.csv"))
+voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_total_VOC_2022_L1.csv"))
 
 
 #### NMDS ####
 # make community matrix - extract columns with abundance information
-ab = voc_transpose[,2:1455]
+ab = voc_transpose[,2:1493]
 
 # turn abundance data frame into a matrix
 mat_ab = as.matrix(ab)
@@ -63,7 +63,7 @@ ggplot(data.scores, aes(x = NMDS1, y = NMDS2)) +
 
 
 #### PCoA - Treatment ####
-ab = voc_transpose[,2:1455]
+ab = voc_transpose[,2:1493]
 ab.dist<-vegdist(ab, method='bray')
 dispersion<-betadisper(ab.dist, group=voc_transpose$Treatment)
 # extract the centroids and the site points in multivariate space.  
@@ -88,8 +88,39 @@ ggplot() +
 dev.off()
 
 
+#### PCoA - Grouped Treatments ####
+voc_transpose2 <- voc_transpose
+voc_transpose2$Treatment <- gsub('Warmed_Drought', 'Drought', voc_transpose2$Treatment)
+voc_transpose2$Treatment <- gsub('Ambient_Control', 'Not_Drought', voc_transpose2$Treatment)
+voc_transpose2$Treatment <- gsub('Irrigated_Control', 'Not_Drought', voc_transpose2$Treatment)
+voc_transpose2$Treatment <- gsub('Warmed', 'Not_Drought', voc_transpose2$Treatment)
+ab = voc_transpose2[,2:1493]
+ab.dist<-vegdist(ab, method='bray')
+dispersion<-betadisper(ab.dist, group=voc_transpose2$Treatment)
+# extract the centroids and the site points in multivariate space.  
+centroids<-data.frame(grps=rownames(dispersion$centroids),data.frame(dispersion$centroids))
+vectors<-data.frame(group=dispersion$group,data.frame(dispersion$vectors))
+
+# to create the lines from the centroids to each point we will put it in a format that ggplot can handle
+seg.data<-cbind(vectors[,1:3],centroids[rep(1:nrow(centroids),as.data.frame(table(vectors$group))$Freq),2:3])
+names(seg.data)<-c("group","v.PCoA1","v.PCoA2","PCoA1","PCoA2")
+png("climate_pcoa.png", units="in", width=6, height=5, res=300)
+ggplot() + 
+  stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.7, geom="polygon")+
+  #geom_point(data=centroids, aes(x=PCoA1,y=PCoA2),size=4.7,color="black",shape=16) + 
+  #geom_point(data=centroids, aes(x=PCoA1,y=PCoA2, color=grps),size=4,shape=16) + 
+  geom_point(data=seg.data, aes(x=v.PCoA1,y=v.PCoA2, color=group),alpha=0.7,size=2.5,shape=16) +
+  #scale_color_manual(labels=c("Ambient (A)", "Drought (D)", "Irrigated (I)", "Warmed (W)", "Warmed + Drought \n (WD)"),
+  #                   values=c('#2c7bb6','#abd9e9',"khaki1","#fdae61","#d7191c"))+
+  #scale_fill_manual(labels=c("Ambient (A)", "Drought (D)", "Irrigated (I)", "Warmed (W)", "Warmed + Drought \n (WD)"),
+  #                  values=c('#2c7bb6','#abd9e9',"khaki1","#fdae61","#d7191c"))+
+  labs(x="PCoA 1",y="PCoA 2", color="Treatment", fill="Treatment") +
+  theme_classic()
+dev.off()
+
+
 #### PCoA - Rep ####
-ab = voc_transpose[,2:1455]
+ab = voc_transpose[,2:1493]
 ab.dist<-vegdist(ab, method='bray')
 dispersion<-betadisper(ab.dist, group=voc_transpose$Rep)
 # extract the centroids and the site points in multivariate space.  
