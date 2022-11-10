@@ -21,12 +21,12 @@ library(Rtsne)
 dir<-Sys.getenv("DATA_DIR")
 
 # Read in data
-voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_total_VOC_2022_L1.csv"))
+voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_named_VOC_2022_L1.csv"))
 
 
 #### NMDS ####
 # make community matrix - extract columns with abundance information
-ab = voc_transpose[,2:1493]
+ab = voc_transpose[,2:783]
 
 # turn abundance data frame into a matrix
 mat_ab = as.matrix(ab)
@@ -48,8 +48,9 @@ head(data.scores)
 str(data.scores)
 
 # plot
+png("rep_nmds.png", units="in", width=6, height=5, res=300)
 ggplot(data.scores, aes(x = NMDS1, y = NMDS2)) + 
-  geom_point(size = 4, aes(colour = Treatment))+ 
+  geom_point(size = 4, aes(colour = Rep))+ 
   theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
         axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
         legend.text = element_text(size = 12, face ="bold", colour ="black"), 
@@ -58,12 +59,12 @@ ggplot(data.scores, aes(x = NMDS1, y = NMDS2)) +
         legend.title = element_text(size = 14, colour = "black", face = "bold"), 
         panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2),
         legend.key=element_blank()) + 
-  stat_ellipse(aes(fill=Treatment), alpha=.2,type='t',size =1, geom="polygon")+
-  labs(x = "NMDS1", colour = "Treatment", y = "NMDS2")
-
+  stat_ellipse(aes(fill=Rep), alpha=.2,type='t',size =1, geom="polygon")+
+  labs(x = "NMDS1", colour = "Rep", y = "NMDS2")
+dev.off()
 
 #### PCoA - Treatment ####
-ab = voc_transpose[,2:1493]
+ab = voc_transpose[,2:783]
 ab.dist<-vegdist(ab, method='bray')
 dispersion<-betadisper(ab.dist, group=voc_transpose$Treatment)
 # extract the centroids and the site points in multivariate space.  
@@ -90,11 +91,16 @@ dev.off()
 
 #### PCoA - Grouped Treatments ####
 voc_transpose2 <- voc_transpose
+#voc_transpose2 <- voc_transpose2[!(voc_transpose2$Treatment == "Irrigated_Control"),] 
+#voc_transpose2 <- voc_transpose2[!(voc_transpose2$Treatment == "Ambient_Control"),] 
+#voc_transpose2 <- voc_transpose2[!(voc_transpose2$Treatment == "Warmed_Drought"),] 
+#voc_transpose2 <- voc_transpose2[!(voc_transpose2$Treatment == "Warmed"),] 
+#voc_transpose2 <- voc_transpose2[!(voc_transpose2$Treatment == "Drought"),] 
 voc_transpose2$Treatment <- gsub('Warmed_Drought', 'Drought', voc_transpose2$Treatment)
 voc_transpose2$Treatment <- gsub('Ambient_Control', 'Not_Drought', voc_transpose2$Treatment)
 voc_transpose2$Treatment <- gsub('Irrigated_Control', 'Not_Drought', voc_transpose2$Treatment)
 voc_transpose2$Treatment <- gsub('Warmed', 'Not_Drought', voc_transpose2$Treatment)
-ab = voc_transpose2[,2:1493]
+ab = voc_transpose2[,2:783]
 ab.dist<-vegdist(ab, method='bray')
 dispersion<-betadisper(ab.dist, group=voc_transpose2$Treatment)
 # extract the centroids and the site points in multivariate space.  
@@ -104,7 +110,7 @@ vectors<-data.frame(group=dispersion$group,data.frame(dispersion$vectors))
 # to create the lines from the centroids to each point we will put it in a format that ggplot can handle
 seg.data<-cbind(vectors[,1:3],centroids[rep(1:nrow(centroids),as.data.frame(table(vectors$group))$Freq),2:3])
 names(seg.data)<-c("group","v.PCoA1","v.PCoA2","PCoA1","PCoA2")
-png("climate_pcoa.png", units="in", width=6, height=5, res=300)
+png("climate_pcoa_grouped.png", units="in", width=6, height=5, res=300)
 ggplot() + 
   stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.7, geom="polygon")+
   #geom_point(data=centroids, aes(x=PCoA1,y=PCoA2),size=4.7,color="black",shape=16) + 
@@ -120,7 +126,7 @@ dev.off()
 
 
 #### PCoA - Rep ####
-ab = voc_transpose[,2:1493]
+ab = voc_transpose[,2:783]
 ab.dist<-vegdist(ab, method='bray')
 dispersion<-betadisper(ab.dist, group=voc_transpose$Rep)
 # extract the centroids and the site points in multivariate space.  

@@ -28,7 +28,7 @@ voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_total_VOC_2022_L1.c
 
 #### VOC Composition - PERMANOVA ####
 # make community matrix - extract columns with abundance information
-ab = voc_transpose[,2:1493]
+ab = voc_transpose[,2:783]
 
 # dissimilarity matrix
 ab.dist<-vegdist(ab, method='bray')
