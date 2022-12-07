@@ -26,7 +26,7 @@ voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_named_VOC_2022_L1.c
 
 #### NMDS ####
 # make community matrix - extract columns with abundance information
-ab = voc_transpose[,2:783]
+ab = voc_transpose[,2:429]
 
 # turn abundance data frame into a matrix
 mat_ab = as.matrix(ab)
@@ -64,7 +64,7 @@ ggplot(data.scores, aes(x = NMDS1, y = NMDS2)) +
 dev.off()
 
 #### PCoA - Treatment ####
-ab = voc_transpose[,2:783]
+ab = voc_transpose[,2:429]
 ab.dist<-vegdist(ab, method='bray')
 dispersion<-betadisper(ab.dist, group=voc_transpose$Treatment)
 # extract the centroids and the site points in multivariate space.  
@@ -100,7 +100,7 @@ voc_transpose2$Treatment <- gsub('Warmed_Drought', 'Drought', voc_transpose2$Tre
 voc_transpose2$Treatment <- gsub('Ambient_Control', 'Not_Drought', voc_transpose2$Treatment)
 voc_transpose2$Treatment <- gsub('Irrigated_Control', 'Not_Drought', voc_transpose2$Treatment)
 voc_transpose2$Treatment <- gsub('Warmed', 'Not_Drought', voc_transpose2$Treatment)
-ab = voc_transpose2[,2:783]
+ab = voc_transpose2[,2:429]
 ab.dist<-vegdist(ab, method='bray')
 dispersion<-betadisper(ab.dist, group=voc_transpose2$Treatment)
 # extract the centroids and the site points in multivariate space.  
@@ -126,7 +126,7 @@ dev.off()
 
 
 #### PCoA - Rep ####
-ab = voc_transpose[,2:783]
+ab = voc_transpose[,2:429]
 ab.dist<-vegdist(ab, method='bray')
 dispersion<-betadisper(ab.dist, group=voc_transpose$Rep)
 # extract the centroids and the site points in multivariate space.  
@@ -155,9 +155,41 @@ ggplot() +
 dev.off()
 
 
+#### PCoA - Reps w/ rep 1 removed ####
+voc_transpose_rm <- voc_transpose %>%
+  filter(!(Rep == 1))
+ab = voc_transpose_rm[,2:429]
+ab.dist<-vegdist(ab, method='bray')
+dispersion<-betadisper(ab.dist, group=voc_transpose_rm$Rep)
+# extract the centroids and the site points in multivariate space.  
+centroids<-data.frame(grps=rownames(dispersion$centroids),data.frame(dispersion$centroids))
+vectors<-data.frame(group=dispersion$group,data.frame(dispersion$vectors))
+
+# to create the lines from the centroids to each point we will put it in a format that ggplot can handle
+seg.data<-cbind(vectors[,1:3],centroids[rep(1:nrow(centroids),as.data.frame(table(vectors$group))$Freq),2:3])
+names(seg.data)<-c("group","v.PCoA1","v.PCoA2","PCoA1","PCoA2")
+png("rep_pcoa.png", units="in", width=6, height=5, res=300)
+ggplot() + 
+  stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.7, geom="polygon")+
+  #geom_point(data=centroids, aes(x=PCoA1,y=PCoA2),size=4.7,color="black",shape=16) + 
+  #geom_point(data=centroids, aes(x=PCoA1,y=PCoA2, color=grps),size=4,shape=16) + 
+  geom_point(data=seg.data, aes(x=v.PCoA1,y=v.PCoA2, color=group),alpha=0.7,size=2.5,shape=16) +
+  #scale_color_manual(labels=c("1", "2", "3", "4", "5"),
+  #                   values=c('#2c7bb6','#abd9e9',"#fdae61","khaki1","#d7191c"))+
+  #scale_fill_manual(labels=c("1", "2", "3", "4", "5"),
+  #                  values=c('#2c7bb6','#abd9e9',"#fdae61","khaki1","#d7191c"))+
+  labs(x="PCoA 1",y="PCoA 2", color="Field Rep", fill="Field Rep") +
+  theme_classic() +
+  theme(axis.text.x = element_text(size=13),
+        axis.text.y = element_text(size=13),
+        axis.title.y = element_text(size=15),
+        axis.title.x = element_text(size=15))
+dev.off()
+
+
 #### ABUNDANCE ####
 # calculating total abundance for each sample
-voc_transpose$rowsums <- rowSums(voc_transpose[2:1455])
+voc_transpose$rowsums <- rowSums(voc_transpose[2:783])
 
 # calculating total abundance for each treatment
 voc_transpose_sum <- voc_transpose %>%
