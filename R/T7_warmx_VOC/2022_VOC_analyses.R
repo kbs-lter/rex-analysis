@@ -1,6 +1,6 @@
 # TITLE:          REX: 2022 VOC analyses
 # AUTHORS:        Kara Dobson
-# COLLABORATORS:  Phoebe Zarnetske, Moriah Young, Mark Hammond
+# COLLABORATORS:  Phoebe Zarnetske
 # DATA INPUT:     Data imported as csv files from shared REX Google drive T7_warmx_VOC L1 folder
 # DATA OUTPUT:    Plots of data
 # PROJECT:        REX
@@ -30,22 +30,22 @@ voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_named_VOC_2022_L1.c
 # make community matrix - extract columns with abundance information
 
 # use the code below to run analyses on all reps besides 1
-#voc_transpose_rm <- voc_transpose %>%
-#  filter(!(Rep == 1))
-ab = voc_transpose[,2:429]
+voc_transpose_rm <- voc_transpose %>%
+  filter(!(Rep == 1))
+ab = voc_transpose_rm[,2:429]
 
 # dissimilarity matrix
 ab.dist<-vegdist(ab, method='bray')
 
 # run permanova
 set.seed(123)
-perm <- how(nperm = 999, blocks=voc_transpose$Rep)
-ab.div<-adonis2(ab.dist~Treatment, data=voc_transpose, permutations = perm, method="bray")
+perm <- how(nperm = 999, blocks=voc_transpose_rm$Rep)
+ab.div<-adonis2(ab.dist~Treatment, data=voc_transpose_rm, permutations = perm, method="bray")
 ab.div
 # note: also can run models with rep as additive or interactive effect w/ treatment
 
 # pairwise comparisons of permanova
-ab.pair<-pairwise.adonis2(ab.dist~Treatment, data=voc_transpose, method="bray", strata="Rep")
+ab.pair<-pairwise.adonis2(ab.dist~Treatment, data=voc_transpose_rm, method="bray", strata="Rep")
 ab.pair
 
 # testing for homogeneity of dispersion among groups
