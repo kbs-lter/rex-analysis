@@ -23,13 +23,14 @@ dir<-Sys.getenv("DATA_DIR")
 
 # Read in data
 voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_named_VOC_2022_L1.csv"))
+voc_transpose_rm <- voc_transpose %>%
+  filter(!(Rep == 1))
+voc_biomass <- read.csv(file.path(dir, "T7_warmx_VOC/L1/VOC_biomass_2022_L1.csv"))
 
 
 #### NMDS ####
 # make community matrix - extract columns with abundance information
 # use the code below to run analyses on all reps besides 1
-voc_transpose_rm <- voc_transpose %>%
-  filter(!(Rep == 1))
 ab = voc_transpose_rm[,2:429]
 
 # turn abundance data frame into a matrix
@@ -252,40 +253,27 @@ dev.off()
 # calculating total abundance for each sample
 voc_transpose_rm$rowsums <- rowSums(voc_transpose_rm[2:429])
 
-# calculating total abundance for each treatment
+# making biomass treatments match voc data
+voc_biomass$Treatment[voc_biomass$Treatment == "Ambient"] <- "Ambient_Control"
+voc_biomass$Treatment[voc_biomass$Treatment == "Irrigated"] <- "Irrigated_Control"
+
+# calculating total abundance for each treatment $ rep
 voc_transpose_sum <- voc_transpose_rm %>%
-  group_by(Treatment) %>%
+  group_by(Treatment, Rep) %>%
   summarize(abun = sum(rowsums))
-voc_transpose_sum2 <- voc_transpose_rm %>%
+# merge w/ biomass data
+voc_transpose_sum <- left_join(voc_transpose_sum,voc_biomass,by=c("Treatment","Rep"))
+# take weighted average
+voc_transpose_sum <- voc_transpose_sum %>%
+  mutate(weighted_abun = abun/Weight_g)
+
+# taking average per treatment
+voc_transpose_sum2 <- voc_transpose_sum %>%
   group_by(Treatment) %>%
-  summarize(abun = mean(rowsums),
-            se = std.error(rowsums))
+  summarize(abun = mean(weighted_abun),
+            se = std.error(weighted_abun))
 
-# manually making a dataframe that takes abundance sums divided by plant biomass for each treatment
-voc_transpose_w <- data.frame(Treatment = c("Ambient","Irrigated","Drought","Warmed","Warmed_Drought"),
-                  weighted_abun = c(6.471801,6.714231,4.172067,6.209308,4.201861))
-# total abundance from voc_transpose_sum, plant biomass from the 2022_Solidago_leaf_biomass_L2.R script
-# ambient 394.3414/60.93225
-# irrigated 441.2288/65.71546
-# drought 240.5085/57.64733
-# warmed 407.4361/65.61699
-# warmed drought 211.2220/50.26868
-
-# total abundance - including biomass
-level_order <- c('Ambient', 'Irrigated', 'Drought', "Warmed", "Warmed_Drought")
-ggplot(voc_transpose_w, aes(x = factor(Treatment, level = level_order), y = weighted_abun)) + 
-  geom_bar(position = "identity", stat = "identity", color = 'black', fill = "lightsteelblue3") +
-  theme_classic() +
-  theme(axis.text.x = element_text(size=13),
-        axis.text.y = element_text(size=13),
-        axis.title.y = element_text(size=15),
-        axis.title.x = element_text(size=15)) +
-  scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
-                            "Irrigated_Control" = "Irrigated",
-                            "Warmed_Drought" = "Warmed + \n Drought")) +
-  labs(x = "Treatment", y = "Total VOC abundance")
-
-# total abundances
+# plot
 level_order2 <- c('Ambient_Control', 'Irrigated_Control', 'Drought', "Warmed", "Warmed_Drought")
 png("climate_ab.png", units="in", width=6, height=5, res=300)
 ggplot(voc_transpose_sum2, aes(x = factor(Treatment, level = level_order2), y = abun)) + 
@@ -307,17 +295,106 @@ dev.off()
 # abundances for specific compounds, found in the analyses script
 # alpha farnesene
 voc_transpose_cmpd <- voc_transpose_rm %>%
-  dplyr::select(Sample_ID, Treatment, X.Z.Z...alpha..Farnesene) %>%
-  group_by(Treatment) %>%
+  dplyr::select(Sample_ID, Treatment, Rep, X.Z.Z...alpha..Farnesene) %>%
+  group_by(Treatment, Rep) %>%
   summarize(abun = sum(X.Z.Z...alpha..Farnesene))
-voc_transpose_cmpd_a <- voc_transpose_rm %>%
-  dplyr::select(Sample_ID, Treatment, X.Z.Z...alpha..Farnesene) %>%
+# merge w/ biomass data
+voc_transpose_cmpd <- left_join(voc_transpose_cmpd,voc_biomass,by=c("Treatment","Rep"))
+# take weighted average
+voc_transpose_cmpd <- voc_transpose_cmpd %>%
+  mutate(weighted_abun = abun/Weight_g)
+
+# taking average per treatment
+voc_transpose_cmpd_a <- voc_transpose_cmpd %>%
   group_by(Treatment) %>%
-  summarize(abun = mean(X.Z.Z...alpha..Farnesene),
-            se = std.error(X.Z.Z...alpha..Farnesene))
+  summarize(abun = mean(weighted_abun),
+            se = std.error(weighted_abun))
+
+# plot
+png("climate_farn.png", units="in", width=6, height=4, res=300)
+ggplot(voc_transpose_cmpd_a, aes(x = factor(Treatment, level = level_order2), y = abun)) + 
+  geom_bar(position = "identity", stat = "identity", color = 'black', fill = "lightsteelblue3") +
+  geom_errorbar(aes(ymin = abun - se, ymax = abun + se), width = 0.2,
+                position = "identity") +
+  theme_classic() +
+  theme(axis.text.x = element_text(size=11),
+        axis.title.y = element_text(size=15),
+        axis.title.x = element_text(size=15)) +
+  scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
+                            "Irrigated_Control" = "Irrigated",
+                            "Warmed_Drought" = "Warmed + \n Drought")) +
+  labs(x = "Treatment", y = "Average VOC Abundance")
+dev.off()
+
+
+# endo Borneol
+voc_transpose_cmpd2 <- voc_transpose_rm %>%
+  dplyr::select(Sample_ID, Treatment, Rep, endo.Borneol) %>%
+  group_by(Treatment, Rep) %>%
+  summarize(abun = sum(endo.Borneol))
+# merge w/ biomass data
+voc_transpose_cmpd2 <- left_join(voc_transpose_cmpd2,voc_biomass,by=c("Treatment","Rep"))
+# take weighted average
+voc_transpose_cmpd2 <- voc_transpose_cmpd2 %>%
+  mutate(weighted_abun = abun/Weight_g)
+
+# taking average per treatment
+voc_transpose_cmpd2_a <- voc_transpose_cmpd2 %>%
+  group_by(Treatment) %>%
+  summarize(abun = mean(weighted_abun),
+            se = std.error(weighted_abun))
+
+# plot
+png("climate_endo.png", units="in", width=6, height=4, res=300)
+ggplot(voc_transpose_cmpd2_a, aes(x = factor(Treatment, level = level_order2), y = abun)) + 
+  geom_bar(position = "identity", stat = "identity", color = 'black', fill = "lightsteelblue3") +
+  geom_errorbar(aes(ymin = abun - se, ymax = abun + se), width = 0.2,
+                position = "identity") +
+  theme_classic() +
+  theme(axis.text.x = element_text(size=11),
+        axis.title.y = element_text(size=15),
+        axis.title.x = element_text(size=15)) +
+  scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
+                            "Irrigated_Control" = "Irrigated",
+                            "Warmed_Drought" = "Warmed + \n Drought")) +
+  labs(x = "Treatment", y = "Average VOC Abundance")
+dev.off()
+
+
+
+
+
+
+
+# old code using biomass totals per treatment
+# manually making a dataframe that takes abundance sums divided by plant biomass for each treatment
+voc_transpose_w <- data.frame(Treatment = c("Ambient","Irrigated","Drought","Warmed","Warmed_Drought"),
+                              weighted_abun = c(6.471801,6.714231,4.172067,6.209308,4.201861))
+# total abundance from voc_transpose_sum, plant biomass from the 2022_Solidago_leaf_biomass_L2.R script
+# ambient 394.3414/60.93225
+# irrigated 441.2288/65.71546
+# drought 240.5085/57.64733
+# warmed 407.4361/65.61699
+# warmed drought 211.2220/50.26868
+
+# total abundance - including biomass
+level_order <- c('Ambient', 'Irrigated', 'Drought', "Warmed", "Warmed_Drought")
+ggplot(voc_transpose_w, aes(x = factor(Treatment, level = level_order), y = weighted_abun)) + 
+  geom_bar(position = "identity", stat = "identity", color = 'black', fill = "lightsteelblue3") +
+  theme_classic() +
+  theme(axis.text.x = element_text(size=13),
+        axis.text.y = element_text(size=13),
+        axis.title.y = element_text(size=15),
+        axis.title.x = element_text(size=15)) +
+  scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
+                            "Irrigated_Control" = "Irrigated",
+                            "Warmed_Drought" = "Warmed + \n Drought")) +
+  labs(x = "Treatment", y = "Total VOC abundance")
+
+
 # manually making a dataframe that takes abundance sums divided by plant biomass for each treatment
 voc_transpose_cmpd_w <- data.frame(Treatment = c("Ambient","Irrigated","Drought","Warmed","Warmed_Drought"),
-                              weighted_abun = c(0.06388608,0.008622839,0.01526052,0.09104409,0))
+                                   weighted_abun = c(0.06388608,0.008622839,0.01526052,0.09104409,0))
 # total abundance from voc_transpose_sum, plant biomass from the 2022_Solidago_leaf_biomass_L2.R script
 # ambient 3.8927223/60.93225
 # irrigated 0.5666538/65.71546
@@ -338,36 +415,9 @@ ggplot(voc_transpose_cmpd_w, aes(x = factor(Treatment, level = level_order), y =
                             "Warmed_Drought" = "Warmed + \n Drought")) +
   labs(x = "Treatment", y = "Total VOC abundance")
 
-# w/o biomass
-png("climate_farn.png", units="in", width=6, height=4, res=300)
-ggplot(voc_transpose_cmpd_a, aes(x = factor(Treatment, level = level_order2), y = abun)) + 
-  geom_bar(position = "identity", stat = "identity", color = 'black', fill = "lightsteelblue3") +
-  geom_errorbar(aes(ymin = abun - se, ymax = abun + se), width = 0.2,
-                position = "identity") +
-  theme_classic() +
-  theme(axis.text.x = element_text(size=11),
-        axis.title.y = element_text(size=15),
-        axis.title.x = element_text(size=15)) +
-  scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
-                            "Irrigated_Control" = "Irrigated",
-                            "Warmed_Drought" = "Warmed + \n Drought")) +
-  labs(x = "Treatment", y = "Average VOC Abundance")
-dev.off()
 
-
-# note: stopped updating abundance info here - everything below needs fixed
-# endo Borneol
-voc_transpose_cmpd2 <- voc_transpose %>%
-  dplyr::select(Sample_ID, Treatment, endo.Borneol) %>%
-  group_by(Treatment) %>%
-  summarize(abun = sum(endo.Borneol))
-voc_transpose_cmpd2_a <- voc_transpose %>%
-  dplyr::select(Sample_ID, Treatment, endo.Borneol) %>%
-  group_by(Treatment) %>%
-  summarize(abun = mean(endo.Borneol),
-            se = std.error(endo.Borneol))
 voc_transpose_cmpd2_w <- data.frame(Treatment = c("Ambient","Irrigated","Drought","Warmed","Warmed_Drought"),
-                                   weighted_abun = c(6189.467,209.2354,745.1382,9477.088,688.2019))
+                                    weighted_abun = c(6189.467,209.2354,745.1382,9477.088,688.2019))
 # total abundance from voc_transpose_sum, plant biomass from the 2022_Solidago_leaf_biomass_L2.R script
 # ambient 348791/56.35235
 # irrigated 13750/65.71546

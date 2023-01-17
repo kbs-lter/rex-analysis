@@ -39,7 +39,7 @@ voc_leaves <- voc_leaves %>%
   filter(!(Rep == 4 & Treatment == "Warmed_Drought" & Plant_Number == 1)) %>%
   filter(!(Rep == 3 & Treatment == "Warmed_Drought" & Plant_Number == 1)) %>%
   filter(!(Rep == 2 & Treatment == "Ambient" & Plant_Number == 1)) %>%
-  filter(!(Rep == 1 & Treatment == "Warmed" & Plant_Number == 1))
+  filter(!(Rep == 1))
 
 
 ### Getting regression btwn leaf length and weight for each treatment ###
@@ -77,7 +77,81 @@ summary(wd_mod)$coef
 plot(Weight_g ~ Length_cm, data=warm_drought)
 abline(wd_mod)
 
-# making dataframe for each treatment in voc_leaves dataframe
+# making dataframe for each treatment & rep in voc_leaves dataframe
+trt_rep <- function(df, trt, rep){
+  df2 <- df %>%
+    filter(Treatment == trt & Rep == rep) %>%
+    select(-Treatment, -Rep, -Plant_Number)
+  return(df2)
+}
+w_2 <- trt_rep(voc_leaves,"Warmed",2)
+w_3 <- trt_rep(voc_leaves,"Warmed",3)
+w_4 <- trt_rep(voc_leaves,"Warmed",4)
+w_5 <- trt_rep(voc_leaves,"Warmed",5)
+
+a_2 <- trt_rep(voc_leaves,"Ambient",2)
+a_3 <- trt_rep(voc_leaves,"Ambient",3)
+a_4 <- trt_rep(voc_leaves,"Ambient",4)
+a_5 <- trt_rep(voc_leaves,"Ambient",5)
+
+ir_2 <- trt_rep(voc_leaves,"Irrigated",2)
+ir_3 <- trt_rep(voc_leaves,"Irrigated",3)
+ir_4 <- trt_rep(voc_leaves,"Irrigated",4)
+ir_5 <- trt_rep(voc_leaves,"Irrigated",5)
+
+d_2 <- trt_rep(voc_leaves,"Drought",2)
+d_3 <- trt_rep(voc_leaves,"Drought",3)
+d_4 <- trt_rep(voc_leaves,"Drought",4)
+d_5 <- trt_rep(voc_leaves,"Drought",5)
+
+wd_2 <- trt_rep(voc_leaves,"Warmed_Drought",2)
+wd_3 <- trt_rep(voc_leaves,"Warmed_Drought",3)
+wd_4 <- trt_rep(voc_leaves,"Warmed_Drought",4)
+wd_5 <- trt_rep(voc_leaves,"Warmed_Drought",5)
+
+# making a dataframe to store biomass measurements in
+voc_biomass <- data.frame(Treatment = c("Warmed","Warmed","Warmed","Warmed",
+                                        "Ambient","Ambient","Ambient","Ambient",
+                                        "Irrigated","Irrigated","Irrigated","Irrigated",
+                                        "Drought","Drought","Drought","Drought",
+                                        "Warmed_Drought","Warmed_Drought","Warmed_Drought","Warmed_Drought"),
+                          Rep = c(2,3,4,5,
+                                  2,3,4,5,
+                                  2,3,4,5,
+                                  2,3,4,5,
+                                  2,3,4,5),
+                          Weight_g = c(NA))
+# predicting biomass per treatment + rep from leaf lengths
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Warmed" & voc_biomass$Rep == 2, sum(predict(w_mod, w_2)), voc_biomass$Weight_g)
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Warmed" & voc_biomass$Rep == 3, sum(predict(w_mod, w_3)), voc_biomass$Weight_g)
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Warmed" & voc_biomass$Rep == 4, sum(predict(w_mod, w_4)), voc_biomass$Weight_g)
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Warmed" & voc_biomass$Rep == 5, sum(predict(w_mod, w_5)), voc_biomass$Weight_g)
+
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Ambient" & voc_biomass$Rep == 2, sum(predict(a_mod, a_2)), voc_biomass$Weight_g)
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Ambient" & voc_biomass$Rep == 3, sum(predict(a_mod, a_3)), voc_biomass$Weight_g)
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Ambient" & voc_biomass$Rep == 4, sum(predict(a_mod, a_4)), voc_biomass$Weight_g)
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Ambient" & voc_biomass$Rep == 5, sum(predict(a_mod, a_5)), voc_biomass$Weight_g)
+
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Irrigated" & voc_biomass$Rep == 2, sum(predict(i_mod, ir_2)), voc_biomass$Weight_g)
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Irrigated" & voc_biomass$Rep == 3, sum(predict(i_mod, ir_3)), voc_biomass$Weight_g)
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Irrigated" & voc_biomass$Rep == 4, sum(predict(i_mod, ir_4)), voc_biomass$Weight_g)
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Irrigated" & voc_biomass$Rep == 5, sum(predict(i_mod, ir_5)), voc_biomass$Weight_g)
+
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Drought" & voc_biomass$Rep == 2, sum(predict(d_mod, d_2)), voc_biomass$Weight_g)
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Drought" & voc_biomass$Rep == 3, sum(predict(d_mod, d_3)), voc_biomass$Weight_g)
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Drought" & voc_biomass$Rep == 4, sum(predict(d_mod, d_4)), voc_biomass$Weight_g)
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Drought" & voc_biomass$Rep == 5, sum(predict(d_mod, d_5)), voc_biomass$Weight_g)
+
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Warmed_Drought" & voc_biomass$Rep == 2, sum(predict(wd_mod, wd_2)), voc_biomass$Weight_g)
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Warmed_Drought" & voc_biomass$Rep == 3, sum(predict(wd_mod, wd_3)), voc_biomass$Weight_g)
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Warmed_Drought" & voc_biomass$Rep == 4, sum(predict(wd_mod, wd_4)), voc_biomass$Weight_g)
+voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Warmed_Drought" & voc_biomass$Rep == 5, sum(predict(wd_mod, wd_5)), voc_biomass$Weight_g)
+
+# save output
+write.csv(voc_biomass, file.path(dir,"T7_warmx_VOC/L1/VOC_biomass_2022_L1.csv"), row.names=F)
+
+
+# old code for total treatment biomass
 warmed_voc <- voc_leaves %>%
   filter(Treatment == "Warmed") %>%
   select(-Treatment, -Rep, -Plant_Number)
