@@ -1,0 +1,113 @@
+---
+title: "T7 ANPP Plots"
+author: "Moriah Young"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(bbmle)
+library(lmerTest)
+library(fitdistrplus)
+library(sjPlot)
+library(car)
+library(emmeans)
+library(tidyverse)
+library(ggpubr)
+library(jtools) #summ 
+library(rstatix)
+library(RColorBrewer)
+library(plotrix)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+anpp22 <- read.csv(file.path(dir, "T7_ANPP/L1/T7_ANPP_2022_L1.csv")) # 2022 ANPP data
+meta <- read.csv(file.path(dir, "REX_T7_metadata.csv"))
+
+# Specifying the order that we want the treatments to be listed in the figures on the x-axis
+level_order1 <- c('irrigated_control', 'ambient', 'drought', 'drought_insecticide', 'insecticide', 'warmed_drought_insecticide', 'warmed_insecticide', 'warmed','warmed_drought')
+
+level_order_2 <- c('irrigated_control', 'ambient', 'drought', 'warmed','warmed_drought')
+
+level_order_3 <- c('irrigated_control', 'ambient', 'drought', 'drought_insecticide', 'insecticide', 'warmed_drought_insecticide', 'warmed_insecticide', 'warmed','warmed_drought')
+
+```
+
+
+```{r}
+# changing column name
+names(anpp22)[3] <- "Biomass_g"
+
+anpp22$Subplot_Descriptions <- paste0(anpp22$FP_treatment, "_", anpp22$Subplot_Description)
+
+# to get average biomass per treatment, first sum total biomass per plot
+# then, take the average of that
+anpp22_avg <- anpp22 %>%
+  group_by(Field_Loc_Code, Subplot_Description, Subplot_Descriptions) %>% 
+  summarize(sum_biomass = sum(Biomass_g, na.rm = TRUE)) %>% # summing biomass per plot
+  group_by(Subplot_Description, Subplot_Descriptions) %>%
+  summarize(avg_biomass = mean(sum_biomass, na.rm = TRUE), # taking avg biomass of each treatment
+            se = std.error(sum_biomass, na.rm = TRUE))
+
+```
+
+```{r}
+png("avg_anpp_all_2022.png", units="in", width=8, height=6, res=300)
+ggplot(anpp22_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Description)) +
+        geom_bar(stat = "identity") +
+        geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
+                         position = "identity") +
+        #scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        #"irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment", y = "2022 Average Biomass (g/0.20m^2)") +
+        #scale_x_discrete(labels=c("ambient" = "Ambient",
+        #                          "drought" = "Drought",
+        #                          "irrigated_control" = "Irrigated \n Control",
+        #                          "warmed" = "Warmed",
+        #                          "warmed_drought" = "Warmed +\n Drought",
+        #                          "drought_insecticide" = "Insecticide +\n Drought", 
+        #                          "insecticide" = "Insecticide", 
+        #                          'warmed_drought_insecticide' = " Insecticide +\n Warmed +\n Drought", 
+        #                          'warmed_insecticide' = "Insecticide +\n Warmed",
+        #                          "Fungicide" = "Fungicide",
+        #                          "Nematicide" = "Nematicide",
+        #                          "Sorghum" = "Sorghum",
+        #                          "Control" = "Control")) +
+        theme(legend.position = "none")
+dev.off
+```
+
+```{r}
+treatment_names <- c(`ambient` = "Ambient",
+                    `irrigated_control` = "Irrigated \n Control",
+                    `warmed` = "Warmed",
+                    `warmed_drought` = "Warmed +\n Drought",
+                    `drought` = "Drought")
+
+png("avg_anpp_all_barplot.png", units="in", width=8, height=6, res=300)
+ggplot(anpp22_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Description)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        geom_bar(stat = "identity", position = "dodge") +
+        facet_grid(~Subplot_Description) +
+        geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
+                         position = "identity") +
+        #scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        #"irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Year", y = "2022 Average Biomass (g/0.20m^2)") +
+        theme(legend.position = "none")
+dev.off
+
+```
+

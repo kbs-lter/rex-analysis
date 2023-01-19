@@ -54,17 +54,23 @@ level_order_1 <- c('irrigated_control', 'ambient', 'drought', 'warmed','warmed_d
 names(anpp21)[7] <- "Biomass_g"
 names(anpp22)[3] <- "Biomass_g"
 
-# Take subplot average of biomass
+# to get average biomass per treatment, first sum total biomass per plot
+# then, take the average of that
 anpp21_avg <- anpp21 %>%
-        group_by(Subplot_Descriptions) %>%
-        summarise(avg_biomass = mean(Biomass_g, na.rm = TRUE),
-        se = std.error(Biomass_g, na.rm = TRUE))
+  group_by(Field_Loc_Code, Subplot_Descriptions) %>% 
+  summarize(sum_biomass = sum(Biomass_g, na.rm = TRUE)) %>% # summing biomass per plot
+  group_by(Subplot_Descriptions) %>%
+  summarize(avg_biomass = mean(sum_biomass, na.rm = TRUE), # taking avg biomass of each treatment
+            se = std.error(sum_biomass, na.rm = TRUE))
 
-# Take subplot average of biomass
+# to get average biomass per treatment, first sum total biomass per plot
+# then, take the average of that
 anpp22_avg <- anpp22 %>%
-        group_by(Subplot_Descriptions) %>%
-        summarise(avg_biomass = mean(Biomass_g, na.rm = TRUE),
-        se = std.error(Biomass_g, na.rm = TRUE))
+  group_by(Field_Loc_Code, Subplot_Descriptions) %>% 
+  summarize(sum_biomass = sum(Biomass_g, na.rm = TRUE)) %>% # summing biomass per plot
+  group_by(Subplot_Descriptions) %>%
+  summarize(avg_biomass = mean(sum_biomass, na.rm = TRUE), # taking avg biomass of each treatment
+            se = std.error(sum_biomass, na.rm = TRUE))
 
 # add year column
 anpp21_avg$year <- 2021
@@ -88,9 +94,8 @@ anpp22_noinsect <- anpp22 %>%
 
 ```
 
-
+All treatmets (including insecticide)
 ```{r}
-
 png("avg_anpp_2022.png", units="in", width=8, height=6, res=300)
 ggplot(anpp22_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
         geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
