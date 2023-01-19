@@ -1,0 +1,191 @@
+---
+title: "T7 warmx ANPP Plots"
+author: "Moriah Young"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+COLLABORATORS: Kara Dobson, Phoebe Zarnetske, Mark Hammond
+DATA INPUT:  csv from the shared Google drive  
+DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
+PROJECT: REX
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(bbmle)
+library(lmerTest)
+library(fitdistrplus)
+library(sjPlot)
+library(car)
+library(emmeans)
+library(tidyverse)
+library(ggpubr)
+library(jtools) #summ 
+library(rstatix)
+library(RColorBrewer)
+library(plotrix)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+anpp21 <- read.csv(file.path(dir, "T7_ANPP/L1/T7_warmx_ANPP_2021_L1.csv")) # 2021 ANPP data
+anpp22 <- read.csv(file.path(dir, "T7_ANPP/L1/T7_warmx_ANPP_2022_L1.csv")) # 2022 ANPP data
+meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
+
+# Specifying the order that we want the treatments to be listed in the figures on the x-axis
+level_order <- c('irrigated_control', 'ambient', 'drought', 'drought_insecticide', 'insecticide', 'warmed_drought_insecticide', 'warmed_insecticide', 'warmed','warmed_drought')
+
+level_order_1 <- c('irrigated_control', 'ambient', 'drought', 'warmed','warmed_drought')
+
+```
+
+
+```{r}
+# changing column name
+names(anpp21)[7] <- "Biomass_g"
+names(anpp22)[3] <- "Biomass_g"
+
+# Take subplot average of biomass
+anpp21_avg <- anpp21 %>%
+        group_by(Subplot_Descriptions) %>%
+        summarise(avg_biomass = mean(Biomass_g, na.rm = TRUE),
+        se = std.error(Biomass_g, na.rm = TRUE))
+
+# Take subplot average of biomass
+anpp22_avg <- anpp22 %>%
+        group_by(Subplot_Descriptions) %>%
+        summarise(avg_biomass = mean(Biomass_g, na.rm = TRUE),
+        se = std.error(Biomass_g, na.rm = TRUE))
+
+# add year column
+anpp21_avg$year <- 2021
+anpp22_avg$year <- 2022
+
+# merge 2021 and 2022 anpp average biomass dataframes into one
+anpp_avg <- full_join(anpp21_avg, anpp22_avg, by = c("Subplot_Descriptions", "avg_biomass", "se", "year"))
+
+# removing insecticide treatments
+anpp21_noinsect <- anpp21 %>%
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
+
+anpp22_noinsect <- anpp22 %>%
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
+
+```
+
+
+```{r}
+
+png("avg_anpp_2022.png", units="in", width=8, height=6, res=300)
+ggplot(anpp22_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        geom_bar(stat = "identity") +
+        geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
+                         position = "identity") +
+        #scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        #"irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment", y = "2022 Average Biomass (g/0.20m^2)") +
+        scale_x_discrete(limits = level_order,
+                         labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought",
+                                  "drought_insecticide" = "Insecticide +\n Drought", 
+                                  "insecticide" = "Insecticide", 
+                                  'warmed_drought_insecticide' = " Insecticide +\n Warmed +\n Drought", 
+                                  'warmed_insecticide' = "Insecticide +\n Warmed")) +
+        theme(legend.position = "none")
+dev.off
+```
+
+# Removing insecticide treatments
+```{r}
+# removing treatments we aren't interested in
+anpp22_avg_noinsect <- anpp22_avg %>%
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
+
+png("avg_anpp_no_insect_2022_barplot.png", units="in", width=6, height=6, res=300)
+ggplot(anpp22_avg_noinsect, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        geom_bar(stat = "identity") +
+        geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
+                         position = "identity") +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment", y = "2022 Average Biomass (g/0.20m^2)") +
+        scale_x_discrete(limits = level_order_1, labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none")
+dev.off
+
+# boxplot
+ggplot(anpp22_noinsect, aes(x = Subplot_Descriptions, y = Biomass_g, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment", y = "2022 Average Biomass (g/0.20m^2)") +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none")
+```
+
+2021 & 2022 
+```{r}
+# removing treatments we aren't interested in
+anpp_avg_noinsect <- anpp_avg %>%
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
+
+treatment_names <- c(`ambient` = "Ambient",
+                    `irrigated_control` = "Irrigated \n Control",
+                    `warmed` = "Warmed",
+                    `warmed_drought` = "Warmed +\n Drought",
+                    `drought` = "Drought")
+
+png("avg_anpp_no_insect_barplot.png", units="in", width=8, height=6, res=300)
+ggplot(anpp_avg_noinsect, aes(x = as.factor(year), y = avg_biomass, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        geom_bar(stat = "identity", position = "dodge") +
+        facet_grid(~Subplot_Descriptions, labeller = as_labeller(treatment_names)) +
+        geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
+                         position = "identity") +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Year", y = "2021 & 2022 Average Biomass (g/0.20m^2)") +
+        theme(legend.position = "none")
+dev.off
+
+```
+
+
+
+
+
