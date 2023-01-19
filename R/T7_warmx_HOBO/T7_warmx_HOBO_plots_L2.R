@@ -16,6 +16,7 @@ list.files(dir)
 
 # Load packages
 library(tidyverse)
+library(plotrix)
 
 # Read in data
 hobo_data <- read.csv(file.path(dir, "sensors/Phoebe Footprints/L1/T7_warmx_HOBO_L1.csv"))
