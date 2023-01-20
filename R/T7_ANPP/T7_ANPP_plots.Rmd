@@ -36,7 +36,7 @@ anpp22 <- read.csv(file.path(dir, "T7_ANPP/L1/T7_ANPP_2022_L1.csv")) # 2022 ANPP
 meta <- read.csv(file.path(dir, "REX_T7_metadata.csv"))
 
 # Specifying the order that we want the treatments to be listed in the figures on the x-axis
-level_order1 <- c('irrigated_control', 'ambient', 'drought', 'drought_insecticide', 'insecticide', 'warmed_drought_insecticide', 'warmed_insecticide', 'warmed','warmed_drought')
+level_order_1 <- c('irrigated_control', 'ambient', 'drought', 'drought_insecticide', 'insecticide', 'warmed_drought_insecticide', 'warmed_insecticide', 'warmed','warmed_drought')
 
 level_order_2 <- c('irrigated_control', 'ambient', 'drought', 'warmed','warmed_drought')
 
@@ -54,9 +54,9 @@ anpp22$Subplot_Descriptions <- paste0(anpp22$FP_treatment, "_", anpp22$Subplot_D
 # to get average biomass per treatment, first sum total biomass per plot
 # then, take the average of that
 anpp22_avg <- anpp22 %>%
-  group_by(Field_Loc_Code, Subplot_Description, Subplot_Descriptions) %>% 
+  group_by(Field_Loc_Code, Subplot_Description, Subplot_Descriptions, FP_treatment) %>% 
   summarize(sum_biomass = sum(Biomass_g, na.rm = TRUE)) %>% # summing biomass per plot
-  group_by(Subplot_Description, Subplot_Descriptions) %>%
+  group_by(Subplot_Description, Subplot_Descriptions, FP_treatment) %>%
   summarize(avg_biomass = mean(sum_biomass, na.rm = TRUE), # taking avg biomass of each treatment
             se = std.error(sum_biomass, na.rm = TRUE))
 
@@ -72,42 +72,91 @@ ggplot(anpp22_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot
         #scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
         #"irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
         labs(x = "Treatment", y = "2022 Average Biomass (g/0.20m^2)") +
-        #scale_x_discrete(labels=c("ambient" = "Ambient",
-        #                          "drought" = "Drought",
-        #                          "irrigated_control" = "Irrigated \n Control",
-        #                          "warmed" = "Warmed",
-        #                          "warmed_drought" = "Warmed +\n Drought",
-        #                          "drought_insecticide" = "Insecticide +\n Drought", 
-        #                          "insecticide" = "Insecticide", 
-        #                          'warmed_drought_insecticide' = " Insecticide +\n Warmed +\n Drought", 
-        #                          'warmed_insecticide' = "Insecticide +\n Warmed",
-        #                          "Fungicide" = "Fungicide",
-        #                          "Nematicide" = "Nematicide",
-        #                          "Sorghum" = "Sorghum",
-        #                          "Control" = "Control")) +
-        theme(legend.position = "none")
+        theme(legend.position = "none",
+              axis.text.x = element_text(angle=45, vjust=1, hjust=1))
 dev.off
 ```
 
+This is what we want below
 ```{r}
-treatment_names <- c(`ambient` = "Ambient",
-                    `irrigated_control` = "Irrigated \n Control",
-                    `warmed` = "Warmed",
-                    `warmed_drought` = "Warmed +\n Drought",
-                    `drought` = "Drought")
+treatment_names <- c(`D1` = "Year 1 Drought (soy)",
+                    `D2` = "Year 2 Drought (wheat)",
+                    `D3` = "Year 3 Drought (corn)",
+                    `IR` = "Irrigated Control",
+                    `VR` = "Variable Rainfall",
+                    `OC` = "Warming",
+                    `OR` = "Warming X Drought")
 
-png("avg_anpp_all_barplot.png", units="in", width=8, height=6, res=300)
-ggplot(anpp22_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Description)) +
-        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
-        geom_bar(stat = "identity", position = "dodge") +
-        facet_grid(~Subplot_Description) +
+#labs(x = "Treatment", y = "2022 Average Biomass (g/0.20m^2)") +
+
+png("avg_anpp_all_2022.png", units="in", width=10, height=8, res=300)
+ggplot(anpp22_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Description)) +
+        geom_bar(stat = "identity") +
+        facet_wrap(~FP_treatment, scales = "free_x", labeller = as_labeller(treatment_names)) +
         geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
                          position = "identity") +
         #scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
         #"irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
-        labs(x = "Year", y = "2022 Average Biomass (g/0.20m^2)") +
+        xlab("Treatment") +
+        ylab(bquote("2022 Average Biomass " ('g/0.20m'^2))) +
+        scale_x_discrete(labels=c("OC_ambient" = "Ambient",
+                                  "OR_drought" = "Drought",
+                                  "OC_warmed" = "Warmed",
+                                  "OR_warmed_drought" = "Warmed +\n Drought",
+                                  "OR_drought_insecticide" = "Insecticide +\n Drought", 
+                                  "OC_insecticide" = "Insecticide", 
+                                  'OR_warmed_drought_insecticide' = " Insecticide +\n Warmed +\n Drought", 
+                                  'OC_warmed_insecticide' = "Insecticide +\n Warmed",
+                                  "D1_Fungicide" = "Fungicide",
+                                  "D2_Fungicide" = "Fungicide",
+                                  "D3_Fungicide" = "Fungicide",
+                                  "IR_Fungicide" = "Fungicide",
+                                  "VR_Fungicide" = "Fungicide",
+                                  "D1_Nematicide" = "Nematicide",
+                                  "D2_Nematicide" = "Nematicide",
+                                  "D3_Nematicide" = "Nematicide",
+                                  "IR_Nematicide" = "Nematicide",
+                                  "VR_Nematicide" = "Nematicide",
+                                  "D1_Sorghum" = "Sorghum",
+                                  "D2_Sorghum" = "Sorghum",
+                                  "D3_Sorghum" = "Sorghum",
+                                  "IR_Sorghum" = "Sorghum",
+                                  "VR_Sorghum" = "Sorghum",
+                                  "D1_Control" = "Control",
+                                  "D2_Control" = "Control",
+                                  "D3_Control" = "Control",
+                                  "IR_Control" = "Control",
+                                  "VR_Control" = "Control")) +
+        scale_fill_manual(values = c("OC_ambient" = "darkblue",
+                                  "OR_drought" = "gray58",
+                                  "OC_warmed" = "red2",
+                                  "OR_warmed_drought" = "darkred",
+                                  "OR_drought_insecticide" = "dodgerblue4", 
+                                  "OC_insecticide" = "sienna1", 
+                                  'OR_warmed_drought_insecticide' = "orangered", 
+                                  'OC_warmed_insecticide' = "salmon",
+                                  "D1_Fungicide" = "mediumpurple1",
+                                  "D2_Fungicide" = "mediumpurple1",
+                                  "D3_Fungicide" = "mediumpurple1",
+                                  "IR_Fungicide" = "mediumpurple1",
+                                  "VR_Fungicide" = "mediumpurple1",
+                                  "D1_Nematicide" = "hotpink",
+                                  "D2_Nematicide" = "hotpink",
+                                  "D3_Nematicide" = "hotpink",
+                                  "IR_Nematicide" = "hotpink",
+                                  "VR_Nematicide" = "hotpink",
+                                  "D1_Sorghum" = "seagreen",
+                                  "D2_Sorghum" = "seagreen",
+                                  "D3_Sorghum" = "seagreen",
+                                  "IR_Sorghum" = "seagreen",
+                                  "VR_Sorghum" = "seagreen",
+                                  "D1_Control" = "ivory4",
+                                  "D2_Control" = "ivory4",
+                                  "D3_Control" = "ivory4",
+                                  "IR_Control" = "ivory4",
+                                  "VR_Control" = "ivory4")) +
         theme(legend.position = "none")
 dev.off
-
 ```
 
