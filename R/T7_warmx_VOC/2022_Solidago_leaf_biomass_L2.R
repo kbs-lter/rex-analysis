@@ -35,9 +35,12 @@ unique(voc_leaves$Treatment)
 # removing plants from voc_leaves dataframe
 # removing these because I don't use their VOC data, so I need to make sure I am not calculating more biomass than what was measured for VOCs
 voc_leaves <- voc_leaves %>%
+  filter(!(Rep == 5 & Treatment == "Warmed" & Plant_Number == 1)) %>%
+  filter(!(Rep == 4 & Treatment == "Ambient" & Plant_Number == 1)) %>%
   filter(!(Rep == 4 & Treatment == "Warmed" & Plant_Number == 1)) %>%
   filter(!(Rep == 4 & Treatment == "Warmed_Drought" & Plant_Number == 1)) %>%
   filter(!(Rep == 3 & Treatment == "Warmed_Drought" & Plant_Number == 1)) %>%
+  filter(!(Rep == 3 & Treatment == "Irrigated" & Plant_Number == 1)) %>%
   filter(!(Rep == 2 & Treatment == "Ambient" & Plant_Number == 1)) %>%
   filter(!(Rep == 1))
 

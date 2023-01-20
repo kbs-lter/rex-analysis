@@ -23,8 +23,14 @@ dir<-Sys.getenv("DATA_DIR")
 
 # Read in data
 voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_named_VOC_2022_L1.csv"))
+# removing rep 1 - data is weird
 voc_transpose_rm <- voc_transpose %>%
   filter(!(Rep == 1))
+# removing samples w/ abnormally high abundances - see notes below in "abundance" category
+voc_transpose_rm <- voc_transpose_rm %>%
+  filter(!(Unique_ID == 79)) %>%
+  filter(!(Unique_ID == 39)) %>%
+  filter(!(Unique_ID == 62))
 voc_biomass <- read.csv(file.path(dir, "T7_warmx_VOC/L1/VOC_biomass_2022_L1.csv"))
 
 
@@ -68,7 +74,10 @@ ggplot(data.scores, aes(x = NMDS1, y = NMDS2)) +
   labs(x = "NMDS1", colour = "Rep", y = "NMDS2")
 dev.off()
 
+
+
 #### PCoA - Treatment ####
+# selecting compound columns
 ab = voc_transpose_rm[,2:429]
 ab.dist<-vegdist(ab, method='bray')
 dispersion<-betadisper(ab.dist, group=voc_transpose_rm$Treatment)
@@ -88,8 +97,8 @@ png("climate_pcoa.png", units="in", width=6, height=5, res=300)
 ggplot() + 
   stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.8, geom="polygon")+
   #geom_point(data=centroids, aes(x=PCoA1,y=PCoA2),size=4.7,color="black",shape=16) + 
-  geom_point(data=centroids, aes(x=PCoA1,y=PCoA2, fill=group),color="black",size=5,shape=21) + 
   geom_point(data=seg.data, aes(x=v.PCoA1,y=v.PCoA2, color=group),alpha=0.7,size=3,shape=16) +
+  geom_point(data=centroids, aes(x=PCoA1,y=PCoA2, fill=group),color="black",size=5,shape=21) + 
   scale_color_manual(labels=c("Ambient (A)", "Irrigated (I)", "Warmed (W)", "Drought (D)", "Warmed + Drought \n (WD)"),
                      values=c('#2c7bb6','#abd9e9',"khaki1","#fdae61","#d7191c"))+
   scale_fill_manual(labels=c("Ambient (A)", "Irrigated (I)", "Warmed (W)", "Drought (D)", "Warmed + Drought \n (WD)"),
@@ -97,6 +106,8 @@ ggplot() +
   labs(x="PCoA 1",y="PCoA 2", color="Treatment", fill="Treatment") +
   theme_classic()
 dev.off()
+
+
 
 # why does the permanova show sig. results when there's so much overlap?
 # https://chrischizinski.github.io/rstats/adonis/
@@ -248,7 +259,6 @@ ggplot() +
 dev.off()
 
 
-
 #### ABUNDANCE ####
 # calculating total abundance for each sample
 voc_transpose_rm$rowsums <- rowSums(voc_transpose_rm[2:429])
@@ -256,6 +266,24 @@ voc_transpose_rm$rowsums <- rowSums(voc_transpose_rm[2:429])
 # making biomass treatments match voc data
 voc_biomass$Treatment[voc_biomass$Treatment == "Ambient"] <- "Ambient_Control"
 voc_biomass$Treatment[voc_biomass$Treatment == "Irrigated"] <- "Irrigated_Control"
+
+# notes:
+# 3 samples (rep 4 ambient 79, rep 3 irrigated 39, and rep 5 warmed 62) have abnormally high abundances
+# for 79: columns 108, 117, 128, and 160 are high
+# for 39: columns 6, 91, 117, 128, 140, 336, and 361 are high
+# for 62: columns 91, 128, 156, 160, 260, 336, 383, and 395 are high
+# common to these samples are bicyclo[3.1.0] compounds, bicyclo[3.1.1] compounds, etc.
+# these compounds seem to function similarly to beta-pinene in anti-bacterial and anti-herbivory manners
+# so, I'm removing them because I believe these plants were stressed from factors other than our treatments
+# these compounds were found using the subsetted data below for each rep/treatment 
+#voc_test <- voc_transpose_rm %>%
+#  filter(Rep == 5 & Treatment == "Warmed")
+
+# removing samples w/ abnormally high abundances
+#voc_transpose_rm <- voc_transpose_rm %>%
+#  filter(!(Unique_ID == 79)) %>%
+#  filter(!(Unique_ID == 39)) %>%
+#  filter(!(Unique_ID == 62))
 
 # calculating total abundance for each treatment $ rep
 voc_transpose_sum <- voc_transpose_rm %>%
@@ -288,7 +316,7 @@ ggplot(voc_transpose_sum2, aes(x = factor(Treatment, level = level_order2), y = 
   scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
                             "Irrigated_Control" = "Irrigated",
                             "Warmed_Drought" = "Warmed + \n Drought")) +
-  labs(x = "Treatment", y = "Average VOC Abundance")
+  labs(x = "Treatment", y = "Average VOC Abundance \n (peak area/g)")
 dev.off()
 
 
