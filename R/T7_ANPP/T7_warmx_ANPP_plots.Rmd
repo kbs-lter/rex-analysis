@@ -184,7 +184,8 @@ ggplot(anpp_avg_noinsect, aes(x = as.factor(year), y = avg_biomass, fill = Subpl
                          position = "identity") +
         scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
         "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
-        labs(x = "Year", y = "2021 & 2022 Average Biomass (g/0.20m^2)") +
+        xlab("Year") +
+        ylab(bquote("2021 & 2022 Average Biomass " ('g/0.20m'^2))) +
         theme(legend.position = "none")
 dev.off
 

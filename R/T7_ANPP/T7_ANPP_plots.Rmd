@@ -26,6 +26,7 @@ library(jtools) #summ
 library(rstatix)
 library(RColorBrewer)
 library(plotrix)
+library(ggpattern)
 
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
@@ -87,17 +88,12 @@ treatment_names <- c(`D1` = "Year 1 Drought (soy)",
                     `OC` = "Warming",
                     `OR` = "Warming X Drought")
 
-#labs(x = "Treatment", y = "2022 Average Biomass (g/0.20m^2)") +
-
 png("avg_anpp_all_2022.png", units="in", width=10, height=8, res=300)
 ggplot(anpp22_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
-        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Description)) +
         geom_bar(stat = "identity") +
         facet_wrap(~FP_treatment, scales = "free_x", labeller = as_labeller(treatment_names)) +
         geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
                          position = "identity") +
-        #scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
-        #"irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
         xlab("Treatment") +
         ylab(bquote("2022 Average Biomass " ('g/0.20m'^2))) +
         scale_x_discrete(labels=c("OC_ambient" = "Ambient",
@@ -158,5 +154,85 @@ ggplot(anpp22_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot
                                   "VR_Control" = "ivory4")) +
         theme(legend.position = "none")
 dev.off
+```
+
+Trying to make plots with insecticide treatment cross hatched
+```{r}
+pattern = Nerd
+
+ggplot(anpp22_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions, pattern = Subplot_Descriptions)) +
+        geom_bar_pattern(position = position_dodge(preserve = "single"),
+                   color = "black", 
+                   pattern_fill = "black",
+                   pattern_angle = 45,
+                   pattern_density = 0.1,
+                   pattern_spacing = 0.025,
+                   pattern_key_scale_factor = 0.6) +
+  scale_pattern_manual(values = c("stripe")) +
+        geom_bar(stat = "identity") +
+        facet_wrap(~FP_treatment, scales = "free_x", labeller = as_labeller(treatment_names)) +
+        geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
+                         position = "identity") +
+        geom_col(col="black") +
+        xlab("Treatment") +
+        ylab(bquote("2022 Average Biomass " ('g/0.20m'^2))) +
+        scale_x_discrete(labels=c("OC_ambient" = "Ambient",
+                                  "OR_drought" = "Drought",
+                                  "OC_warmed" = "Warmed",
+                                  "OR_warmed_drought" = "Warmed +\n Drought",
+                                  "OR_drought_insecticide" = "Insecticide +\n Drought", 
+                                  "OC_insecticide" = "Insecticide", 
+                                  'OR_warmed_drought_insecticide' = " Insecticide +\n Warmed +\n Drought", 
+                                  'OC_warmed_insecticide' = "Insecticide +\n Warmed",
+                                  "D1_Fungicide" = "Fungicide",
+                                  "D2_Fungicide" = "Fungicide",
+                                  "D3_Fungicide" = "Fungicide",
+                                  "IR_Fungicide" = "Fungicide",
+                                  "VR_Fungicide" = "Fungicide",
+                                  "D1_Nematicide" = "Nematicide",
+                                  "D2_Nematicide" = "Nematicide",
+                                  "D3_Nematicide" = "Nematicide",
+                                  "IR_Nematicide" = "Nematicide",
+                                  "VR_Nematicide" = "Nematicide",
+                                  "D1_Sorghum" = "Sorghum",
+                                  "D2_Sorghum" = "Sorghum",
+                                  "D3_Sorghum" = "Sorghum",
+                                  "IR_Sorghum" = "Sorghum",
+                                  "VR_Sorghum" = "Sorghum",
+                                  "D1_Control" = "Control",
+                                  "D2_Control" = "Control",
+                                  "D3_Control" = "Control",
+                                  "IR_Control" = "Control",
+                                  "VR_Control" = "Control")) +
+        scale_fill_manual(values = c("OC_ambient" = "darkblue",
+                                  "OR_drought" = "gray58",
+                                  "OC_warmed" = "red2",
+                                  "OR_warmed_drought" = "darkred",
+                                  "OR_drought_insecticide" = "dodgerblue4", 
+                                  "OC_insecticide" = "sienna1", 
+                                  'OR_warmed_drought_insecticide' = "orangered", 
+                                  'OC_warmed_insecticide' = "salmon",
+                                  "D1_Fungicide" = "mediumpurple1",
+                                  "D2_Fungicide" = "mediumpurple1",
+                                  "D3_Fungicide" = "mediumpurple1",
+                                  "IR_Fungicide" = "mediumpurple1",
+                                  "VR_Fungicide" = "mediumpurple1",
+                                  "D1_Nematicide" = "hotpink",
+                                  "D2_Nematicide" = "hotpink",
+                                  "D3_Nematicide" = "hotpink",
+                                  "IR_Nematicide" = "hotpink",
+                                  "VR_Nematicide" = "hotpink",
+                                  "D1_Sorghum" = "seagreen",
+                                  "D2_Sorghum" = "seagreen",
+                                  "D3_Sorghum" = "seagreen",
+                                  "IR_Sorghum" = "seagreen",
+                                  "VR_Sorghum" = "seagreen",
+                                  "D1_Control" = "ivory4",
+                                  "D2_Control" = "ivory4",
+                                  "D3_Control" = "ivory4",
+                                  "IR_Control" = "ivory4",
+                                  "VR_Control" = "ivory4")) +
+        theme(legend.position = "none")
+
 ```
 
