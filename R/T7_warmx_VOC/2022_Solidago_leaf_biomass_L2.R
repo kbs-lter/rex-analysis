@@ -124,6 +124,7 @@ voc_biomass <- data.frame(Treatment = c("Warmed","Warmed","Warmed","Warmed",
                                   2,3,4,5,
                                   2,3,4,5),
                           Weight_g = c(NA))
+
 # predicting biomass per treatment + rep from leaf lengths
 voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Warmed" & voc_biomass$Rep == 2, sum(predict(w_mod, w_2)), voc_biomass$Weight_g)
 voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Warmed" & voc_biomass$Rep == 3, sum(predict(w_mod, w_3)), voc_biomass$Weight_g)
@@ -149,6 +150,37 @@ voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Warmed_Drought" & voc_b
 voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Warmed_Drought" & voc_biomass$Rep == 3, sum(predict(wd_mod, wd_3)), voc_biomass$Weight_g)
 voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Warmed_Drought" & voc_biomass$Rep == 4, sum(predict(wd_mod, wd_4)), voc_biomass$Weight_g)
 voc_biomass$Weight_g <- ifelse(voc_biomass$Treatment == "Warmed_Drought" & voc_biomass$Rep == 5, sum(predict(wd_mod, wd_5)), voc_biomass$Weight_g)
+
+# making a column for per-plant biomass
+# because I can't tie back individual plany's biomass to their VOC emissions, I'm going to
+# divide total biomass per rep + treatment by the number of plants measured in that plot
+# to get a proxy for per-individual biomass
+voc_biomass$Weight_indiv_g <- NA
+
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Warmed" & voc_biomass$Rep == 2, voc_biomass$Weight_g/5, voc_biomass$Weight_indiv_g)
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Warmed" & voc_biomass$Rep == 3, voc_biomass$Weight_g/5, voc_biomass$Weight_indiv_g)
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Warmed" & voc_biomass$Rep == 4, voc_biomass$Weight_g/4, voc_biomass$Weight_indiv_g)
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Warmed" & voc_biomass$Rep == 5, voc_biomass$Weight_g/4, voc_biomass$Weight_indiv_g)
+
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Ambient" & voc_biomass$Rep == 2, voc_biomass$Weight_g/4, voc_biomass$Weight_indiv_g)
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Ambient" & voc_biomass$Rep == 3, voc_biomass$Weight_g/5, voc_biomass$Weight_indiv_g)
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Ambient" & voc_biomass$Rep == 4, voc_biomass$Weight_g/4, voc_biomass$Weight_indiv_g)
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Ambient" & voc_biomass$Rep == 5, voc_biomass$Weight_g/5, voc_biomass$Weight_indiv_g)
+
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Irrigated" & voc_biomass$Rep == 2, voc_biomass$Weight_g/5, voc_biomass$Weight_indiv_g)
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Irrigated" & voc_biomass$Rep == 3, voc_biomass$Weight_g/4, voc_biomass$Weight_indiv_g)
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Irrigated" & voc_biomass$Rep == 4, voc_biomass$Weight_g/5, voc_biomass$Weight_indiv_g)
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Irrigated" & voc_biomass$Rep == 5, voc_biomass$Weight_g/5, voc_biomass$Weight_indiv_g)
+
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Drought" & voc_biomass$Rep == 2, voc_biomass$Weight_g/5, voc_biomass$Weight_indiv_g)
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Drought" & voc_biomass$Rep == 3, voc_biomass$Weight_g/5, voc_biomass$Weight_indiv_g)
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Drought" & voc_biomass$Rep == 4, voc_biomass$Weight_g/5, voc_biomass$Weight_indiv_g)
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Drought" & voc_biomass$Rep == 5, voc_biomass$Weight_g/5, voc_biomass$Weight_indiv_g)
+
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Warmed_Drought" & voc_biomass$Rep == 2, voc_biomass$Weight_g/5, voc_biomass$Weight_indiv_g)
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Warmed_Drought" & voc_biomass$Rep == 3, voc_biomass$Weight_g/4, voc_biomass$Weight_indiv_g)
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Warmed_Drought" & voc_biomass$Rep == 4, voc_biomass$Weight_g/4, voc_biomass$Weight_indiv_g)
+voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Warmed_Drought" & voc_biomass$Rep == 5, voc_biomass$Weight_g/5, voc_biomass$Weight_indiv_g)
 
 # save output
 write.csv(voc_biomass, file.path(dir,"T7_warmx_VOC/L1/VOC_biomass_2022_L1.csv"), row.names=F)

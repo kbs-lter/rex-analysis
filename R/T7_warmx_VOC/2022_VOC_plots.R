@@ -31,13 +31,35 @@ voc_transpose_rm <- voc_transpose_rm %>%
   filter(!(Unique_ID == 79)) %>%
   filter(!(Unique_ID == 39)) %>%
   filter(!(Unique_ID == 62))
+# how many individuals were measure per treatment + rep?
+# I used this info in the leaf biomass L2 script to determine total biomass for only measured individuals
+voc_transpose_rm %>% 
+  count(Treatment,Rep)
 voc_biomass <- read.csv(file.path(dir, "T7_warmx_VOC/L1/VOC_biomass_2022_L1.csv"))
+# making biomass treatments match voc data
+voc_biomass$Treatment[voc_biomass$Treatment == "Ambient"] <- "Ambient_Control"
+voc_biomass$Treatment[voc_biomass$Treatment == "Irrigated"] <- "Irrigated_Control"
+
+# merge voc w/ biomass data
+voc_transpose_rm <- left_join(voc_transpose_rm,voc_biomass,by=c("Treatment","Rep"))
+# divide voc abundances by indiv plant biomass per treatment/rep
+# first remove compound name column & meta info columns
+voc_sample_names <- voc_transpose_rm[,1, drop=FALSE]
+voc_meta_info <- voc_transpose_rm[,430:436, drop=FALSE]
+voc_transpose_rm2 = subset(voc_transpose_rm, select = -c(Sample_ID,Unique_ID,Rep,Footprint,Subplot,Treatment,Notes,Weight_g))
+# divide
+voc_weighted_abun <- voc_transpose_rm2/voc_transpose_rm2[,429]
+# remerging with meta info
+voc_transpose_rm3 <- cbind(voc_sample_names,voc_weighted_abun,voc_meta_info)
+# removing indiv weight column 
+voc_transpose_rm3 = subset(voc_transpose_rm3, select = -c(Weight_indiv_g))
+# so now when I want to do an ordination for abundances/individual, I use the voc_transpose_rm3 dataframe
+
 
 
 #### NMDS ####
 # make community matrix - extract columns with abundance information
-# use the code below to run analyses on all reps besides 1
-ab = voc_transpose_rm[,2:429]
+ab = voc_transpose_rm3[,2:429]
 
 # turn abundance data frame into a matrix
 mat_ab = as.matrix(ab)
@@ -78,7 +100,7 @@ dev.off()
 
 #### PCoA - Treatment ####
 # selecting compound columns
-ab = voc_transpose_rm[,2:429]
+ab = voc_transpose_rm3[,2:429]
 ab.dist<-vegdist(ab, method='bray')
 dispersion<-betadisper(ab.dist, group=voc_transpose_rm$Treatment)
 # extract the centroids and the site points in multivariate space.  
@@ -263,10 +285,6 @@ dev.off()
 # calculating total abundance for each sample
 voc_transpose_rm$rowsums <- rowSums(voc_transpose_rm[2:429])
 
-# making biomass treatments match voc data
-voc_biomass$Treatment[voc_biomass$Treatment == "Ambient"] <- "Ambient_Control"
-voc_biomass$Treatment[voc_biomass$Treatment == "Irrigated"] <- "Irrigated_Control"
-
 # notes:
 # 3 samples (rep 4 ambient 79, rep 3 irrigated 39, and rep 5 warmed 62) have abnormally high abundances
 # for 79: columns 108, 117, 128, and 160 are high
@@ -280,6 +298,7 @@ voc_biomass$Treatment[voc_biomass$Treatment == "Irrigated"] <- "Irrigated_Contro
 #  filter(Rep == 5 & Treatment == "Warmed")
 
 # removing samples w/ abnormally high abundances
+# note: I moved this up top
 #voc_transpose_rm <- voc_transpose_rm %>%
 #  filter(!(Unique_ID == 79)) %>%
 #  filter(!(Unique_ID == 39)) %>%
@@ -289,22 +308,44 @@ voc_biomass$Treatment[voc_biomass$Treatment == "Irrigated"] <- "Irrigated_Contro
 voc_transpose_sum <- voc_transpose_rm %>%
   group_by(Treatment, Rep) %>%
   summarize(abun = sum(rowsums))
-# merge w/ biomass data
-voc_transpose_sum <- left_join(voc_transpose_sum,voc_biomass,by=c("Treatment","Rep"))
-# take weighted average
-voc_transpose_sum <- voc_transpose_sum %>%
-  mutate(weighted_abun = abun/Weight_g)
-
-# taking average per treatment
+# avg abundance per treaatment w/o biomass
 voc_transpose_sum2 <- voc_transpose_sum %>%
+  group_by(Treatment) %>%
+  summarize(avg_abun = mean(abun),
+            se = std.error(abun))
+# plot - abundance w/o considering biomass
+level_order2 <- c('Ambient_Control', 'Irrigated_Control', 'Drought', "Warmed", "Warmed_Drought")
+png("climate_ab.png", units="in", width=6, height=5, res=300)
+ggplot(voc_transpose_sum2, aes(x = factor(Treatment, level = level_order2), y = avg_abun)) + 
+  geom_bar(position = "identity", stat = "identity", color = 'black', fill = "lightsteelblue3") +
+  geom_errorbar(aes(ymin = avg_abun - se, ymax = avg_abun + se), width = 0.2,
+                position = "identity") +
+  theme_classic() +
+  theme(axis.text.x = element_text(size=13),
+        axis.text.y = element_text(size=13),
+        axis.title.y = element_text(size=15),
+        axis.title.x = element_text(size=15)) +
+  scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
+                            "Irrigated_Control" = "Irrigated",
+                            "Warmed_Drought" = "Warmed + \n Drought")) +
+  labs(x = "Treatment", y = "Average VOC Abundance \n (peak area)")
+dev.off()
+
+
+# merge w/ biomass data
+voc_transpose_sum_bio <- left_join(voc_transpose_sum,voc_biomass,by=c("Treatment","Rep"))
+# take weighted average
+voc_transpose_sum_bio <- voc_transpose_sum_bio %>%
+  mutate(weighted_abun = abun/Weight_g)
+# taking average per treatment
+voc_transpose_sum3 <- voc_transpose_sum_bio %>%
   group_by(Treatment) %>%
   summarize(abun = mean(weighted_abun),
             se = std.error(weighted_abun))
-
-# plot
+# plot - abundance considering biomass
 level_order2 <- c('Ambient_Control', 'Irrigated_Control', 'Drought', "Warmed", "Warmed_Drought")
 png("climate_ab.png", units="in", width=6, height=5, res=300)
-ggplot(voc_transpose_sum2, aes(x = factor(Treatment, level = level_order2), y = abun)) + 
+ggplot(voc_transpose_sum3, aes(x = factor(Treatment, level = level_order2), y = abun)) + 
   geom_bar(position = "identity", stat = "identity", color = 'black', fill = "lightsteelblue3") +
   geom_errorbar(aes(ymin = abun - se, ymax = abun + se), width = 0.2,
                 position = "identity") +
