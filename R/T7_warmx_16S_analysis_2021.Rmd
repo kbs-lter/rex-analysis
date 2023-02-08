@@ -1,0 +1,72 @@
+---
+title: "T7 warmx 16S Analysis 2021"
+author: "Moriah Young"
+date: "2023-01-31"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+rm(list = ls()) # clear working environment
+
+# load packages
+library(tidyverse)
+library(microbiome)
+library(qiime2R)
+library(phyloseq)
+```
+
+# create mapping/metadata file
+```{r}
+# read in data
+seq_metadata <- read.csv("/Users/moriahyoung/Downloads/metadata.csv")
+microbe_metadata <- read.csv("/Users/moriahyoung/Downloads/MY_REX_soil_microbes_2021_metadata.csv")
+warmx_metadata <- read.csv("/Users/moriahyoung/Downloads/REX_warmx_metadata.csv")
+
+# merge files above
+seq_microbe <- full_join(seq_metadata, microbe_metadata, by = "SampleID")
+bacterial_2021_metadata <- full_join(seq_microbe, warmx_metadata, by = c("Unique_ID", "Treatment", "Replicate",
+                                      "Footprint", "Footprint_Location", "Subplot", "Subplot_Location"))
+
+# reorder columns
+data <- data[, c(1,3,2)]
+bacterial_2021_metadata <- bacterial_2021_metadata[, c("RSTF_SampleID", "SampleID", "Barcode", "LinkerPrimerSequence",
+                                                       "Reverse_Primer", "MiSeqRun", "Treatment", "Replicate", "Rep",
+                                                       "Footprint_Treatment_full", "Footprint", "Footprint_Location",
+                                                       "Subplot", "Subplot_Location", "Subplot_Descriptions",
+                                                       "Unique_ID", "Datetime_UTC")]
+
+# write a new csv with the cleaned and merge data and upload to the shared google drive
+write.csv(bacterial_2021_metadata, file = "/Users/moriahyoung/Desktop/bacterial_2021_metadata.csv", row.names = F)
+```
+
+# Read QZA files into dataframe, re-format taxonomic tables, and re-upload them as .csv files
+```{r}
+SVs16S <- read_qza("16S-2021-merged-table.qza")
+SVs16Stable <- SVs16S$data
+write.csv(SVs16Stable, file = "16S-2021-merged-table.csv")
+taxonomy16S <- read_qza("../qiime_output/16S-taxonomy.qza")
+tax16S<-taxonomy16S$data %>% as.tibble() %>%
+  mutate(Taxon=gsub("D_[0-9]__", "", Taxon)) %>% 
+  separate(Taxon, sep=";", c("Kingdom","Phylum","Class","Order","Family","Genus","Species")) %>%
+  mutate(Phylum = replace_na(Phylum,"empty"))
+write.csv(tax16S, file = "16S-taxonomy.csv", row.names =F)
+
+# Write unfiltered data into a phyloseq object
+data_16S_unfiltered <- read_csv2phyloseq(otu.file = "16S-merged-table.csv",
+                                         taxonomy.file = "16S-taxonomy.csv",
+                                         metadata.file = "bacterial_2021_metadata.csv")
+summarize_phyloseq(data_16S_unfiltered)
+
+data_16S_uf1 <- subset_taxa(data_16S_unfiltered, Kingdom == "Bacteria" | Kingdom == "Archaea")
+data_16S_uf2 <- subset_taxa(data_16S_uf1, Kingdom != "Eukaryota")
+data_16S_uf3 <- subset_taxa(data_16S_uf2, Order != "Chloroplast")
+data_16S_uf4 <- subset_taxa(data_16S_uf3, Family != "Mitochondria")
+summarize_phyloseq(data_16S_uf4)
+
+```
+
+
