@@ -54,10 +54,20 @@ tax16S <- taxonomy16S$data %>% as_tibble() %>%
   mutate(Phylum=replace_na(Phylum,"empty"))
 write.csv(tax16S, file = "/Users/moriahyoung/Downloads/16S-taxonomy.csv", row.names =F)
 
+
+#meta <- read.csv(file.path(dir, "microbes/T7_warmx/L1/2021/16S_2021_metadata.csv"))
+#taxa <- read.csv(file.path(dir, "microbes/T7_warmx/L1/2021/16S-taxonomy.csv"))
+#otu <- read.csv(file.path(dir, "microbes/T7_warmx/L1/2021/16S-merged-table.csv"))
+#
+## create phyloseq object
+#data_16S_unfiltered <- read_csv2phyloseq(otu.file = meta,
+#                                         taxonomy.file = taxa,
+#                                         metadata.file = otu)
+
 # create phyloseq object
 data_16S_unfiltered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Downloads/16S-merged-table.csv",
                                          taxonomy.file = "/Users/moriahyoung/Downloads/16S-taxonomy.csv",
-                                         metadata.file = "/Users/moriahyoung/Desktop/bacterial_2021_metadata.csv")
+                                         metadata.file = "/Users/moriahyoung/Desktop/16S_2021_metadata.csv")
 summarize_phyloseq(data_16S_unfiltered)
 
 # filter out non bacteria
@@ -76,6 +86,7 @@ data_16S_uf5 <- prune_samples(sample_sums(data_16S_uf4)>=1000, data_16S_uf4)
 # Export filtered data
 write.csv(data_16S_uf5@otu_table, "/Users/moriahyoung/Desktop/16S-merged-table-filtered.csv")
 write.csv(data_16S_uf5@tax_table, "/Users/moriahyoung/Desktop/16S-taxonomy-filtered.csv")
+# upload these to REX google shared drive
 
 # Create phyloseq objects of filtered data (16S and ITS)
 data_16S_filtered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/16S-merged-table-filtered.csv",
@@ -101,7 +112,6 @@ sum(colSums(otu_table(data_16S_counts)))
 sort(colSums(otu_table(data_16S_counts)))
 
 # Rarefaction Curve Function
-
 calculate_rarefaction_curves <- function(psdata, measures, depths, parallel=T) {
   require('plyr') # ldply
   require('reshape2') # melt
