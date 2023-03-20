@@ -182,8 +182,19 @@ voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Warmed_Drought" &
 voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Warmed_Drought" & voc_biomass$Rep == 4, voc_biomass$Weight_g/4, voc_biomass$Weight_indiv_g)
 voc_biomass$Weight_indiv_g <- ifelse(voc_biomass$Treatment == "Warmed_Drought" & voc_biomass$Rep == 5, voc_biomass$Weight_g/5, voc_biomass$Weight_indiv_g)
 
+# adding in a column for total # hours samples for each rep, so that in my plots and analyses
+# I can divide the abundance data by weight and hours to get emissions/g/hr
+voc_biomass$time_sampled <- NA
+voc_biomass$time_sampled[voc_biomass$Rep == 1] <- 5
+voc_biomass$time_sampled[voc_biomass$Rep == 2] <- 5
+voc_biomass$time_sampled[voc_biomass$Rep == 3] <- 7
+voc_biomass$time_sampled[voc_biomass$Rep == 4] <- 7
+voc_biomass$time_sampled[voc_biomass$Rep == 5] <- 7
+
 # save output
 write.csv(voc_biomass, file.path(dir,"T7_warmx_VOC/L1/VOC_biomass_2022_L1.csv"), row.names=F)
+
+
 
 
 # old code for total treatment biomass
