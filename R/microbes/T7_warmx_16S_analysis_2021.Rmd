@@ -1,0 +1,562 @@
+---
+title: "T7 warmx 16S Analysis 2021"
+author: "Moriah Young"
+date: "2023-01-31"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+rm(list = ls()) # clear working environment
+
+# load packages
+library(compositions)
+library(cowplot)
+library(cluster)
+library(data.table)
+library(devtools)
+library(plyr)
+library(dplyr)
+library(doParallel)
+library(factoextra)
+library(ggplot2)
+library(ggsignif)
+library(gridExtra)
+library(hillR)
+library(microbiome)
+library(multcomp)
+library(nlme)
+library(phyloseq)
+library(phylosmith)
+library(qiime2R)
+library(tidyverse)
+library(vegan)
+library(zCompositions)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+```
+
+For some reason code below works but above chunk does not
+Read QZA files into dataframe, re-format taxonomic tables, and re-upload them as .csv files
+```{r}
+# Code below you only need to do once
+#SVs16S <- read_qza("/Users/moriahyoung/Downloads/16S-2021-merged-dada2table.qza")
+#SVs16Stable <- SVs16S$data
+#write.csv(SVs16Stable, file = "/Users/moriahyoung/Downloads/16S-merged-dada2table.csv")
+#taxonomy16S <- read_qza("/Users/moriahyoung/Downloads/16S-taxonomy.qza")
+#tax16S <- taxonomy16S$data %>% as_tibble() %>%
+#  mutate(Taxon=gsub("[a-z]__", "", Taxon)) %>% 
+#  separate(Taxon, sep=";", c("Kingdom","Phylum","Class","Order","Family","Genus","Species"))%>%
+#  mutate(Phylum=replace_na(Phylum,"empty"))
+#write.csv(tax16S, file = "/Users/moriahyoung/Downloads/16S-taxonomy.csv", row.names =F)
+
+
+meta <- read.csv(file.path(dir, "microbes/T7_warmx/L1/2021/16S_2021_metadata.csv"))
+taxa <- read.csv(file.path(dir, "microbes/T7_warmx/L1/2021/16S-taxonomy.csv"))
+#otu <- read.csv(file.path(dir, "microbes/T7_warmx/L1/2021/16S-merged-table.csv"))
+#
+## create phyloseq object
+#data_16S_unfiltered <- read_csv2phyloseq(otu.file = meta,
+#                                         taxonomy.file = taxa,
+#                                         metadata.file = otu)
+
+# create phyloseq object
+data_16S_unfiltered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Downloads/16S-merged-dada2table.csv",
+                                         taxonomy.file = "/Users/moriahyoung/Downloads/16S-taxonomy.csv",
+                                         metadata.file = "/Users/moriahyoung/Desktop/16S_2021_metadata.csv")
+summarize_phyloseq(data_16S_unfiltered)
+
+# filter out non bacteria
+data_16S_uf1 <- subset_taxa(data_16S_unfiltered, Kingdom == "Bacteria" | Kingdom == "Archaea")
+data_16S_uf2 <- subset_taxa(data_16S_uf1, Kingdom != "Eukaryota")
+data_16S_uf3 <- subset_taxa(data_16S_uf2, Order != "Chloroplast")
+data_16S_uf4 <- subset_taxa(data_16S_uf3, Family != "Mitochondria")
+
+summarize_phyloseq(data_16S_uf4)
+```
+
+```{r}
+# Remove samples with extremely low read depth 
+data_16S_uf5 <- prune_samples(sample_sums(data_16S_uf4)>=1000, data_16S_uf4)
+
+# Export filtered data
+write.csv(data_16S_uf5@otu_table, "/Users/moriahyoung/Desktop/16S-merged-table-filtered.csv")
+write.csv(data_16S_uf5@tax_table, "/Users/moriahyoung/Desktop/16S-taxonomy-filtered.csv")
+# upload these to REX google shared drive
+
+# Create phyloseq objects of filtered data (16S and ITS)
+data_16S_filtered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/16S-merged-table-filtered.csv",
+                                       taxonomy.file = "/Users/moriahyoung/Desktop/16S-taxonomy-filtered.csv",
+                                       metadata.file = "/Users/moriahyoung/Desktop/16S_2021_metadata.csv")
+summarize_phyloseq(data_16S_filtered)
+
+
+sample_data(data_16S_filtered)$Drought <- ordered(sample_data(data_16S_filtered)$Drought, c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"))
+sample_data(data_16S_filtered)$Subplot_Descriptions <- ordered(sample_data(data_16S_filtered)$Subplot_Descriptions, c("irrigated_control", "ambient", "warmed", "warmed_insecticide", "insecticide", "drought", "warmed_drought", "drought_insecticide", "warmed_drought_insecticide"))
+```
+
+# Rarefaction
+```{r}
+# Prune SVs that are not present 5 times in at least 2 samples
+data_16S_counts <- data_16S_filtered
+data_16S_counts <- prune_samples(sample_sums(data_16S_counts)>=1000, data_16S_counts)
+data_16S_filtered <- transform_sample_counts(data_16S_filtered, function(x) x/sum(x))
+# Remove taxa not seen more than 5 times in at least ~1% of the samples. This protects against an OTU with small mean & trivially large C.V.
+data_16S_counts <- filter_taxa(data_16S_counts, function(x) sum(x >5) > (0.01058201*length(x)), TRUE)
+summarize_phyloseq(data_16S_counts)
+
+sum(colSums(otu_table(data_16S_counts)))
+sort(colSums(otu_table(data_16S_counts)))
+
+# Rarefaction Curve Function
+calculate_rarefaction_curves <- function(psdata, measures, depths, parallel=T) {
+        require('plyr') # ldply
+        require('reshape2') # melt
+        require('doParallel')
+  
+# set parallel options if required
+if (parallel) {
+        paropts  <- list(.packages=c("phyloseq", "reshape2"))
+        } else {
+                paropts  <- NULL
+                }
+  
+estimate_rarified_richness <- function(psdata, measures, depth) {
+    if(max(sample_sums(psdata)) < depth) return()
+    psdata <- prune_samples(sample_sums(psdata) >= depth, psdata)
+    
+    rarified_psdata <- rarefy_even_depth(psdata, depth, verbose = FALSE)
+    
+    alpha_diversity <- estimate_richness(rarified_psdata, measures = measures)
+    
+    # as.matrix forces the use of melt.array, which includes the Sample names (rownames)
+    molten_alpha_diversity <- melt(as.matrix(alpha_diversity), varnames = c('Sample', 'Measure'), value.name = 'Alpha_diversity')
+    
+    molten_alpha_diversity
+  }
+  
+  names(depths) <- depths # this enables automatic addition of the Depth to the output by ldply
+  rarefaction_curve_data <- ldply(depths, estimate_rarified_richness, psdata = psdata, measures = measures, .id = 'Depth', .progress = ifelse(interactive() && ! parallel, 'text', 'none'), .parallel=parallel, .paropts=paropts)
+  
+  # convert Depth from factor to numeric
+  rarefaction_curve_data$Depth <- as.numeric(levels(rarefaction_curve_data$Depth))[rarefaction_curve_data$Depth]
+  
+  rarefaction_curve_data
+}
+
+# 16S Rarefaction
+
+detectCores(all.tests=TRUE)
+
+cl <- makeCluster(detectCores(all.tests=TRUE),setup_strategy = "sequential")
+registerDoParallel(cl)
+
+rarefaction_curve_data <- calculate_rarefaction_curves(data_16S_counts, c('Observed', 'Shannon'), 
+                                                       rep(c(1, 10, 100, 1000, 1:100 * 10000), each = 10))
+
+rarefaction_curve_data_summary <- ddply(rarefaction_curve_data, c('Depth', 'Sample', 'Measure'), summarise,
+                                        Alpha_diversity_mean = mean(Alpha_diversity), Alpha_diversity_sd =
+                                                sd(Alpha_diversity))
+
+rarefaction_curve_data_summary_verbose <-  merge(rarefaction_curve_data_summary %>% mutate(Sample = gsub("[.]", "-", Sample)),
+                                                 data.frame(sample_data(data_16S_counts)) %>% 
+                                                         rownames_to_column(var = "rowname"),
+                                                 by.x = 'Sample', by.y = 'rowname')
+
+discrete_palettes <- list(
+  RColorBrewer::brewer.pal(3, "Set2")
+)
+rarefaction_curve_data_summary_verbose$habitat <- factor(rarefaction_curve_data_summary_verbose$Subplot_Descriptions)
+curve_16S <- ggplot(rarefaction_curve_data_summary_verbose %>% filter(Measure == "Observed"), 
+                    aes(x = Depth, y = Alpha_diversity_mean,  ymin = Alpha_diversity_mean - Alpha_diversity_sd, 
+                        ymax = Alpha_diversity_mean + Alpha_diversity_sd, colour = Subplot_Descriptions, group = Sample)) + 
+  geom_line(alpha=1) +
+  geom_pointrange() + 
+  scale_x_continuous(trans = "log10", name = "Sequence Depth") +
+  ylab("Richness") +
+  facet_wrap(~Subplot_Descriptions,
+             scales = 'free') +
+  #scale_color_manual("Microbiome Compartment",
+  #                   values = c("#FC8D62", "#8DA0CB", "#66C2A5"),
+  #                   labels = c(bquote(paste("Root Endosphere", sep="")),
+  #                              bquote(paste("Rhizosphere", sep="")),
+  #                              bquote(paste("Soil", sep="")))) +
+  theme(legend.text = element_text(hjust = 0)) +
+  labs(title = "16S Rarefaction Curves") +
+  theme_bw()
+curve_16S
+```
+
+#Stacked Bar Plots - Phylum/Family/Genus levels
+
+#Taxonomy - Phylum Level
+```{r}
+# 16S Habitat Overview Plot
+# Rarefy data to 1000 reads 
+set.seed(01221990)
+rare_16S <- rarefy_even_depth(data_16S_counts, sample.size = 1000)
+
+data_16S_rel <- transform_sample_counts(rare_16S, function(x) x/sum(x))
+
+phylum_sum_16S <- tapply(taxa_sums(data_16S_rel), 
+                         tax_table(data_16S_rel)[, "Phylum"], sum, na.rm=TRUE)
+top10Phylum_16S <- names(sort(phylum_sum_16S, TRUE))[1:10]
+
+abundant_16S_phylum <- subset_taxa(data_16S_rel, Phylum %in% top10Phylum_16S)
+abundant_16S_phylum_glom <- tax_glom(abundant_16S_phylum, taxrank = "Phylum")
+abundant_16S_phylum_melt <- psmelt(abundant_16S_phylum_glom)
+
+sum2 <- abundant_16S_phylum_melt %>% 
+  group_by(Subplot_Descriptions, Drought, Phylum) %>%
+  summarise(means = mean(Abundance))
+
+#Everything that's left is considered rare  
+rare <- sum2 %>%
+  group_by(Subplot_Descriptions, Drought) %>%
+  summarise(means = 1- sum(means)) %>%
+  mutate(Phylum = "Rare Taxa")
+
+#concatenate the datasets
+sum2 = rbind(sum2, rare)
+
+#order groups
+sum2$Phylum <- forcats::fct_relevel(sum2$Phylum, "Rare Taxa", after = Inf)
+
+# Stacked bar plot for top phylas
+# facet by timing of soil collection (aka "Drought")
+png("T7_warmx_16S_phylum_stacked_bar_plot_by_drought.png", units="in", width=10, height=6, res=300)
+ggplot(sum2, aes(x = Subplot_Descriptions, y = means, fill = Phylum)) +
+        geom_bar(position = "stack", stat = "identity", col = "black") +
+        facet_grid(~Drought, scale="free") +
+        theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
+        scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
+                                     "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
+         scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed Drought",
+                                  "drought_insecticide" = "Drought Insecticide", 
+                                  "insecticide" = "Insecticide", 
+                                  'warmed_drought_insecticide' = "Warmed Drought Insecticide", 
+                                  'warmed_insecticide' = "Warmed Insecticide")) +
+        #scale_y_continuous(name = NULL, breaks = NULL) +
+        panel_border() +
+        theme_bw() +
+        ggtitle("") +
+        theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+        theme(strip.text = element_text(size = 12, face = "italic"), axis.text.x = element_text(size = 10),
+              axis.title = element_blank(),
+              title = element_text(size = 12))
+dev.off()
+
+treatment_names <- c("ambient" = "Ambient",
+                     "drought" = "Drought",
+                     "irrigated_control" = "Irrigated \n Control",
+                     "warmed" = "Warmed",
+                     "warmed_drought" = "Warmed \n Drought", 
+                     "drought_insecticide" = "Drought \n Insecticide", 
+                     "insecticide" = "Insecticide", 
+                     'warmed_drought_insecticide' = "Warmed \n Drought \n Insecticide", 
+                     'warmed_insecticide' = "Warmed \n Insecticide")
+
+# facet by treatment
+png("T7_warmx_16S_phylum_stacked_bar_plot_by_treatment.png", units="in", width=10, height=6, res=300)
+ggplot(sum2, aes(x = Drought, y = means, fill = Phylum)) +
+        geom_bar(position = "stack", stat = "identity", col = "black") +
+        facet_grid(~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
+        theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
+        scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
+                                     "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
+         scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed Drought",
+                                  "drought_insecticide" = "Drought Insecticide", 
+                                  "insecticide" = "Insecticide", 
+                                  'warmed_drought_insecticide' = "Warmed Drought Insecticide", 
+                                  'warmed_insecticide' = "Warmed Insecticide")) +
+        #scale_y_continuous(name = NULL, breaks = NULL) +
+        panel_border() +
+        theme_bw() +
+        ggtitle("") +
+        theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+        theme(strip.text = element_text(size = 10, face = "italic"), axis.text.x = element_text(size = 10),
+              axis.title = element_blank(),
+              title = element_text(size = 12))
+dev.off()
+
+```
+
+#Taxonomy - Family Level
+```{r}
+# 16S Habitat Overview Plot
+# Rarefy data to 1000 reads 
+set.seed(01221990)
+
+family_sum_16S <- tapply(taxa_sums(data_16S_rel), 
+                         tax_table(data_16S_rel)[, "Family"], sum, na.rm=TRUE)
+top10Family_16S <- names(sort(family_sum_16S, TRUE))[1:10]
+
+abundant_16S_family <- subset_taxa(data_16S_rel, Family %in% top10Family_16S)
+abundant_16S_family_glom <- tax_glom(abundant_16S_family, taxrank = "Family")
+abundant_16S_family_melt <- psmelt(abundant_16S_family_glom)
+
+sum3 <- abundant_16S_family_melt %>% 
+  group_by(Subplot_Descriptions, Drought, Family) %>%
+  summarise(means = mean(Abundance))
+
+#Everything that's left is considered rare  
+rare <- sum3 %>%
+  group_by(Subplot_Descriptions, Drought) %>%
+  summarise(means = 1- sum(means)) %>%
+  mutate(Family = "Rare Taxa")
+
+#concatenate the datasets
+sum3 = rbind(sum3, rare)
+
+#order groups
+sum3$Family <- forcats::fct_relevel(sum3$Family, "Rare Taxa", after = Inf)
+
+# Stacked bar plot for top phylas
+png("T7_warmx_16S_family_stacked_bar_plot.png", units="in", width=10, height=6, res=300)
+ggplot(sum3, aes(x = Subplot_Descriptions, y = means, fill = Family)) +
+        geom_bar(position = "stack", stat = "identity", col = "black") +
+        facet_grid(~Drought, scale="free") +
+        theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
+        #scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
+        #                             "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed Drought",
+                                  "drought_insecticide" = "Drought Insecticide", 
+                                  "insecticide" = "Insecticide", 
+                                  'warmed_drought_insecticide' = "Warmed Drought Insecticide", 
+                                  'warmed_insecticide' = "Warmed Insecticide")) +
+        #scale_y_continuous(name = NULL, breaks = NULL) +
+        panel_border() +
+        theme_bw() +
+        ggtitle("") +
+        theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+        theme(strip.text = element_text(size = 12, face = "italic"), axis.text.x = element_text(size = 10),
+              axis.title = element_blank(),
+              title = element_text(size = 12))
+dev.off()
+
+# facet_grid by treatment aka "Subplot_Descriptions"
+ggplot(sum3, aes(x = Drought, y = means, fill = Family)) +
+        geom_bar(position = "stack", stat = "identity", col = "black") +
+        facet_grid(~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
+        theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
+        #scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
+        #                             "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed Drought",
+                                  "drought_insecticide" = "Drought Insecticide", 
+                                  "insecticide" = "Insecticide", 
+                                  'warmed_drought_insecticide' = "Warmed Drought Insecticide", 
+                                  'warmed_insecticide' = "Warmed Insecticide")) +
+        #scale_y_continuous(name = NULL, breaks = NULL) +
+        panel_border() +
+        theme_bw() +
+        ggtitle("") +
+        theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+        theme(strip.text = element_text(size = 12, face = "italic"), axis.text.x = element_text(size = 10),
+              axis.title = element_blank(),
+              title = element_text(size = 12))
+```
+
+
+
+
+#Taxonomy - Genus Level
+```{r}
+# 16S Habitat Overview Plot
+# Rarefy data to 1000 reads 
+set.seed(01221990)
+
+genus_sum_16S <- tapply(taxa_sums(data_16S_rel), 
+                         tax_table(data_16S_rel)[, "Genus"], sum, na.rm=TRUE)
+top10Genus_16S <- names(sort(genus_sum_16S, TRUE))[1:10]
+
+abundant_16S_genus <- subset_taxa(data_16S_rel, Genus %in% top10Genus_16S)
+abundant_16S_genus_glom <- tax_glom(abundant_16S_genus, taxrank = "Genus")
+abundant_16S_genus_melt <- psmelt(abundant_16S_genus_glom)
+
+sum4 <- abundant_16S_genus_melt %>% 
+  group_by(Subplot_Descriptions, Drought, Genus) %>%
+  summarise(means = mean(Abundance))
+
+#Everything that's left is considered rare  
+rare <- sum4 %>%
+  group_by(Subplot_Descriptions, Drought) %>%
+  summarise(means = 1- sum(means)) %>%
+  mutate(Genus = "Rare Taxa")
+
+#concatenate the datasets
+sum4 = rbind(sum4, rare)
+
+#order groups
+sum4$Genus <- forcats::fct_relevel(sum4$Genus, "Rare Taxa", after = Inf)
+
+# Stacked bar plot for top genus'
+# facet_grid by timing of soil sampling "Drought"
+png("T7_warmx_16S_genus_stacked_bar_plot.png", units="in", width=10, height=6, res=300)
+ggplot(sum4, aes(x = Subplot_Descriptions, y = means, fill = Genus)) +
+        geom_bar(position = "stack", stat = "identity", col = "black") +
+        facet_grid(~Drought, scale="free") +
+        theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
+        #scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
+        #                             "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed Drought",
+                                  "drought_insecticide" = "Drought Insecticide", 
+                                  "insecticide" = "Insecticide", 
+                                  'warmed_drought_insecticide' = "Warmed Drought Insecticide", 
+                                  'warmed_insecticide' = "Warmed Insecticide")) +
+        #scale_y_continuous(name = NULL, breaks = NULL) +
+        panel_border() +
+        theme_bw() +
+        ggtitle("") +
+        theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+        theme(strip.text = element_text(size = 12, face = "italic"), axis.text.x = element_text(size = 10),
+              axis.title = element_blank(),
+              title = element_text(size = 12))
+dev.off()
+
+# facet_grid by treatment aka "Subplot_Descriptions"
+ggplot(sum4, aes(x = Drought, y = means, fill = Genus)) +
+        geom_bar(position = "stack", stat = "identity", col = "black") +
+        facet_grid(~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
+        theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
+        #scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
+        #                             "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed Drought",
+                                  "drought_insecticide" = "Drought Insecticide", 
+                                  "insecticide" = "Insecticide", 
+                                  'warmed_drought_insecticide' = "Warmed Drought Insecticide", 
+                                  'warmed_insecticide' = "Warmed Insecticide")) +
+        #scale_y_continuous(name = NULL, breaks = NULL) +
+        panel_border() +
+        theme_bw() +
+        ggtitle("") +
+        theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+        theme(strip.text = element_text(size = 12, face = "italic"), axis.text.x = element_text(size = 10),
+              axis.title = element_blank(),
+              title = element_text(size = 12))
+```
+
+# Ordination using Phyloseq package
+```{r}
+ord_16S <- prune_taxa(names(sort(taxa_sums(data_16S_counts), TRUE)[1:50]), data_16S_counts)
+
+# ordination
+bray_pcoa_16S <- ordinate(
+        physeq = ord_16S, 
+        method = "NMDS", 
+        distance = "bray"
+        )
+
+# plot ordination
+plot_ordination(ord_16S, bray_pcoa_16S, "samples", color="bar_label")
+png("NMDS_ordination.png", units="in", width=8, height=6, res=300)
+plot_ordination(
+  physeq = ord_16S,                                                         #phyloseq object
+  ordination = bray_pcoa_16S) +                                                #ordination
+  geom_point(aes(fill = Subplot_Descriptions, shape = Drought), size = 3) + #sets fill color to sampletype
+        stat_ellipse(aes(fill = factor(Subplot_Descriptions)), geom = "polygon", alpha = .5) +
+  #scale_shape_manual(values = c(21, 22, 25)) +
+  #scale_fill_manual(values = sample_colors) +
+  theme_classic() +                                                      #changes theme, removes grey background
+  theme(                             
+    legend.text = element_text(size = 20),                               #changes legend size
+    legend.title = element_blank(),                                      #removes legend title
+    legend.background = element_rect(fill = "white", color = "black"))+
+  theme(axis.text.y.left = element_text(size = 20),
+        axis.text.x = element_text(size = 20),
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20))+
+  guides(fill = guide_legend(override.aes = list(shape = 21)))  
+dev.off()
+```
+
+Alpha diversity
+```{r}
+#Plot the number of OTUs at each month coloring the points according to the sampling depth:
+
+plot_richness(data_16S_uf5, x="Drought", measures=c("Observed"))
+
+#Make a boxplot of the number of OTUs and the Shannon entropy grouping the different months by season:
+plot_richness(data_16S_uf5, x="Drought", measures=c("Observed", "Shannon")) + geom_boxplot()
+plot_richness(data_16S_uf5, x="Subplot_Descriptions", measures=c("Observed", "Shannon")) + geom_boxplot()
+```
+
+
+Beta diversity
+```{r}
+# Plot the PCoA using the unweighted UniFrac as distance:
+
+# PCoA plot using the unweighted UniFrac as distance
+wunifrac_dist = phyloseq::distance(data_16S_counts, method="unifrac", weighted=F)
+ordination = ordinate(data_16S_counts, method="PCoA", distance=wunifrac_dist)
+plot_ordination(data_16S_counts, ordination, color="Subplot_Descriptions") + theme(aspect.ratio=1)
+
+# Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
+
+adonis(wunifrac_dist ~ sample_data(data_16S_counts)$Subplot_Descriptions)
+```
+Permanova
+```{r}
+set.seed(22)
+
+# Calculate bray curtis distance matrix
+bray_16S <- phyloseq::distance(data_16S_counts, method = "bray")
+
+# make a data frame from the sample_data
+df_16S <- data.frame(sample_data(data_16S_counts))
+
+# Adonis test
+adonis2(bray_16S ~ Drought+Subplot_Descriptions, data = df_16S)
+```
+
+```{r}
+# Ordinate
+pcoa_16S <- ordinate(
+  physeq = data_16S_counts, 
+  method = "PCoA", 
+  distance = "bray"
+)
+
+# Plot 
+plot_ordination(
+  physeq = data_16S_counts,
+  ordination = pcoa_16S,
+  color = "Subplot_Descriptions",
+  shape = "Drought",
+  title = "PCoA of REX bacterial Communities"
+) + 
+  #scale_color_manual(values = c("#a65628", "red", "#ffae19",
+  #  "#4daf4a", "#1919ff", "darkorchid3", "magenta")
+  #) +
+  geom_point(aes(color = Subplot_Descriptions), alpha = 0.7, size = 4) +
+  geom_point(colour = "grey90", size = 1.5) 
+```
+
