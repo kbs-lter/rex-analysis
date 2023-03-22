@@ -41,19 +41,32 @@ dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
 ```
 
-For some reason code below works but above chunk does not
 Read QZA files into dataframe, re-format taxonomic tables, and re-upload them as .csv files
 ```{r}
 # Code below you only need to do once
 #SVs16S <- read_qza("/Users/moriahyoung/Downloads/16S-2021-merged-dada2table.qza")
 #SVs16Stable <- SVs16S$data
 #write.csv(SVs16Stable, file = "/Users/moriahyoung/Downloads/16S-merged-dada2table.csv")
+
 #taxonomy16S <- read_qza("/Users/moriahyoung/Downloads/16S-taxonomy.qza")
 #tax16S <- taxonomy16S$data %>% as_tibble() %>%
 #  mutate(Taxon=gsub("[a-z]__", "", Taxon)) %>% 
 #  separate(Taxon, sep=";", c("Kingdom","Phylum","Class","Order","Family","Genus","Species"))%>%
 #  mutate(Phylum=replace_na(Phylum,"empty"))
 #write.csv(tax16S, file = "/Users/moriahyoung/Downloads/16S-taxonomy.csv", row.names =F)
+
+fasttree_16S <- read_qza("/Users/moriahyoung/Downloads/16S-2021-fasttree-tree.qza")
+fasttree_16S <- fasttree_16S$data
+#write.csv(fasttree_16S, file = "/Users/moriahyoung/Desktop/16S-2021-fasttree-tree.csv") #doesn't work
+
+physeq <- qza_to_phyloseq(
+        features = "/Users/moriahyoung/Downloads/16S-2021-merged-dada2table.qza",
+        tree = "/Users/moriahyoung/Downloads/16S-2021-fasttree-tree.qza",
+        taxonomy = "/Users/moriahyoung/Downloads/16S-taxonomy.qza",
+        metadata = "/Users/moriahyoung/Desktop/16S_2021_metadata.csv"
+        )
+physeq
+
 
 
 meta <- read.csv(file.path(dir, "microbes/T7_warmx/L1/2021/16S_2021_metadata.csv"))
@@ -70,6 +83,7 @@ data_16S_unfiltered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Download
                                          taxonomy.file = "/Users/moriahyoung/Downloads/16S-taxonomy.csv",
                                          metadata.file = "/Users/moriahyoung/Desktop/16S_2021_metadata.csv")
 summarize_phyloseq(data_16S_unfiltered)
+
 
 # filter out non bacteria
 data_16S_uf1 <- subset_taxa(data_16S_unfiltered, Kingdom == "Bacteria" | Kingdom == "Archaea")
@@ -107,7 +121,7 @@ data_16S_counts <- data_16S_filtered
 data_16S_counts <- prune_samples(sample_sums(data_16S_counts)>=1000, data_16S_counts)
 data_16S_filtered <- transform_sample_counts(data_16S_filtered, function(x) x/sum(x))
 # Remove taxa not seen more than 5 times in at least ~1% of the samples. This protects against an OTU with small mean & trivially large C.V.
-data_16S_counts <- filter_taxa(data_16S_counts, function(x) sum(x >5) > (0.01058201*length(x)), TRUE)
+#data_16S_counts <- filter_taxa(data_16S_counts, function(x) sum(x >5) > (0.01058201*length(x)), TRUE)
 summarize_phyloseq(data_16S_counts)
 
 sum(colSums(otu_table(data_16S_counts)))
@@ -352,6 +366,7 @@ ggplot(sum3, aes(x = Subplot_Descriptions, y = means, fill = Family)) +
 dev.off()
 
 # facet_grid by treatment aka "Subplot_Descriptions"
+png("T7_warmx_16S_family_stacked_bar_plot_by_treatment.png", units="in", width=10, height=6, res=300)
 ggplot(sum3, aes(x = Drought, y = means, fill = Family)) +
         geom_bar(position = "stack", stat = "identity", col = "black") +
         facet_grid(~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
@@ -375,6 +390,7 @@ ggplot(sum3, aes(x = Drought, y = means, fill = Family)) +
         theme(strip.text = element_text(size = 12, face = "italic"), axis.text.x = element_text(size = 10),
               axis.title = element_blank(),
               title = element_text(size = 12))
+dev.off()
 ```
 
 
@@ -439,6 +455,7 @@ ggplot(sum4, aes(x = Subplot_Descriptions, y = means, fill = Genus)) +
 dev.off()
 
 # facet_grid by treatment aka "Subplot_Descriptions"
+png("T7_warmx_16S_genus_stacked_bar_plot_by_treatment.png", units="in", width=11, height=6, res=300)
 ggplot(sum4, aes(x = Drought, y = means, fill = Genus)) +
         geom_bar(position = "stack", stat = "identity", col = "black") +
         facet_grid(~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
@@ -462,6 +479,7 @@ ggplot(sum4, aes(x = Drought, y = means, fill = Genus)) +
         theme(strip.text = element_text(size = 12, face = "italic"), axis.text.x = element_text(size = 10),
               axis.title = element_blank(),
               title = element_text(size = 12))
+dev.off()
 ```
 
 # Ordination using Phyloseq package
