@@ -495,7 +495,7 @@ plot_richness(ps.rarefied, x="Subplot_Descriptions", measures=c("Shannon")) + ge
 #png("T7_warmx_16S_observed_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
 plot_richness(ps.rarefied, x="Drought", measures=c("Observed"), color = "Subplot_Descriptions") + 
         geom_boxplot() + 
-        labs(title = "Alpha Diversity - Observed") +
+        labs(y = "Observed OTUs", x = "Time of Sampling") +
         facet_grid(.~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
         scale_colour_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
         "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
@@ -505,7 +505,7 @@ plot_richness(ps.rarefied, x="Drought", measures=c("Observed"), color = "Subplot
 #png("T7_warmx_16S_shannon_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
 plot_richness(ps.rarefied, x="Drought", measures=c("Shannon"), color = "Subplot_Descriptions") + 
         geom_boxplot() + 
-        labs(title = "Alpha Diversity - Shannon") +
+        labs(x = "Time of Sampling", y = "Shannon Index") +
         facet_grid(.~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
         scale_colour_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
         "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
