@@ -531,6 +531,9 @@ ordination = ordinate(ps.rarefied, method="PCoA", distance=wunifrac_dist)
 plot_ordination(ps.rarefied, ordination, color="Subplot_Descriptions", shape = "Drought") + 
         geom_point(size=3, alpha=0.75) +
         #stat_ellipse(aes(fill = Drought), geom = "polygon", alpha = .5) +
+        scale_color_discrete(name = "Subplot Descriptions", 
+                            breaks = c("irrigated_control", "ambient", "warmed", "drought", "warmed_drought"),
+                            labels = c("Irrigated Control", "Ambient", "Warmed", "Drought", "Warmed + Drought")) +
         theme(aspect.ratio=1)
 #dev.off()
 
@@ -557,18 +560,10 @@ plot_ordination(
   ordination = jaccard_pcoa_16S) +                                                #ordination
   geom_point(aes(fill = Subplot_Descriptions, shape = Drought), size = 3) + #sets fill color to sampletype
         stat_ellipse(aes(fill = factor(Subplot_Descriptions)), geom = "polygon", alpha = .5) +
-  #scale_shape_manual(values = c(21, 22, 25)) +
-  #scale_fill_manual(values = sample_colors) +
-  theme_classic() +                                                      #changes theme, removes grey background
-  theme(                             
-    legend.text = element_text(size = 20),                               #changes legend size
-    legend.title = element_blank(),                                      #removes legend title
-    legend.background = element_rect(fill = "white", color = "black"))+
-  theme(axis.text.y.left = element_text(size = 20),
-        axis.text.x = element_text(size = 20),
-        axis.title.x = element_text(size = 20),
-        axis.title.y = element_text(size = 20))+
-  guides(fill = guide_legend(override.aes = list(shape = 21)))  
+        scale_fill_discrete(name = "Subplot Descriptions", 
+                            breaks = c("irrigated_control", "ambient", "warmed", "drought", "warmed_drought"),
+                            labels = c("Irrigated Control", "Ambient", "Warmed", "Drought", "Warmed + Drought")) +
+  theme(legend.title = element_blank())                                      #removes legend title
 #dev.off()
 ```
 
