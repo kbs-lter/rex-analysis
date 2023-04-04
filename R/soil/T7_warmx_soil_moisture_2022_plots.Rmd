@@ -37,7 +37,7 @@ dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
 
 # Read in data
-soil_moisture <- read.csv(file.path(dir, "soil/L1/T7_warmx_soil_moisture_2022_L1.csv")) # 2021 ANPP data
+soil_moisture <- read.csv(file.path(dir, "soil/L1/T7_warmx_soil_moisture_2022_L1.csv"))
 meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
 
 # minor cleaning of data
@@ -45,7 +45,7 @@ soil_moisture <- soil_moisture[-c(1,2),]
 # change "grav_soil_moisture" column from a character to numeric
 soil_moisture$grav_soil_moisture <- as.numeric(as.character(soil_moisture$grav_soil_moisture)) 
 
-# Specifying the order that we want the treatments to be listed in the figures on the x-axis
+# Specifying the order that we want the treatments to be listed in the figures 
 level_order <- c('Control', 'ambient', 'warmed', 'warmed_insecticide', 'insecticide', 'drought', 'warmed_drought', 'drought_insecticide', 'warmed_drought_insecticide')
 
 level_order_1 <- c('irrigated_control', 'ambient', 'warmed','drought','warmed_drought')
@@ -57,9 +57,9 @@ level_order_1 <- c('irrigated_control', 'ambient', 'warmed','drought','warmed_dr
 # to get average soil moisture per treatment, first sum total soil moisture per plot
 # then, take the average of that
 soil_moisture_avg <- soil_moisture %>%
-  group_by(Unique_ID, Subplot_Description, comments) %>% 
+  group_by(Unique_ID, Subplot_Description, time_of_sampling) %>% 
   summarize(sum_soil_moisture = sum(grav_soil_moisture, na.rm = TRUE)) %>% # summing soil moisture per plot
-  group_by(Subplot_Description, comments) %>%
+  group_by(Subplot_Description, time_of_sampling) %>%
   summarize(avg_soil_moisture = mean(sum_soil_moisture, na.rm = TRUE), # taking avg biomass of each treatment
             se = std.error(sum_soil_moisture, na.rm = TRUE))
 ```
@@ -69,7 +69,7 @@ Plot average soil moisture by treatment and drought timing - peak vs post drough
 png("T7_warmx_avg_soil_moisture_2022.png", units="in", width=14, height=8, res=300)
 ggplot(soil_moisture_avg, aes(x = factor(Subplot_Description, levels = level_order), y = avg_soil_moisture, fill = Subplot_Description)) +
         geom_bar(stat = "identity") +
-        facet_wrap(~comments, scales = "free_x") +
+        facet_wrap(~time_of_sampling, scales = "free_x") +
         geom_errorbar(aes(ymin = avg_soil_moisture - se, ymax = avg_soil_moisture + se), width = 0.2,
                          position = "identity") +
         scale_x_discrete(labels=c("ambient" = "Ambient",

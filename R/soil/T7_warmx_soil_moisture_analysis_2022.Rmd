@@ -1,0 +1,90 @@
+---
+title: "T7 warmx soil moisture analysis"
+author: "Moriah Young"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE, message=FALSE}
+rm(list = ls()) # clear working environment
+
+# load packages
+library(tidyverse)
+library(lmerTest)
+library(car)
+library(bbmle)
+library(sjPlot)
+library(emmeans)
+library(stats)
+library(plotrix)
+library(fitdistrplus) # descdist() function
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+soil_moisture <- read.csv(file.path(dir, "soil/L1/T7_warmx_soil_moisture_2022_L1.csv"))
+meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
+
+# minor cleaning of data
+soil_moisture <- soil_moisture[-c(1,2),] # no value and negative value
+# change "grav_soil_moisture" column from a character to numeric
+soil_moisture$grav_soil_moisture <- as.numeric(as.character(soil_moisture$grav_soil_moisture)) 
+
+# Specifying the order that we want the treatments to be listed in the figures on the x-axis
+level_order <- c('Control', 'ambient', 'warmed', 'warmed_insecticide', 'insecticide', 'drought', 'warmed_drought', 'drought_insecticide', 'warmed_drought_insecticide')
+```
+
+
+```{r}
+#### Data exploration ###
+# checking raw data
+hist(soil_moisture$grav_soil_moisture) # right skewed
+qqnorm(soil_moisture$grav_soil_moisture)
+
+# Exploring distributions for these data:
+descdist(soil_moisture$grav_soil_moisture, discrete = FALSE)
+
+# checking model with log transformation (untransformed data was right skewed)
+# is it normally distributed? no
+m1 <- lm(log(grav_soil_moisture) ~ Subplot_Description, data=soil_moisture)
+hist(resid(m1))
+qqnorm(resid(m1))
+shapiro.test(resid(m1))
+# homogeneity of variance? yes if p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1) ~ soil_moisture$Subplot_Description) # no but it's close
+
+# checking model with sqrt transformation (untransformed data was right skewed)
+# is it normally distributed? no
+m1.2 <- lm(sqrt(grav_soil_moisture) ~ Subplot_Description, data=soil_moisture)
+hist(resid(m1.2))
+qqnorm(resid(m1.2))
+shapiro.test(resid(m1.2))
+# homogeneity of variance? yes if p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1.2) ~ soil_moisture$Subplot_Description) # no, but close
+
+# log normal transformation looks better
+```
+
+Model Exploration
+```{r}
+# overall biomass
+m_plot1 <- lmer(log(grav_soil_moisture) ~ Subplot_Description + (1|Rep/FP_location), data=soil_moisture, REML=F)
+m_plot2 <- lmer(log(grav_soil_moisture) ~ Subplot_Description + time_of_sampling + (1|Rep/FP_location), data=soil_moisture, REML=F)
+m_plot3 <- lmer(log(grav_soil_moisture) ~ Subplot_Description * time_of_sampling + (1|Rep/FP_location), data=soil_moisture, REML=F)
+anova(m_plot1,m_plot2)
+anova(m_plot2,m_plot3)
+hist(resid(m_plot3))
+shapiro.test(resid(m_plot3))
+anova(m_plot3)
+summary(m_plot3)
+emmeans(m_plot3, list(pairwise ~ Subplot_Description), adjust = "tukey")
+emmeans(m_plot3, list(pairwise ~ Subplot_Description * time_of_sampling))
+#anpp_plot <- within(anpp_plot, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "warmed"))
+```
+
