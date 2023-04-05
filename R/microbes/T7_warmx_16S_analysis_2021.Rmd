@@ -36,6 +36,8 @@ library(tidyverse)
 library(vegan)
 library(zCompositions)
 library(microViz)
+library(DESeq2)
+library(ANCOMBC)
 
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
@@ -567,8 +569,88 @@ plot_ordination(
 #dev.off()
 ```
 
-OTU differential abundance testing with DESeq2
+ASV differential abundance testing with DESeq2
 ```{r}
+# Convert phyloseq data to DESeq2 dds (DESeq2 Data Set?) object
+# Note - cannot use phyloseq object that has sample data ordered or the line of code will not work
+# Re line 102
+dds <- phyloseq_to_deseq2(data_16S_filtered_noinsect, ~ Subplot_Descriptions + Drought)
+dds <- DESeq(dds)
+alpha = 0.01
+res = results(dds)
+res = results(dds, contrast = c("Subplot_Descriptions", "drought", "warmed"), alpha=alpha)
+res = res[order(res$padj, na.last=NA), ]
+res_sig = res[(res$padj < alpha), ]
+res_sig = cbind(as(res_sig, "data.frame"), as(tax_table(data_16S_filtered_noinsect)[rownames(res_sig), ], "matrix"))
+res_sig
 
+# Creates a data frame from results
+df <- as.data.frame(res)
+# Adds taxon column that includes names of taxa
+df$taxon <- rownames(df)
+# Orders the rows of data frame in increasing order firstly based on column "log2FoldChange" and secondly based on "padj" column
+df <- df %>% arrange(log2FoldChange, padj)
+
+knitr::kable(head(df)) %>% 
+  kableExtra::kable_styling("striped") %>% 
+  kableExtra::scroll_box(width = "100%")
+
+# summary plot
+scale_fill_discrete <- function(palname = "Set1", ...) {
+    scale_fill_brewer(palette = palname, ...)
+}
+# Genus order
+x = tapply(res_sig$log2FoldChange, res_sig$Genus, function(x) max(x))
+x = sort(x, TRUE)
+res_sig$Genus = factor(as.character(res_sig$Genus), levels=names(x))
+ggplot(res_sig, aes(x=Genus, y=log2FoldChange, color=Phylum)) + geom_point(size=3) + 
+  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
+```
+
+Differential abundance using ANCOM - this doesn't work below, I think bc the package has been updated
+```{r}
+# Differentially Abundant ASVs due to "Drought" with "Subplot_Descriptions" covariate
+
+meta_data = data_16S_filtered@sam_data
+meta_data <- as.data.frame(meta_data)
+meta_data$names <- rownames(meta_data)
+
+feature_table = data_16S_filtered@otu_table
+feature_table <- as.data.frame(feature_table)
+
+sample_var = "names" ; group_var = NULL
+out_cut = 0.05; zero_cut = 0.90; lib_cut = 1000; neg_lb = FALSE
+prepro = feature_table_pre_process(feature_table, meta_data, sample_var, group_var, 
+                                   out_cut, zero_cut, lib_cut, neg_lb)
+feature_table = prepro$feature_table # Preprocessed feature table
+meta_data = prepro$meta_data # Preprocessed metadata
+struc_zero = prepro$structure_zeros # Structural zero info
+
+# Step 2: ANCOM
+
+main_var = "Drought"; p_adj_method = "BH"; alpha = 0.05
+adj_formula = "Subplot_Descriptions"; rand_formula = NULL
+t_start = Sys.time()
+res_drought = ANCOM(feature_table, meta_data, struc_zero, main_var, p_adj_method, 
+                          alpha, adj_formula, rand_formula)
+t_end = Sys.time()
+t_run = t_end - t_start
+
+###################################################################################3
+pseq_genus <- phyloseq::tax_glom(data_16S_filtered, taxrank = "Genus")
+# The taxonomy table
+tax_mat = as(tax_table(pseq_genus), "matrix")
+
+pseq = makePhyloseqFromTreeSummarizedExperiment(pseq_genus)
+out = ancom(data = NULL, assay_name = NULL,
+            tax_level = "Genus", phyloseq = pseq,
+            p_adj_method = "holm", prv_cut = 0.10, lib_cut = 1000,
+            main_var = "Drought", adj_formula = "Subplot_Descriptions",
+            rand_formula = NULL, lme_control = NULL, struc_zero = TRUE,
+            neg_lb = TRUE, alpha = 0.05, n_cl = 2)
+res <- out$res
+
+knitr::kable(head(res$diff_abn)) %>% kableExtra::kable_styling("striped") %>% 
+  kableExtra::scroll_box(width = "100%")
 ```
 
