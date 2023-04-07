@@ -196,6 +196,288 @@ write.csv(voc_biomass, file.path(dir,"T7_warmx_VOC/L1/VOC_biomass_2022_L1.csv"),
 
 
 
+# calculating plant weight variability per plot
+# doing this to see how much weights vary between individuals in a plot
+# if variance is low, this validates my methods of dividing VOC abundances by avg. weight per plot
+# making dataframe for each treatment, rep, and plant ID in voc_leaves dataframe
+trt_rep_id <- function(df, trt, rep, id){
+  df2 <- df %>%
+    filter(Treatment == trt & Rep == rep & Plant_Number == id) %>%
+    select(-Treatment, -Rep, -Plant_Number)
+  return(df2)
+}
+a_2_2 <- trt_rep_id(voc_leaves,"Ambient",2,2)
+a_2_3 <- trt_rep_id(voc_leaves,"Ambient",2,3)
+a_2_4 <- trt_rep_id(voc_leaves,"Ambient",2,4)
+a_2_5 <- trt_rep_id(voc_leaves,"Ambient",2,5)
+
+a_3_1 <- trt_rep_id(voc_leaves,"Ambient",3,1)
+a_3_2 <- trt_rep_id(voc_leaves,"Ambient",3,2)
+a_3_3 <- trt_rep_id(voc_leaves,"Ambient",3,3)
+a_3_4 <- trt_rep_id(voc_leaves,"Ambient",3,4)
+a_3_5 <- trt_rep_id(voc_leaves,"Ambient",3,5)
+
+a_4_2 <- trt_rep_id(voc_leaves,"Ambient",4,2)
+a_4_3 <- trt_rep_id(voc_leaves,"Ambient",4,3)
+a_4_4 <- trt_rep_id(voc_leaves,"Ambient",4,4)
+a_4_5 <- trt_rep_id(voc_leaves,"Ambient",4,5)
+
+a_5_1 <- trt_rep_id(voc_leaves,"Ambient",5,1)
+a_5_2 <- trt_rep_id(voc_leaves,"Ambient",5,2)
+a_5_3 <- trt_rep_id(voc_leaves,"Ambient",5,3)
+a_5_4 <- trt_rep_id(voc_leaves,"Ambient",5,4)
+a_5_5 <- trt_rep_id(voc_leaves,"Ambient",5,5)
+
+w_2_1 <- trt_rep_id(voc_leaves,"Warmed",2,1)
+w_2_2 <- trt_rep_id(voc_leaves,"Warmed",2,2)
+w_2_3 <- trt_rep_id(voc_leaves,"Warmed",2,3)
+w_2_4 <- trt_rep_id(voc_leaves,"Warmed",2,4)
+w_2_5 <- trt_rep_id(voc_leaves,"Warmed",2,5)
+
+w_3_1 <- trt_rep_id(voc_leaves,"Warmed",3,1)
+w_3_2 <- trt_rep_id(voc_leaves,"Warmed",3,2)
+w_3_3 <- trt_rep_id(voc_leaves,"Warmed",3,3)
+w_3_4 <- trt_rep_id(voc_leaves,"Warmed",3,4)
+w_3_5 <- trt_rep_id(voc_leaves,"Warmed",3,5)
+
+w_4_2 <- trt_rep_id(voc_leaves,"Warmed",4,2)
+w_4_3 <- trt_rep_id(voc_leaves,"Warmed",4,3)
+w_4_4 <- trt_rep_id(voc_leaves,"Warmed",4,4)
+w_4_5 <- trt_rep_id(voc_leaves,"Warmed",4,5)
+
+w_5_2 <- trt_rep_id(voc_leaves,"Warmed",5,2)
+w_5_3 <- trt_rep_id(voc_leaves,"Warmed",5,3)
+w_5_4 <- trt_rep_id(voc_leaves,"Warmed",5,4)
+w_5_5 <- trt_rep_id(voc_leaves,"Warmed",5,5)
+
+d_2_1 <- trt_rep_id(voc_leaves,"Drought",2,1)
+d_2_2 <- trt_rep_id(voc_leaves,"Drought",2,2)
+d_2_3 <- trt_rep_id(voc_leaves,"Drought",2,3)
+d_2_4 <- trt_rep_id(voc_leaves,"Drought",2,4)
+d_2_5 <- trt_rep_id(voc_leaves,"Drought",2,5)
+
+d_3_1 <- trt_rep_id(voc_leaves,"Drought",3,1)
+d_3_2 <- trt_rep_id(voc_leaves,"Drought",3,2)
+d_3_3 <- trt_rep_id(voc_leaves,"Drought",3,3)
+d_3_4 <- trt_rep_id(voc_leaves,"Drought",3,4)
+d_3_5 <- trt_rep_id(voc_leaves,"Drought",3,5)
+
+d_4_1 <- trt_rep_id(voc_leaves,"Drought",4,1)
+d_4_2 <- trt_rep_id(voc_leaves,"Drought",4,2)
+d_4_3 <- trt_rep_id(voc_leaves,"Drought",4,3)
+d_4_4 <- trt_rep_id(voc_leaves,"Drought",4,4)
+d_4_5 <- trt_rep_id(voc_leaves,"Drought",4,5)
+
+d_5_1 <- trt_rep_id(voc_leaves,"Drought",5,1)
+d_5_2 <- trt_rep_id(voc_leaves,"Drought",5,2)
+d_5_3 <- trt_rep_id(voc_leaves,"Drought",5,3)
+d_5_4 <- trt_rep_id(voc_leaves,"Drought",5,4)
+d_5_5 <- trt_rep_id(voc_leaves,"Drought",5,5)
+
+wd_2_1 <- trt_rep_id(voc_leaves,"Warmed_Drought",2,1)
+wd_2_2 <- trt_rep_id(voc_leaves,"Warmed_Drought",2,2)
+wd_2_3 <- trt_rep_id(voc_leaves,"Warmed_Drought",2,3)
+wd_2_4 <- trt_rep_id(voc_leaves,"Warmed_Drought",2,4)
+wd_2_5 <- trt_rep_id(voc_leaves,"Warmed_Drought",2,5)
+
+wd_3_2 <- trt_rep_id(voc_leaves,"Warmed_Drought",3,2)
+wd_3_3 <- trt_rep_id(voc_leaves,"Warmed_Drought",3,3)
+wd_3_4 <- trt_rep_id(voc_leaves,"Warmed_Drought",3,4)
+wd_3_5 <- trt_rep_id(voc_leaves,"Warmed_Drought",3,5)
+
+wd_4_2 <- trt_rep_id(voc_leaves,"Warmed_Drought",4,2)
+wd_4_3 <- trt_rep_id(voc_leaves,"Warmed_Drought",4,3)
+wd_4_4 <- trt_rep_id(voc_leaves,"Warmed_Drought",4,4)
+wd_4_5 <- trt_rep_id(voc_leaves,"Warmed_Drought",4,5)
+
+wd_5_1 <- trt_rep_id(voc_leaves,"Warmed_Drought",5,1)
+wd_5_2 <- trt_rep_id(voc_leaves,"Warmed_Drought",5,2)
+wd_5_3 <- trt_rep_id(voc_leaves,"Warmed_Drought",5,3)
+wd_5_4 <- trt_rep_id(voc_leaves,"Warmed_Drought",5,4)
+wd_5_5 <- trt_rep_id(voc_leaves,"Warmed_Drought",5,5)
+
+i_2_1 <- trt_rep_id(voc_leaves,"Irrigated",2,1)
+i_2_2 <- trt_rep_id(voc_leaves,"Irrigated",2,2)
+i_2_3 <- trt_rep_id(voc_leaves,"Irrigated",2,3)
+i_2_4 <- trt_rep_id(voc_leaves,"Irrigated",2,4)
+i_2_5 <- trt_rep_id(voc_leaves,"Irrigated",2,5)
+
+i_3_2 <- trt_rep_id(voc_leaves,"Irrigated",3,2)
+i_3_3 <- trt_rep_id(voc_leaves,"Irrigated",3,3)
+i_3_4 <- trt_rep_id(voc_leaves,"Irrigated",3,4)
+i_3_5 <- trt_rep_id(voc_leaves,"Irrigated",3,5)
+
+i_4_1 <- trt_rep_id(voc_leaves,"Irrigated",4,1)
+i_4_2 <- trt_rep_id(voc_leaves,"Irrigated",4,2)
+i_4_3 <- trt_rep_id(voc_leaves,"Irrigated",4,3)
+i_4_4 <- trt_rep_id(voc_leaves,"Irrigated",4,4)
+i_4_5 <- trt_rep_id(voc_leaves,"Irrigated",4,5)
+
+i_5_1 <- trt_rep_id(voc_leaves,"Irrigated",5,1)
+i_5_2 <- trt_rep_id(voc_leaves,"Irrigated",5,2)
+i_5_3 <- trt_rep_id(voc_leaves,"Irrigated",5,3)
+i_5_4 <- trt_rep_id(voc_leaves,"Irrigated",5,4)
+i_5_5 <- trt_rep_id(voc_leaves,"Irrigated",5,5)
+
+
+
+
+# making a dataframe to store biomass measurements in
+voc_biomass2 <- data.frame(Treatment = c("Ambient","Ambient","Ambient","Ambient",
+                                        "Ambient","Ambient","Ambient","Ambient","Ambient",
+                                        "Ambient","Ambient","Ambient","Ambient",
+                                        "Ambient","Ambient","Ambient","Ambient","Ambient",
+                                        "Warmed","Warmed","Warmed","Warmed","Warmed",
+                                        "Warmed","Warmed","Warmed","Warmed","Warmed",
+                                        "Warmed","Warmed","Warmed","Warmed",
+                                        "Warmed","Warmed","Warmed","Warmed",
+                                        "Drought","Drought","Drought","Drought","Drought",
+                                        "Drought","Drought","Drought","Drought","Drought",
+                                        "Drought","Drought","Drought","Drought","Drought",
+                                        "Drought","Drought","Drought","Drought","Drought",
+                                        "Warmed_Drought","Warmed_Drought","Warmed_Drought","Warmed_Drought","Warmed_Drought",
+                                        "Warmed_Drought","Warmed_Drought","Warmed_Drought","Warmed_Drought",
+                                        "Warmed_Drought","Warmed_Drought","Warmed_Drought","Warmed_Drought",
+                                        "Warmed_Drought","Warmed_Drought","Warmed_Drought","Warmed_Drought","Warmed_Drought",
+                                        "Irrigated","Irrigated","Irrigated","Irrigated","Irrigated",
+                                        "Irrigated","Irrigated","Irrigated","Irrigated",
+                                        "Irrigated","Irrigated","Irrigated","Irrigated","Irrigated",
+                                        "Irrigated","Irrigated","Irrigated","Irrigated","Irrigated"),
+                          Rep = c(2,2,2,2,3,3,3,3,3,4,4,4,4,5,5,5,5,5,
+                                  2,2,2,2,2,3,3,3,3,3,4,4,4,4,5,5,5,5,
+                                  2,2,2,2,2,3,3,3,3,3,4,4,4,4,4,5,5,5,5,5,
+                                  2,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,5,
+                                  2,2,2,2,2,3,3,3,3,4,4,4,4,4,5,5,5,5,5),
+                          Plant_ID = c(2,3,4,5,1,2,3,4,5,2,3,4,5,1,2,3,4,5,
+                                       1,2,3,4,5,1,2,3,4,5,2,3,4,5,2,3,4,5,
+                                       1,2,3,4,5,1,2,3,4,5,1,2,3,4,5,1,2,3,4,5,
+                                       1,2,3,4,5,2,3,4,5,2,3,4,5,1,2,3,4,5,
+                                       1,2,3,4,5,2,3,4,5,1,2,3,4,5,1,2,3,4,5),
+                          Weight_g = c(NA))
+
+# predicting biomass per treatment + rep from leaf lengths
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 2, sum(predict(a_mod, a_2_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 3, sum(predict(a_mod, a_2_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 4, sum(predict(a_mod, a_2_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 5, sum(predict(a_mod, a_2_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 1, sum(predict(a_mod, a_3_1)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 2, sum(predict(a_mod, a_3_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 3, sum(predict(a_mod, a_3_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 4, sum(predict(a_mod, a_3_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 5, sum(predict(a_mod, a_3_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 2, sum(predict(a_mod, a_4_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 3, sum(predict(a_mod, a_4_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 4, sum(predict(a_mod, a_4_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 5, sum(predict(a_mod, a_4_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 1, sum(predict(a_mod, a_5_1)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 2, sum(predict(a_mod, a_5_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 3, sum(predict(a_mod, a_5_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 4, sum(predict(a_mod, a_5_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Ambient" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 5, sum(predict(a_mod, a_5_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 1, sum(predict(w_mod, w_2_1)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 2, sum(predict(w_mod, w_2_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 3, sum(predict(w_mod, w_2_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 4, sum(predict(w_mod, w_2_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 5, sum(predict(w_mod, w_2_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 1, sum(predict(w_mod, w_3_1)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 2, sum(predict(w_mod, w_3_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 3, sum(predict(w_mod, w_3_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 4, sum(predict(w_mod, w_3_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 5, sum(predict(w_mod, w_3_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 2, sum(predict(w_mod, w_4_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 3, sum(predict(w_mod, w_4_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 4, sum(predict(w_mod, w_4_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 5, sum(predict(w_mod, w_4_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 2, sum(predict(w_mod, w_5_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 3, sum(predict(w_mod, w_5_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 4, sum(predict(w_mod, w_5_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 5, sum(predict(w_mod, w_5_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 1, sum(predict(d_mod, d_2_1)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 2, sum(predict(d_mod, d_2_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 3, sum(predict(d_mod, d_2_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 4, sum(predict(d_mod, d_2_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 5, sum(predict(d_mod, d_2_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 1, sum(predict(d_mod, d_3_1)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 2, sum(predict(d_mod, d_3_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 3, sum(predict(d_mod, d_3_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 4, sum(predict(d_mod, d_3_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 5, sum(predict(d_mod, d_3_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 1, sum(predict(d_mod, d_4_1)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 2, sum(predict(d_mod, d_4_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 3, sum(predict(d_mod, d_4_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 4, sum(predict(d_mod, d_4_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 5, sum(predict(d_mod, d_4_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 1, sum(predict(d_mod, d_5_1)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 2, sum(predict(d_mod, d_5_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 3, sum(predict(d_mod, d_5_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 4, sum(predict(d_mod, d_5_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Drought" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 5, sum(predict(d_mod, d_5_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 1, sum(predict(wd_mod, wd_2_1)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 2, sum(predict(wd_mod, wd_2_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 3, sum(predict(wd_mod, wd_2_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 4, sum(predict(wd_mod, wd_2_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 5, sum(predict(wd_mod, wd_2_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 2, sum(predict(wd_mod, wd_3_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 3, sum(predict(wd_mod, wd_3_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 4, sum(predict(wd_mod, wd_3_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 5, sum(predict(wd_mod, wd_3_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 2, sum(predict(wd_mod, wd_4_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 3, sum(predict(wd_mod, wd_4_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 4, sum(predict(wd_mod, wd_4_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 5, sum(predict(wd_mod, wd_4_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 1, sum(predict(wd_mod, wd_5_1)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 2, sum(predict(wd_mod, wd_5_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 3, sum(predict(wd_mod, wd_5_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 4, sum(predict(wd_mod, wd_5_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Warmed_Drought" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 5, sum(predict(wd_mod, wd_5_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 1, sum(predict(i_mod, i_2_1)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 2, sum(predict(i_mod, i_2_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 3, sum(predict(i_mod, i_2_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 4, sum(predict(i_mod, i_2_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 2 & voc_biomass2$Plant_ID == 5, sum(predict(i_mod, i_2_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 2, sum(predict(i_mod, i_3_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 3, sum(predict(i_mod, i_3_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 4, sum(predict(i_mod, i_3_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 3 & voc_biomass2$Plant_ID == 5, sum(predict(i_mod, i_3_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 1, sum(predict(i_mod, i_4_1)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 2, sum(predict(i_mod, i_4_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 3, sum(predict(i_mod, i_4_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 4, sum(predict(i_mod, i_4_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 4 & voc_biomass2$Plant_ID == 5, sum(predict(i_mod, i_4_5)), voc_biomass2$Weight_g)
+
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 1, sum(predict(i_mod, i_5_1)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 2, sum(predict(i_mod, i_5_2)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 3, sum(predict(i_mod, i_5_3)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 4, sum(predict(i_mod, i_5_4)), voc_biomass2$Weight_g)
+voc_biomass2$Weight_g <- ifelse(voc_biomass2$Treatment == "Irrigated" & voc_biomass2$Rep == 5 & voc_biomass2$Plant_ID == 5, sum(predict(i_mod, i_5_5)), voc_biomass2$Weight_g)
+
+# calculating mean +/- SD for each plot
+voc_biomass_var <- voc_biomass2 %>%
+  group_by(Rep,Treatment) %>%
+  summarize(avg_weight = mean(Weight_g),
+            sd_weight = sd(Weight_g))
+
+
+
+
 
 # old code for total treatment biomass
 warmed_voc <- voc_leaves %>%
