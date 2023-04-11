@@ -42,24 +42,37 @@ voc_biomass$Treatment[voc_biomass$Treatment == "Irrigated"] <- "Irrigated_Contro
 
 # merge voc w/ biomass data
 voc_transpose_rm <- left_join(voc_transpose_rm,voc_biomass,by=c("Treatment","Rep"))
+
 # divide voc abundances by indiv plant biomass per treatment/rep
 # first remove compound name column & meta info columns
 voc_sample_names <- voc_transpose_rm[,1, drop=FALSE]
 voc_meta_info <- voc_transpose_rm[,430:436, drop=FALSE]
-voc_transpose_rm2 = subset(voc_transpose_rm, select = -c(Sample_ID,Unique_ID,Rep,Footprint,Subplot,Treatment,Notes,Weight_g))
+voc_meta_info2 <- voc_transpose_rm[,438, drop=FALSE]
+voc_transpose_rm2 = subset(voc_transpose_rm, select = -c(Sample_ID,Unique_ID,Rep,Footprint,Subplot,Treatment,Notes,Weight_g,time_sampled))
 # divide
 voc_weighted_abun <- voc_transpose_rm2/voc_transpose_rm2[,429]
 # remerging with meta info
-voc_transpose_rm3 <- cbind(voc_sample_names,voc_weighted_abun,voc_meta_info)
+voc_transpose_rm3 <- cbind(voc_sample_names,voc_weighted_abun,voc_meta_info,voc_meta_info2)
 # removing indiv weight column 
 voc_transpose_rm3 = subset(voc_transpose_rm3, select = -c(Weight_indiv_g))
-# so now when I want to do an ordination for abundances/individual, I use the voc_transpose_rm3 dataframe
 
+# divide by hours sampled
+# first remove compound name column & meta info columns
+voc_sample_names_time <- voc_transpose_rm3[,1, drop=FALSE]
+voc_meta_info_time <- voc_transpose_rm3[,430:436, drop=FALSE]
+voc_transpose_rm_time = subset(voc_transpose_rm3, select = -c(Sample_ID,Unique_ID,Rep,Footprint,Subplot,Treatment,Notes,Weight_g))
+# divide
+voc_weighted_abun_time <- voc_transpose_rm_time/voc_transpose_rm_time[,429]
+# remerging with meta info
+voc_transpose_rm4 <- cbind(voc_sample_names_time,voc_weighted_abun_time,voc_meta_info_time)
+# removing indiv weight column 
+voc_transpose_rm4 = subset(voc_transpose_rm4, select = -c(time_sampled))
+# so now when I want to do ordinations, I use the voc_transpose_rm4 dataframe
 
 
 #### NMDS ####
 # make community matrix - extract columns with abundance information
-ab = voc_transpose_rm3[,2:429]
+ab = voc_transpose_rm4[,2:429]
 
 # turn abundance data frame into a matrix
 mat_ab = as.matrix(ab)
@@ -100,9 +113,9 @@ dev.off()
 
 #### PCoA - Treatment ####
 # selecting compound columns
-ab = voc_transpose_rm3[,2:429]
+ab = voc_transpose_rm4[,2:429]
 ab.dist<-vegdist(ab, method='bray')
-dispersion<-betadisper(ab.dist, group=voc_transpose_rm$Treatment)
+dispersion<-betadisper(ab.dist, group=voc_transpose_rm4$Treatment)
 # extract the centroids and the site points in multivariate space.  
 centroids<-data.frame(group=rownames(dispersion$centroids),data.frame(dispersion$centroids))
 vectors<-data.frame(group=dispersion$group,data.frame(dispersion$vectors))
@@ -115,7 +128,7 @@ names(seg.data)<-c("group","v.PCoA1","v.PCoA2","PCoA1","PCoA2")
 seg.data$group <- factor(seg.data$group, levels = c("Ambient_Control","Irrigated_Control","Warmed","Drought","Warmed_Drought"))
 levels(seg.data$group)
 # make figure
-png("climate_pcoa.png", units="in", width=6, height=5, res=300)
+png("climate_pcoa.png", units="in", width=6.5, height=5, res=300)
 ggplot() + 
   stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.8, geom="polygon")+
   #geom_point(data=centroids, aes(x=PCoA1,y=PCoA2),size=4.7,color="black",shape=16) + 
@@ -127,6 +140,67 @@ ggplot() +
                     values=c('#2c7bb6','#abd9e9',"khaki1","#fdae61","#d7191c"))+
   labs(x="PCoA 1",y="PCoA 2", color="Treatment", fill="Treatment") +
   theme_classic()
+dev.off()
+
+
+# w/ no irrigated
+voc_transpose_rm5 <- voc_transpose_rm4 %>%
+  filter(!(Treatment == "Irrigated_Control"))
+# selecting compound columns
+ab = voc_transpose_rm5[,2:429]
+ab.dist<-vegdist(ab, method='bray')
+dispersion<-betadisper(ab.dist, group=voc_transpose_rm5$Treatment)
+# extract the centroids and the site points in multivariate space.  
+centroids<-data.frame(group=rownames(dispersion$centroids),data.frame(dispersion$centroids))
+vectors<-data.frame(group=dispersion$group,data.frame(dispersion$vectors))
+seg.data<-merge(vectors[,1:3],centroids[,1:3], by="group")
+names(seg.data)<-c("group","v.PCoA1","v.PCoA2","PCoA1","PCoA2")
+# specify order of treatments
+seg.data$group <- factor(seg.data$group, levels = c("Ambient_Control","Warmed","Drought","Warmed_Drought"))
+levels(seg.data$group)
+# make figure
+png("climate_pcoa_no_ir.png", units="in", width=6.5, height=5, res=300)
+ggplot() + 
+  stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.8, geom="polygon")+
+  #geom_point(data=centroids, aes(x=PCoA1,y=PCoA2),size=4.7,color="black",shape=16) + 
+  geom_point(data=seg.data, aes(x=v.PCoA1,y=v.PCoA2, color=group),alpha=0.7,size=3,shape=16) +
+  geom_point(data=centroids, aes(x=PCoA1,y=PCoA2, fill=group),color="black",size=5,shape=21) + 
+  scale_color_manual(labels=c("Ambient (A)", "Warmed (W)", "Drought (D)", "Warmed + Drought \n (WD)"),
+                     values=c('#2c7bb6',"khaki1","#fdae61","#d7191c"))+
+  scale_fill_manual(labels=c("Ambient (A)", "Warmed (W)", "Drought (D)", "Warmed + Drought \n (WD)"),
+                    values=c('#2c7bb6',"khaki1","#fdae61","#d7191c"))+
+  labs(x="PCoA 1",y="PCoA 2", color="Treatment", fill="Treatment") +
+  theme_classic()
+dev.off()
+
+# rep w/ no irrigated
+ab = voc_transpose_rm5[,2:429]
+ab.dist<-vegdist(ab, method='bray')
+dispersion<-betadisper(ab.dist, group=voc_transpose_rm5$Rep)
+# extract the centroids and the site points in multivariate space.  
+centroids<-data.frame(group=rownames(dispersion$centroids),data.frame(dispersion$centroids))
+vectors<-data.frame(group=dispersion$group,data.frame(dispersion$vectors))
+seg.data<-merge(vectors[,1:3],centroids[,1:3], by="group")
+names(seg.data)<-c("group","v.PCoA1","v.PCoA2","PCoA1","PCoA2")
+# specify order of treatments
+levels(seg.data$group)
+# make figure
+png("rep_pcoa_no_ir.png", units="in", width=6, height=5, res=300)
+ggplot() + 
+  stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.7, geom="polygon")+
+  #geom_point(data=centroids, aes(x=PCoA1,y=PCoA2),size=4.7,color="black",shape=16) + 
+  geom_point(data=centroids, aes(x=PCoA1,y=PCoA2, fill=group),color="black",size=5,shape=21) +   
+  geom_point(data=seg.data, aes(x=v.PCoA1,y=v.PCoA2, color=group),alpha=0.7,size=2.5,shape=16) +
+  scale_color_manual(labels=c("2", "3", "4", "5"),
+                     values=c('#2c7bb6','#abd9e9',"#fdae61","khaki1"))+
+  scale_fill_manual(labels=c("2", "3", "4", "5"),
+                    values=c('#2c7bb6','#abd9e9',"#fdae61","khaki1"))+
+  labs(x="PCoA 1",y="PCoA 2", color="Field Rep", fill="Field Rep") +
+  theme_classic() +
+  theme(axis.text.x = element_text(size=13),
+        axis.text.y = element_text(size=13),
+        axis.title.y = element_text(size=15),
+        axis.title.x = element_text(size=15))
 dev.off()
 
 
@@ -248,9 +322,9 @@ dev.off()
 
 
 #### PCoA - Rep ####
-ab = voc_transpose_rm[,2:429]
+ab = voc_transpose_rm4[,2:429]
 ab.dist<-vegdist(ab, method='bray')
-dispersion<-betadisper(ab.dist, group=voc_transpose_rm$Rep)
+dispersion<-betadisper(ab.dist, group=voc_transpose_rm4$Rep)
 # extract the centroids and the site points in multivariate space.  
 centroids<-data.frame(group=rownames(dispersion$centroids),data.frame(dispersion$centroids))
 vectors<-data.frame(group=dispersion$group,data.frame(dispersion$vectors))
@@ -283,7 +357,8 @@ dev.off()
 
 #### ABUNDANCE ####
 # calculating total abundance for each sample
-voc_transpose_rm$rowsums <- rowSums(voc_transpose_rm[2:429])
+voc_transpose_rm4$rowsums <- rowSums(voc_transpose_rm4[2:429])
+voc_transpose_rm5$rowsums <- rowSums(voc_transpose_rm5[2:429])
 
 # notes:
 # 3 samples (rep 4 ambient 79, rep 3 irrigated 39, and rep 5 warmed 62) have abnormally high abundances
@@ -305,18 +380,22 @@ voc_transpose_rm$rowsums <- rowSums(voc_transpose_rm[2:429])
 #  filter(!(Unique_ID == 62))
 
 # calculating total abundance for each treatment $ rep
-voc_transpose_sum <- voc_transpose_rm %>%
-  group_by(Treatment, Rep) %>%
-  summarize(abun = sum(rowsums))
-# avg abundance per treaatment w/o biomass
-voc_transpose_sum2 <- voc_transpose_sum %>%
+#voc_transpose_sum <- voc_transpose_rm4 %>%
+#  group_by(Treatment, Rep) %>%
+#  summarize(abun = sum(rowsums))
+# avg abundance per treaatment biomass
+voc_transpose_sum2 <- voc_transpose_rm4 %>%
   group_by(Treatment) %>%
-  summarize(avg_abun = mean(abun),
-            se = std.error(abun))
+  summarize(avg_abun = mean(rowsums),
+            se = std.error(rowsums))
+voc_transpose_sum3 <- voc_transpose_rm5 %>%
+  group_by(Treatment) %>%
+  summarize(avg_abun = mean(rowsums),
+            se = std.error(rowsums))
 # plot - abundance w/o considering biomass
 level_order2 <- c('Ambient_Control', 'Irrigated_Control', 'Drought', "Warmed", "Warmed_Drought")
-png("climate_ab.png", units="in", width=6, height=5, res=300)
-ggplot(voc_transpose_sum2, aes(x = factor(Treatment, level = level_order2), y = avg_abun)) + 
+png("climate_ab_no_ir.png", units="in", width=6, height=5, res=300)
+ggplot(voc_transpose_sum3, aes(x = factor(Treatment, level = level_order2), y = avg_abun)) + 
   geom_bar(position = "identity", stat = "identity", color = 'black', fill = "lightsteelblue3") +
   geom_errorbar(aes(ymin = avg_abun - se, ymax = avg_abun + se), width = 0.2,
                 position = "identity") +
@@ -328,60 +407,55 @@ ggplot(voc_transpose_sum2, aes(x = factor(Treatment, level = level_order2), y = 
   scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
                             "Irrigated_Control" = "Irrigated",
                             "Warmed_Drought" = "Warmed + \n Drought")) +
-  labs(x = "Treatment", y = "Average VOC Abundance \n (peak area)")
+  labs(x = "Treatment", y = "Average VOC Abundance \n (peak area/g/hr)")
 dev.off()
 
-
-# merge w/ biomass data
-voc_transpose_sum_bio <- left_join(voc_transpose_sum,voc_biomass,by=c("Treatment","Rep"))
-# take weighted average
-voc_transpose_sum_bio <- voc_transpose_sum_bio %>%
-  mutate(weighted_abun = abun/Weight_g)
-# taking average per treatment
-voc_transpose_sum3 <- voc_transpose_sum_bio %>%
-  group_by(Treatment) %>%
-  summarize(abun = mean(weighted_abun),
-            se = std.error(weighted_abun))
-# plot - abundance considering biomass
-level_order2 <- c('Ambient_Control', 'Irrigated_Control', 'Drought', "Warmed", "Warmed_Drought")
-png("climate_ab.png", units="in", width=6, height=5, res=300)
-ggplot(voc_transpose_sum3, aes(x = factor(Treatment, level = level_order2), y = abun)) + 
-  geom_bar(position = "identity", stat = "identity", color = 'black', fill = "lightsteelblue3") +
-  geom_errorbar(aes(ymin = abun - se, ymax = abun + se), width = 0.2,
-                position = "identity") +
-  theme_classic() +
-  theme(axis.text.x = element_text(size=13),
-        axis.text.y = element_text(size=13),
-        axis.title.y = element_text(size=15),
-        axis.title.x = element_text(size=15)) +
-  scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
-                            "Irrigated_Control" = "Irrigated",
-                            "Warmed_Drought" = "Warmed + \n Drought")) +
-  labs(x = "Treatment", y = "Average VOC Abundance \n (peak area/g)")
-dev.off()
 
 
 # abundances for specific compounds, found in the analyses script
-# alpha farnesene
-voc_transpose_cmpd <- voc_transpose_rm %>%
-  dplyr::select(Sample_ID, Treatment, Rep, X.Z.Z...alpha..Farnesene) %>%
-  group_by(Treatment, Rep) %>%
-  summarize(abun = sum(X.Z.Z...alpha..Farnesene))
-# merge w/ biomass data
-voc_transpose_cmpd <- left_join(voc_transpose_cmpd,voc_biomass,by=c("Treatment","Rep"))
-# take weighted average
-voc_transpose_cmpd <- voc_transpose_cmpd %>%
-  mutate(weighted_abun = abun/Weight_g)
+level_order2 <- c('Ambient_Control', 'Irrigated_Control', 'Drought', "Warmed", "Warmed_Drought")
+level_order3 <- c('Ambient_Control', 'Warmed','Drought', "Warmed_Drought")
 
+# o xylene
+voc_transpose_xylene <- voc_transpose_rm5 %>%
+  dplyr::select(Sample_ID, Treatment, Rep, o.Xylene)
 # taking average per treatment
-voc_transpose_cmpd_a <- voc_transpose_cmpd %>%
+voc_transpose_xylene_a <- voc_transpose_xylene %>%
   group_by(Treatment) %>%
-  summarize(abun = mean(weighted_abun),
-            se = std.error(weighted_abun))
+  summarize(abun = mean(o.Xylene),
+            se = std.error(o.Xylene))
+
+# Hepten 2 one 6 methyl
+voc_transpose_hepten <- voc_transpose_rm5 %>%
+  dplyr::select(Sample_ID, Treatment, Rep, X5.Hepten.2.one..6.methyl.)
+# taking average per treatment
+voc_transpose_hepten_a <- voc_transpose_hepten %>%
+  group_by(Treatment) %>%
+  summarize(abun = mean(X5.Hepten.2.one..6.methyl.),
+            se = std.error(X5.Hepten.2.one..6.methyl.))
+
+# beta Myrcene
+voc_transpose_myrcene <- voc_transpose_rm5 %>%
+  dplyr::select(Sample_ID, Treatment, Rep, .beta..Myrcene)
+# taking average per treatment
+voc_transpose_myrcene_a <- voc_transpose_myrcene %>%
+  group_by(Treatment) %>%
+  summarize(abun = mean(.beta..Myrcene),
+            se = std.error(.beta..Myrcene))
+
+# Hexen 1 ol acetate
+voc_transpose_hexen <- voc_transpose_rm5 %>%
+  dplyr::select(Sample_ID, Treatment, Rep, X4.Hexen.1.ol..acetate)
+# taking average per treatment
+voc_transpose_hexen_a <- voc_transpose_hexen %>%
+  group_by(Treatment) %>%
+  summarize(abun = mean(X4.Hexen.1.ol..acetate),
+            se = std.error(X4.Hexen.1.ol..acetate))
+
 
 # plot
-png("climate_farn.png", units="in", width=6, height=4, res=300)
-ggplot(voc_transpose_cmpd_a, aes(x = factor(Treatment, level = level_order2), y = abun)) + 
+png("climate_hexen.png", units="in", width=6, height=4, res=300)
+ggplot(voc_transpose_hexen_a, aes(x = factor(Treatment, level = level_order3), y = abun)) + 
   geom_bar(position = "identity", stat = "identity", color = 'black', fill = "lightsteelblue3") +
   geom_errorbar(aes(ymin = abun - se, ymax = abun + se), width = 0.2,
                 position = "identity") +
@@ -392,7 +466,7 @@ ggplot(voc_transpose_cmpd_a, aes(x = factor(Treatment, level = level_order2), y 
   scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
                             "Irrigated_Control" = "Irrigated",
                             "Warmed_Drought" = "Warmed + \n Drought")) +
-  labs(x = "Treatment", y = "Average VOC Abundance")
+  labs(x = "Treatment", y = "Average VOC Abundance \n (peak area/g/h)")
 dev.off()
 
 
