@@ -470,39 +470,6 @@ ggplot(voc_transpose_hexen_a, aes(x = factor(Treatment, level = level_order3), y
 dev.off()
 
 
-# endo Borneol
-voc_transpose_cmpd2 <- voc_transpose_rm %>%
-  dplyr::select(Sample_ID, Treatment, Rep, endo.Borneol) %>%
-  group_by(Treatment, Rep) %>%
-  summarize(abun = sum(endo.Borneol))
-# merge w/ biomass data
-voc_transpose_cmpd2 <- left_join(voc_transpose_cmpd2,voc_biomass,by=c("Treatment","Rep"))
-# take weighted average
-voc_transpose_cmpd2 <- voc_transpose_cmpd2 %>%
-  mutate(weighted_abun = abun/Weight_g)
-
-# taking average per treatment
-voc_transpose_cmpd2_a <- voc_transpose_cmpd2 %>%
-  group_by(Treatment) %>%
-  summarize(abun = mean(weighted_abun),
-            se = std.error(weighted_abun))
-
-# plot
-png("climate_endo.png", units="in", width=6, height=4, res=300)
-ggplot(voc_transpose_cmpd2_a, aes(x = factor(Treatment, level = level_order2), y = abun)) + 
-  geom_bar(position = "identity", stat = "identity", color = 'black', fill = "lightsteelblue3") +
-  geom_errorbar(aes(ymin = abun - se, ymax = abun + se), width = 0.2,
-                position = "identity") +
-  theme_classic() +
-  theme(axis.text.x = element_text(size=11),
-        axis.title.y = element_text(size=15),
-        axis.title.x = element_text(size=15)) +
-  scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
-                            "Irrigated_Control" = "Irrigated",
-                            "Warmed_Drought" = "Warmed + \n Drought")) +
-  labs(x = "Treatment", y = "Average VOC Abundance")
-dev.off()
-
 
 
 

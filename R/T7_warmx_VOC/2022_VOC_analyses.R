@@ -43,37 +43,51 @@ voc_biomass$Treatment[voc_biomass$Treatment == "Irrigated"] <- "Irrigated_Contro
 
 # merge voc w/ biomass data
 voc_transpose_rm <- left_join(voc_transpose_rm,voc_biomass,by=c("Treatment","Rep"))
+
 # divide voc abundances by indiv plant biomass per treatment/rep
 # first remove compound name column & meta info columns
 voc_sample_names <- voc_transpose_rm[,1, drop=FALSE]
 voc_meta_info <- voc_transpose_rm[,430:436, drop=FALSE]
-voc_transpose_rm2 = subset(voc_transpose_rm, select = -c(Sample_ID,Unique_ID,Rep,Footprint,Subplot,Treatment,Notes,Weight_g))
+voc_meta_info2 <- voc_transpose_rm[,438, drop=FALSE]
+voc_transpose_rm2 = subset(voc_transpose_rm, select = -c(Sample_ID,Unique_ID,Rep,Footprint,Subplot,Treatment,Notes,Weight_g,time_sampled))
 # divide
 voc_weighted_abun <- voc_transpose_rm2/voc_transpose_rm2[,429]
 # remerging with meta info
-voc_transpose_rm3 <- cbind(voc_sample_names,voc_weighted_abun,voc_meta_info)
+voc_transpose_rm3 <- cbind(voc_sample_names,voc_weighted_abun,voc_meta_info,voc_meta_info2)
 # removing indiv weight column 
 voc_transpose_rm3 = subset(voc_transpose_rm3, select = -c(Weight_indiv_g))
-# so now when I want to do analyses for abundances/individual, I use the voc_transpose_rm3 dataframe
+
+# divide by hours sampled
+# first remove compound name column & meta info columns
+voc_sample_names_time <- voc_transpose_rm3[,1, drop=FALSE]
+voc_meta_info_time <- voc_transpose_rm3[,430:436, drop=FALSE]
+voc_transpose_rm_time = subset(voc_transpose_rm3, select = -c(Sample_ID,Unique_ID,Rep,Footprint,Subplot,Treatment,Notes,Weight_g))
+# divide
+voc_weighted_abun_time <- voc_transpose_rm_time/voc_transpose_rm_time[,429]
+# remerging with meta info
+voc_transpose_rm4 <- cbind(voc_sample_names_time,voc_weighted_abun_time,voc_meta_info_time)
+# removing indiv weight column 
+voc_transpose_rm4 = subset(voc_transpose_rm4, select = -c(time_sampled))
+# so now when I want to do analyses for abundances/individual, I use the voc_transpose_rm4 dataframe
 
 
 
 #### VOC Composition (treatment) - PERMANOVA ####
 # make community matrix - extract columns with abundance information
-ab = voc_transpose_rm3[,2:429]
+ab = voc_transpose_rm4[,2:429]
 
 # dissimilarity matrix
 ab.dist<-vegdist(ab, method='bray')
 
 # run permanova
 set.seed(123)
-perm <- how(nperm = 999, blocks=voc_transpose_rm3$Rep)
-ab.div<-adonis2(ab.dist~Treatment, data=voc_transpose_rm3, permutations = perm, method="bray")
+perm <- how(nperm = 999, blocks=voc_transpose_rm4$Rep)
+ab.div<-adonis2(ab.dist~Treatment, data=voc_transpose_rm4, permutations = perm, method="bray")
 ab.div
 # note: also can run models with rep as additive or interactive effect w/ treatment
 
 # pairwise comparisons of permanova
-ab.pair<-pairwise.adonis2(ab.dist~Treatment, data=voc_transpose_rm3, method="bray", strata="Rep")
+ab.pair<-pairwise.adonis2(ab.dist~Treatment, data=voc_transpose_rm4, method="bray", strata="Rep")
 ab.pair
 
 # testing for homogeneity of dispersion among groups
@@ -81,10 +95,10 @@ ab.pair
 # i.e. adonis may give sig. p-value even if groups overlap because within-group data is heterogenous
 # this test looks to see if group data is heterogenous; p>0.05 means it is not, and therefore 
 # we can assume adonis results are "real" and not a result of heterogenous dispersion
-dispersion<-betadisper(ab.dist, group=voc_transpose_rm3$Treatment)
+dispersion<-betadisper(ab.dist, group=voc_transpose_rm4$Treatment)
 dispersion
 permutest(dispersion)
-plot(dispersion, hull=F, ellipse=T)
+plot(dispersion, hull=F, ellipse=T, label=F)
 
 
 #### VOC Composition (rep) - PERMANOVA ####
@@ -125,65 +139,63 @@ ano
 
 # note: update the section below with new matrix information
 #### VOC Abundance - Mixed model ####
-# Data exploration
-voc_transpose$rowsums <- rowSums(voc_transpose[2:1455])
-descdist(voc_transpose$rowsums, discrete = FALSE)
-hist(voc_transpose$rowsums)
-qqnorm(voc_transpose$rowsums)
-shapiro.test(voc_transpose$rowsums)
+# Data exploration on raw data
+voc_transpose_rm4$rowsums <- rowSums(voc_transpose_rm4[2:429])
+descdist(voc_transpose_rm4$rowsums, discrete = FALSE)
+hist(voc_transpose_rm4$rowsums)
+qqnorm(voc_transpose_rm4$rowsums)
+shapiro.test(voc_transpose_rm4$rowsums)
 # kinda right skewed, going to try a few transformations
 
 # square root transformation
-voc_transpose$sqrt_rowsums <- sqrt(voc_transpose$rowsums)
-descdist(voc_transpose$sqrt_rowsums, discrete = FALSE)
-hist(voc_transpose$sqrt_rowsums)
-qqnorm(voc_transpose$sqrt_rowsums)
-shapiro.test(voc_transpose$sqrt_rowsums)
+voc_transpose_rm4$sqrt_rowsums <- sqrt(voc_transpose_rm4$rowsums)
+descdist(voc_transpose_rm4$sqrt_rowsums, discrete = FALSE)
+hist(voc_transpose_rm4$sqrt_rowsums)
+qqnorm(voc_transpose_rm4$sqrt_rowsums)
+shapiro.test(voc_transpose_rm4$sqrt_rowsums)
 
 # cubed root transformation
-voc_transpose$cubed_rowsums <- (voc_transpose$rowsums)^(1/3)
-descdist(voc_transpose$cubed_rowsums, discrete = FALSE)
-hist(voc_transpose$cubed_rowsums)
-qqnorm(voc_transpose$cubed_rowsums)
-shapiro.test(voc_transpose$cubed_rowsums)
+voc_transpose_rm4$cubed_rowsums <- (voc_transpose_rm4$rowsums)^(1/3)
+descdist(voc_transpose_rm4$cubed_rowsums, discrete = FALSE)
+hist(voc_transpose_rm4$cubed_rowsums)
+qqnorm(voc_transpose_rm4$cubed_rowsums)
+shapiro.test(voc_transpose_rm4$cubed_rowsums)
 # none of these are great, come back to this 
 
 # comparison with other models
-m1 <- lmer(rowsums ~ Treatment + (1|Rep), data = voc_transpose, REML=FALSE)
+m1 <- lmer(cubed_rowsums ~ Treatment + (1|Rep), data = voc_transpose_rm4, REML=FALSE)
 summary(m1)
+hist(resid(m1))
+shapiro.test(resid(m1))
 # emmeans is a lot different than summary (?) so re-leveling to get pairwise comparisons
-voc_transpose <- within(voc_transpose, Treatment <- relevel(factor(Treatment), ref = "Warmed"))
-summary(m1)
-voc_transpose <- within(voc_transpose, Treatment <- relevel(factor(Treatment), ref = "Drought"))
-summary(m1)
-voc_transpose <- within(voc_transpose, Treatment <- relevel(factor(Treatment), ref = "Irrigated"))
-summary(m1)
+voc_transpose_rm4 <- within(voc_transpose_rm4, Treatment <- relevel(factor(Treatment), ref = "Warmed_Drought"))
+
 
 # specific compound test
-m2 <- lmer(X.Z.Z...alpha..Farnesene ~ Treatment + (1|Rep), data = voc_transpose, REML=FALSE)
+m2 <- lmer(.beta..Myrcene ~ Treatment + (1|Rep), data = voc_transpose_rm5, REML=FALSE)
+anova(m2)
 summary(m2)
-voc_transpose <- within(voc_transpose, Treatment <- relevel(factor(Treatment), ref = "Warmed"))
-voc_transpose <- within(voc_transpose, Treatment <- relevel(factor(Treatment), ref = "Drought"))
-voc_transpose <- within(voc_transpose, Treatment <- relevel(factor(Treatment), ref = "Irrigated_Control"))
+# pairwise comparisons
+voc_transpose_rm5 <- within(voc_transpose_rm5, Treatment <- relevel(factor(Treatment), ref = "Ambient_Control"))
+voc_transpose_rm5 <- within(voc_transpose_rm5, Treatment <- relevel(factor(Treatment), ref = "Drought"))
 
-m3 <- lmer(endo.Borneol ~ Treatment + (1|Rep), data = voc_transpose, REML=FALSE)
+m3 <- lmer(X4.Hexen.1.ol..acetate ~ Treatment + (1|Rep), data = voc_transpose_rm5, REML=FALSE)
+anova(m3)
 summary(m3)
-voc_transpose <- within(voc_transpose, Treatment <- relevel(factor(Treatment), ref = "Warmed"))
-voc_transpose <- within(voc_transpose, Treatment <- relevel(factor(Treatment), ref = "Drought"))
-voc_transpose <- within(voc_transpose, Treatment <- relevel(factor(Treatment), ref = "Irrigated_Control"))
+voc_transpose_rm5 <- within(voc_transpose_rm5, Treatment <- relevel(factor(Treatment), ref = "Warmed"))
+voc_transpose_rm5 <- within(voc_transpose_rm5, Treatment <- relevel(factor(Treatment), ref = "Drought"))
 
 
 #### VOC Abundance - ANOVA ####
 # overall treatment differences
-voc_transpose$rowsums <- rowSums(voc_transpose[2:1455])
-anova1 <- aov(rowsums~Treatment, data = voc_transpose)
+anova1 <- aov(rowsums~Treatment, data = voc_transpose_rm4)
 summary(anova1)
 TukeyHSD(anova1)
 
 # specific compound differences
-for (i in 2:1455){
-  column <- names(voc_transpose[i])
-  anova <- broom::tidy(aov(voc_transpose[,i] ~ Treatment, data = voc_transpose))
+for (i in 2:429){
+  column <- names(voc_transpose_rm4[i])
+  anova <- broom::tidy(aov(voc_transpose_rm4[,i] ~ Treatment, data = voc_transpose_rm4))
   
   # only want aov with P < 0.05 printed
   if(anova$p.value[1] < 0.05) {
@@ -193,24 +205,12 @@ for (i in 2:1455){
   }
 }
 
-# Benzaldehyde..3.ethyl. 0.0000568
-# endo.Borneol 0.000223
-# Germacrene.D 0.0288
-# Propanoic.acid..2.methyl...3.hydroxy.2.2.4.trimethylpentyl.ester 0.00929
-# .alpha..Bourbonene 0.00305
-# X.Z.Z...alpha..Farnesene 0.0123
-# o.Xylene 0.0302
-# .beta..Myrcene 0.0246
-# Camphor 0.0420
-# dl.Menthol 0.0107
-# Ethanone..1..4.ethylphenyl.. 0.00613
-# Pyridine 0.0485
-# Salicylic.acid..tert..butyl.ester 0.00468
+
 
 # pairwise comparisons
-for (i in 2:1455){
-  column <- names(voc_transpose[i])
-  anova <- aov(voc_transpose[,i] ~ Treatment, data = voc_transpose)
+for (i in 2:429){
+  column <- names(voc_transpose_rm4[i])
+  anova <- aov(voc_transpose_rm4[,i] ~ Treatment, data = voc_transpose_rm4)
   tukey <- TukeyHSD(anova)
   
   # only want tukey with P < 0.05 printed
