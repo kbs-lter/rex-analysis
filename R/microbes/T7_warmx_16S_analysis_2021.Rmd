@@ -3,6 +3,8 @@ title: "T7 warmx 16S Analysis 2021"
 author: "Moriah Young"
 date: "2023-01-31"
 output: pdf_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -38,6 +40,7 @@ library(zCompositions)
 library(microViz)
 library(DESeq2)
 library(ANCOMBC)
+library(permute)
 
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
@@ -59,7 +62,7 @@ Read QZA files into dataframe, re-format taxonomic tables, and re-upload them as
 #write.csv(tax16S, file = "/Users/moriahyoung/Downloads/16S-taxonomy.csv", row.names =F)
 
 physeq_tree <- qza_to_phyloseq(
-        tree = "/Users/moriahyoung/Downloads/16S-2021-fasttree-rooted-tree.qza"
+        tree = "/Users/moriahyoung/Desktop/physeq_object/16S-2021-fasttree-rooted-tree.qza"
         )
 physeq_tree
 
@@ -90,9 +93,9 @@ physeq_tree
 # upload these to REX google shared drive
 
 # Create phyloseq objects of filtered data (16S and ITS)
-data_16S_filtered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/16S-merged-table-filtered.csv",
-                                       taxonomy.file = "/Users/moriahyoung/Desktop/16S-taxonomy-filtered.csv",
-                                       metadata.file = "/Users/moriahyoung/Desktop/16S_2021_metadata.csv")
+data_16S_filtered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/physeq_object/16S-merged-table-filtered.csv",
+                                       taxonomy.file = "/Users/moriahyoung/Desktop/physeq_object/16S-taxonomy-filtered.csv",
+                                       metadata.file = "/Users/moriahyoung/Desktop/physeq_object/16S_2021_metadata.csv")
 summarize_phyloseq(data_16S_filtered)
 
 # merge the phyloseq object with the phylogenetic tree with the other phyloseq object
@@ -495,23 +498,23 @@ plot_richness(ps.rarefied, x="Subplot_Descriptions", measures=c("Observed")) + g
 plot_richness(ps.rarefied, x="Subplot_Descriptions", measures=c("Shannon")) + geom_boxplot() + facet_grid(.~Drought)
 
 #png("T7_warmx_16S_observed_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
-plot_richness(ps.rarefied, x="Drought", measures=c("Observed"), color = "Subplot_Descriptions") + 
-        geom_boxplot() + 
+plot_richness(ps.rarefied, x="Drought", measures=c("Observed")) + 
+        geom_boxplot(aes(fill = Subplot_Descriptions)) + 
         labs(y = "Observed OTUs", x = "Time of Sampling") +
         facet_grid(.~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
-        scale_colour_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
         "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
-        theme(legend.position = "none")
+        theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 #dev.off()
 
 #png("T7_warmx_16S_shannon_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
-plot_richness(ps.rarefied, x="Drought", measures=c("Shannon"), color = "Subplot_Descriptions") + 
-        geom_boxplot() + 
+plot_richness(ps.rarefied, x="Drought", measures=c("Shannon")) + 
+        geom_boxplot(aes(fill = Subplot_Descriptions)) + 
         labs(x = "Time of Sampling", y = "Shannon Index") +
         facet_grid(.~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
-        scale_colour_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
         "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
-        theme(legend.position = "none")
+        theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 #dev.off()
 
 richness <- estimate_richness(ps.rarefied)
@@ -531,23 +534,36 @@ ordination = ordinate(ps.rarefied, method="PCoA", distance=wunifrac_dist)
 
 #png("T7_warmx_16S_pcoa_no_insects.png", units="in", width=10, height=6, res=300)
 plot_ordination(ps.rarefied, ordination, color="Subplot_Descriptions", shape = "Drought") + 
-        geom_point(size=3, alpha=0.75) +
+        geom_point(aes(color = Subplot_Descriptions, shape = Drought), size=4, alpha=0.75) +
         #stat_ellipse(aes(fill = Drought), geom = "polygon", alpha = .5) +
-        scale_color_discrete(name = "Subplot Descriptions", 
-                            breaks = c("irrigated_control", "ambient", "warmed", "drought", "warmed_drought"),
-                            labels = c("Irrigated Control", "Ambient", "Warmed", "Drought", "Warmed + Drought")) +
+        scale_colour_manual(name = "Subplot Descriptions", 
+                          breaks = c("irrigated_control", "ambient", "warmed", "drought", "warmed_drought"),
+                          labels = c("Irrigated Control", "Ambient", "Warmed", "Drought", "Warmed + Drought"),
+                          values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
         theme(aspect.ratio=1)
 #dev.off()
 
 # Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
+set.seed(22)
 adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Subplot_Descriptions + sample_data(ps.rarefied)$Drought)
+
+# trying Jennifer's code below:
+#bray.dist <- phyloseq::distance(T2, method = "bray”)
+
+set.seed(53) #you can pick any number, but this prevents the results from being different every time. You need to run this every time before you do an adonis command.
+
+## setting up the permutation object
+perm1 <- with(sample_data(ps.rarefied), how(blocks = Replicate, plots = Plots(strata = Footprint, type="free”)), nperm = 9999)
+
+adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Footprint*sample_data(ps.rarefied)$Subplot, by = "margin”, permutations = perm1) 
+#If the interaction is not significant, you should rerun the model without the interaction. For this code, if the interaction is not significant, it won’t show you if the main effects are significant. 
 ```
 
 # Ordination using Phyloseq package
 ```{r}
 ord_16S <- prune_taxa(names(sort(taxa_sums(ps.rarefied), TRUE)[1:50]), ps.rarefied)
 
-# ordination
+# jaccard ordination
 jaccard_pcoa_16S <- ordinate(
         physeq = ord_16S, 
         method = "NMDS", 
@@ -567,6 +583,30 @@ plot_ordination(
                             labels = c("Irrigated Control", "Ambient", "Warmed", "Drought", "Warmed + Drought")) +
   theme(legend.title = element_blank())                                      #removes legend title
 #dev.off()
+
+# bray curtis ordination
+bray_pcoa_16S <- ordinate(
+        physeq = ord_16S, 
+        method = "NMDS", 
+        distance = "bray"
+        )
+
+# plot ordination
+plot_ordination(ord_16S, bray_pcoa_16S, "samples", color = "Subplot_Descriptions")
+# Run 20 stress 0.137421
+#png("T7_warmx_16S_braycurtis_NMDS_ordination.png", units="in", width=10, height=6, res=300)
+plot_ordination(
+  physeq = ord_16S,                                                         #phyloseq object
+  ordination = bray_pcoa_16S) +                                                #ordination
+  geom_point(aes(fill = Subplot_Descriptions, shape = Drought), size = 3) + #sets fill color to sampletype
+        stat_ellipse(aes(fill = factor(Subplot_Descriptions)), geom = "polygon", alpha = .5) +
+        scale_fill_manual(name = "Subplot Descriptions", 
+                          breaks = c("irrigated_control", "ambient", "warmed", "drought", "warmed_drought"),
+                          labels = c("Irrigated Control", "Ambient", "Warmed", "Drought", "Warmed + Drought"),
+                          values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        theme(legend.title = element_blank())                                      #removes legend title
+#dev.off()
+
 ```
 
 ASV differential abundance testing with DESeq2
@@ -652,5 +692,26 @@ res <- out$res
 
 knitr::kable(head(res$diff_abn)) %>% kableExtra::kable_styling("striped") %>% 
   kableExtra::scroll_box(width = "100%")
+```
+
+# Differential abundance using lefse
+```{r}
+library(microbiomeMarker)
+lefse <- run_lefse(data_16S_filtered_noinsect,
+                  wilcoxon_cutoff = 0.01,
+                  norm = "CPM",
+                  group = "Drought",
+                  kw_cutoff = 0.01,
+                  multigrp_strat = TRUE,
+                  lda_cutoff = 4
+)
+
+
+head(marker_table(lefse))
+
+# bar plot
+plot_ef_bar(lefse)
+# dot plot
+plot_ef_dot(lefse)
 ```
 
