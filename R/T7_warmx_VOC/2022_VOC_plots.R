@@ -23,56 +23,11 @@ dir<-Sys.getenv("DATA_DIR")
 
 # Read in data
 voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_named_VOC_2022_L1.csv"))
-# removing rep 1 - data is weird
-voc_transpose_rm <- voc_transpose %>%
-  filter(!(Rep == 1))
-# removing samples w/ abnormally high abundances - see notes below in "abundance" category
-voc_transpose_rm <- voc_transpose_rm %>%
-  filter(!(Unique_ID == 79)) %>%
-  filter(!(Unique_ID == 39)) %>%
-  filter(!(Unique_ID == 62))
-# how many individuals were measure per treatment + rep?
-# I used this info in the leaf biomass L2 script to determine total biomass for only measured individuals
-voc_transpose_rm %>% 
-  count(Treatment,Rep)
-voc_biomass <- read.csv(file.path(dir, "T7_warmx_VOC/L1/VOC_biomass_2022_L1.csv"))
-# making biomass treatments match voc data
-voc_biomass$Treatment[voc_biomass$Treatment == "Ambient"] <- "Ambient_Control"
-voc_biomass$Treatment[voc_biomass$Treatment == "Irrigated"] <- "Irrigated_Control"
-
-# merge voc w/ biomass data
-voc_transpose_rm <- left_join(voc_transpose_rm,voc_biomass,by=c("Treatment","Rep"))
-
-# divide voc abundances by indiv plant biomass per treatment/rep
-# first remove compound name column & meta info columns
-voc_sample_names <- voc_transpose_rm[,1, drop=FALSE]
-voc_meta_info <- voc_transpose_rm[,430:436, drop=FALSE]
-voc_meta_info2 <- voc_transpose_rm[,438, drop=FALSE]
-voc_transpose_rm2 = subset(voc_transpose_rm, select = -c(Sample_ID,Unique_ID,Rep,Footprint,Subplot,Treatment,Notes,Weight_g,time_sampled))
-# divide
-voc_weighted_abun <- voc_transpose_rm2/voc_transpose_rm2[,429]
-# remerging with meta info
-voc_transpose_rm3 <- cbind(voc_sample_names,voc_weighted_abun,voc_meta_info,voc_meta_info2)
-# removing indiv weight column 
-voc_transpose_rm3 = subset(voc_transpose_rm3, select = -c(Weight_indiv_g))
-
-# divide by hours sampled
-# first remove compound name column & meta info columns
-voc_sample_names_time <- voc_transpose_rm3[,1, drop=FALSE]
-voc_meta_info_time <- voc_transpose_rm3[,430:436, drop=FALSE]
-voc_transpose_rm_time = subset(voc_transpose_rm3, select = -c(Sample_ID,Unique_ID,Rep,Footprint,Subplot,Treatment,Notes,Weight_g))
-# divide
-voc_weighted_abun_time <- voc_transpose_rm_time/voc_transpose_rm_time[,429]
-# remerging with meta info
-voc_transpose_rm4 <- cbind(voc_sample_names_time,voc_weighted_abun_time,voc_meta_info_time)
-# removing indiv weight column 
-voc_transpose_rm4 = subset(voc_transpose_rm4, select = -c(time_sampled))
-# so now when I want to do ordinations, I use the voc_transpose_rm4 dataframe
 
 
 #### NMDS ####
 # make community matrix - extract columns with abundance information
-ab = voc_transpose_rm4[,2:429]
+ab = voc_transpose[,2:429]
 
 # turn abundance data frame into a matrix
 mat_ab = as.matrix(ab)
@@ -113,9 +68,9 @@ dev.off()
 
 #### PCoA - Treatment ####
 # selecting compound columns
-ab = voc_transpose_rm4[,2:429]
+ab = voc_transpose[,2:429]
 ab.dist<-vegdist(ab, method='bray')
-dispersion<-betadisper(ab.dist, group=voc_transpose_rm4$Treatment)
+dispersion<-betadisper(ab.dist, group=voc_transpose$Treatment)
 # extract the centroids and the site points in multivariate space.  
 centroids<-data.frame(group=rownames(dispersion$centroids),data.frame(dispersion$centroids))
 vectors<-data.frame(group=dispersion$group,data.frame(dispersion$vectors))
@@ -144,7 +99,7 @@ dev.off()
 
 
 # w/ no irrigated
-voc_transpose_rm5 <- voc_transpose_rm4 %>%
+voc_transpose_rm5 <- voc_transpose %>%
   filter(!(Treatment == "Irrigated_Control"))
 # selecting compound columns
 ab = voc_transpose_rm5[,2:429]
@@ -282,7 +237,7 @@ grid.arrange(panel.a,panel.b,panel.c,panel.d,panel.e,panel.f,nrow=1)
 
 
 #### PCoA - Grouped Treatments ####
-voc_transpose2 <- voc_transpose_rm
+voc_transpose2 <- voc_transpose
 #voc_transpose2 <- voc_transpose2[!(voc_transpose2$Treatment == "Irrigated_Control"),] 
 #voc_transpose2 <- voc_transpose2[!(voc_transpose2$Treatment == "Ambient_Control"),] 
 #voc_transpose2 <- voc_transpose2[!(voc_transpose2$Treatment == "Warmed_Drought"),] 
@@ -322,9 +277,9 @@ dev.off()
 
 
 #### PCoA - Rep ####
-ab = voc_transpose_rm4[,2:429]
+ab = voc_transpose[,2:429]
 ab.dist<-vegdist(ab, method='bray')
-dispersion<-betadisper(ab.dist, group=voc_transpose_rm4$Rep)
+dispersion<-betadisper(ab.dist, group=voc_transpose$Rep)
 # extract the centroids and the site points in multivariate space.  
 centroids<-data.frame(group=rownames(dispersion$centroids),data.frame(dispersion$centroids))
 vectors<-data.frame(group=dispersion$group,data.frame(dispersion$vectors))
@@ -357,7 +312,7 @@ dev.off()
 
 #### ABUNDANCE ####
 # calculating total abundance for each sample
-voc_transpose_rm4$rowsums <- rowSums(voc_transpose_rm4[2:429])
+voc_transpose$rowsums <- rowSums(voc_transpose[2:429])
 voc_transpose_rm5$rowsums <- rowSums(voc_transpose_rm5[2:429])
 
 # notes:
@@ -380,11 +335,11 @@ voc_transpose_rm5$rowsums <- rowSums(voc_transpose_rm5[2:429])
 #  filter(!(Unique_ID == 62))
 
 # calculating total abundance for each treatment $ rep
-#voc_transpose_sum <- voc_transpose_rm4 %>%
+#voc_transpose_sum <- voc_transpose %>%
 #  group_by(Treatment, Rep) %>%
 #  summarize(abun = sum(rowsums))
 # avg abundance per treaatment biomass
-voc_transpose_sum2 <- voc_transpose_rm4 %>%
+voc_transpose_sum2 <- voc_transpose %>%
   group_by(Treatment) %>%
   summarize(avg_abun = mean(rowsums),
             se = std.error(rowsums))
