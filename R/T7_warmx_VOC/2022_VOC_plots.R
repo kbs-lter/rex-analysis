@@ -25,6 +25,7 @@ dir<-Sys.getenv("DATA_DIR")
 voc_transpose <- read.csv(file.path(dir, "T7_warmx_VOC/L1/T7_named_VOC_2022_L1.csv"))
 
 
+
 #### NMDS ####
 # make community matrix - extract columns with abundance information
 ab = voc_transpose[,2:429]
@@ -158,8 +159,6 @@ ggplot() +
         axis.title.x = element_text(size=15))
 dev.off()
 
-
-
 # why does the permanova show sig. results when there's so much overlap?
 # https://chrischizinski.github.io/rstats/adonis/
 dispersion
@@ -276,6 +275,7 @@ ggplot() +
 dev.off()
 
 
+
 #### PCoA - Rep ####
 ab = voc_transpose[,2:429]
 ab.dist<-vegdist(ab, method='bray')
@@ -310,29 +310,11 @@ ggplot() +
 dev.off()
 
 
+
 #### ABUNDANCE ####
 # calculating total abundance for each sample
 voc_transpose$rowsums <- rowSums(voc_transpose[2:429])
 voc_transpose_rm5$rowsums <- rowSums(voc_transpose_rm5[2:429])
-
-# notes:
-# 3 samples (rep 4 ambient 79, rep 3 irrigated 39, and rep 5 warmed 62) have abnormally high abundances
-# for 79: columns 108, 117, 128, and 160 are high
-# for 39: columns 6, 91, 117, 128, 140, 336, and 361 are high
-# for 62: columns 91, 128, 156, 160, 260, 336, 383, and 395 are high
-# common to these samples are bicyclo[3.1.0] compounds, bicyclo[3.1.1] compounds, etc.
-# these compounds seem to function similarly to beta-pinene in anti-bacterial and anti-herbivory manners
-# so, I'm removing them because I believe these plants were stressed from factors other than our treatments
-# these compounds were found using the subsetted data below for each rep/treatment 
-#voc_test <- voc_transpose_rm %>%
-#  filter(Rep == 5 & Treatment == "Warmed")
-
-# removing samples w/ abnormally high abundances
-# note: I moved this up top
-#voc_transpose_rm <- voc_transpose_rm %>%
-#  filter(!(Unique_ID == 79)) %>%
-#  filter(!(Unique_ID == 39)) %>%
-#  filter(!(Unique_ID == 62))
 
 # calculating total abundance for each treatment $ rep
 #voc_transpose_sum <- voc_transpose %>%
@@ -367,7 +349,7 @@ dev.off()
 
 
 
-# abundances for specific compounds, found in the analyses script
+### abundances for specific compounds, found in the analyses script ###
 level_order2 <- c('Ambient_Control', 'Irrigated_Control', 'Drought', "Warmed", "Warmed_Drought")
 level_order3 <- c('Ambient_Control', 'Warmed','Drought', "Warmed_Drought")
 
@@ -406,7 +388,6 @@ voc_transpose_hexen_a <- voc_transpose_hexen %>%
   group_by(Treatment) %>%
   summarize(abun = mean(X4.Hexen.1.ol..acetate),
             se = std.error(X4.Hexen.1.ol..acetate))
-
 
 # plot
 png("climate_hexen.png", units="in", width=6, height=4, res=300)
