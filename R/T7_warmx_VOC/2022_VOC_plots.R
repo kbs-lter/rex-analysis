@@ -126,6 +126,10 @@ ggplot() +
   scale_fill_manual(labels=c("Ambient (A)", "Warmed (W)", "Drought (D)", "Warmed + Drought \n (WD)"),
                     values=c('#2c7bb6',"khaki1","#fdae61","#d7191c"))+
   labs(x="PCoA 1",y="PCoA 2", color="Treatment", fill="Treatment") +
+  annotate("text", x = -0.125, y=0.03, label = "A", size=5) +
+  annotate("text", x = -0.07, y=0.05, label = "A", size=5) +
+  annotate("text", x = 0.04, y=0.06, label = "B", size=5) +
+  annotate("text", x = 0.1, y=0.08, label = "B", size=5) +
   theme_classic()
 dev.off()
 
