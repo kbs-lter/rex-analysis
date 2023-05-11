@@ -61,21 +61,49 @@ hobo_monthly_avg <- hobo_monthly %>%
   summarize(avg_temp = mean(average_temp, na.rm = TRUE),
             se = std.error(average_temp, na.rm = TRUE))
 
-# taking monthly average - 2022 only & only may-sep
-# create new dataframes for temperatures averaged for plotting
-hobo_monthly_2022 <- hobo_season %>%
+# taking 2022 average from june 1 - july 15
+hobo_season$date <- paste0(hobo_season$month,"",hobo_season$day)
+hobo_season$date <- as.numeric(hobo_season$date)
+# selecting 2022 and june 1 - july 15
+hobo_2022 <- hobo_season %>%
   filter(year == 2022) %>%
-  #filter(month > "04") %>%
-  #filter(month < "10") %>%
-  group_by(month, Rep, Treatment) %>%
-  summarize(average_temp = mean(Temperature_C, na.rm = TRUE),
-            se = std.error(Temperature_C, na.rm = TRUE))
-# averaging over each rep, so n=6 for each data point (n=5 for D and WD)
-hobo_monthly_avg_2022 <- hobo_monthly_2022 %>%
-  group_by(month, Treatment) %>%
+  filter(date > "531") %>%
+  filter(date < "716")
+# limit to the reps I used
+hobo_2022 <- hobo_2022 %>%
+  filter(Rep == 2 | Rep == 3 | Rep == 4 | Rep == 5)
+# take average per day, per rep, per treatment
+hobo_2022_avg <- hobo_2022 %>%
+  group_by(Rep, Treatment) %>%
+  summarize(average_temp = mean(Temperature_C, na.rm = TRUE))
+# averaging over each rep so n=4 for each treatment
+hobo_2022_avg <- hobo_2022_avg %>%
+  group_by(Treatment) %>%
   summarize(avg_temp = mean(average_temp, na.rm = TRUE),
             se = std.error(average_temp, na.rm = TRUE))
-print(hobo_monthly_avg_2022)
+
+
+# taking 2022 average for july 11 - july 15 (sampling period)
+hobo_season$date <- paste0(hobo_season$month,"",hobo_season$day)
+hobo_season$date <- as.numeric(hobo_season$date)
+# selecting 2022 and june 1 - july 15
+hobo_sampling <- hobo_season %>%
+  filter(year == 2022) %>%
+  filter(date > "710") %>%
+  filter(date < "716")
+# limit to the reps I used
+hobo_sampling <- hobo_sampling %>%
+  filter(Rep == 2 | Rep == 3 | Rep == 4 | Rep == 5)
+# take average per day, per rep, per treatment
+hobo_sampling_avg <- hobo_sampling %>%
+  group_by(Rep, Treatment) %>%
+  summarize(average_temp = mean(Temperature_C, na.rm = TRUE))
+# averaging over each rep so n=4 for each treatment
+hobo_sampling_avg <- hobo_sampling_avg %>%
+  group_by(Treatment) %>%
+  summarize(avg_temp = mean(average_temp, na.rm = TRUE),
+            se = std.error(average_temp, na.rm = TRUE))
+
 
 # taking monthly average
 # create new dataframes for lux averaged for plotting
