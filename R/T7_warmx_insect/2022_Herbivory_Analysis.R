@@ -14,6 +14,8 @@ rm(list=ls())
 library(tidyverse)
 library(plotrix)
 library(lmerTest)
+library(fitdistrplus)
+library(emmeans)
 
 #set directory
 dir <- setwd("/Users/emilyparker/Documents/R")
