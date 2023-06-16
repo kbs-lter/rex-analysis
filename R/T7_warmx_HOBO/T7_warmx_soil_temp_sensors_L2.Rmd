@@ -46,29 +46,23 @@ level_order <- c('irrigated_control', 'ambient', 'drought', 'warmed','warmed_dro
 
 ```{r}
 # create new dataframe with only data from april - august from 7 AM - 7 PM (growing season during the day)
-# this is mainly what we'll work with for figures (could always adjust the parameters as needed)
 soil_season <- soiltemp
+soil_season$date <- paste0(soil_season$month,"",soil_season$day)
+soil_season$date <- as.numeric(soil_season$date)
+# this is mainly what we'll work with for figures (could always adjust the parameters as needed)
 soil_season$month <- format(soil_season$Date_Time,format="%m")
 soil_season$year <- format(soil_season$Date_Time,format="%Y")
 soil_season$hour <- format(soil_season$Date_Time, format="%H")
 soil_season$day <- format(soil_season$Date_Time, format="%d")
-soil_season <- soil_season %>%
+soil_season_22 <- soil_season %>%
+  filter(year == 2022) %>%
   filter(hour > "06") %>%
   filter(hour < "20")
-soil_season_sum <- soil_season %>%
-  filter(hour > "06") %>%
-  filter(hour < "20") %>%
-  filter(month > "05") %>%
-  filter(month < "09")
 ```
 
 ```{r}
-# taking 2022 soil average for January -  December (sampling period)
-soil_season_sum$date <- paste0(soil_season_sum$month,"",soil_season$day)
-soil_season_sum$date <- as.numeric(soil_season_sum$date)
-
 # take average per day, per rep, per treatment
-soil_sam <- soil_season %>%
+soil_sam <- soil_season_22 %>%
   group_by(date, Subplot_Descriptions) %>%
   summarize(average_temp = mean(temperature, na.rm = TRUE))
            se_temp = std.error(average_temp, na.rm = TRUE)
