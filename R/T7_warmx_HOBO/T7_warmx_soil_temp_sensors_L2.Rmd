@@ -63,13 +63,8 @@ soil_season_22 <- soil_season %>%
 ```{r}
 # take average per day, per rep, per treatment
 soil_sam <- soil_season_22 %>%
-  group_by(date, Subplot_Descriptions) %>%
+  group_by(month, Subplot_Descriptions) %>%
   summarize(average_temp = mean(temperature, na.rm = TRUE))
            se_temp = std.error(average_temp, na.rm = TRUE)
-
-# averaging over each rep, n varies between treatments
-soil_sam <- soil_sam %>%
-  group_by(Subplot_Descriptions) %>%
-  summarize(avg_temp = mean(average_temp, na.rm = TRUE),
-            se_temp = std.error(average_temp, na.rm = TRUE))
+           
 ```
