@@ -81,7 +81,7 @@ ggplot(soil_sam, aes(x = month, y = avg_temp, group = Subplot_Descriptions, colo
   scale_color_manual(name="Treatment",
                      values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
                      labels=c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
-  labs(y="Temperature (°C)", x="Month") +
+  labs(y="Soil Temperature (°C)", x="Month") +
   theme_bw() +
   theme(axis.title = element_text(size=17),
         axis.text = element_text(size=15),
@@ -125,7 +125,7 @@ ggplot(soil_temp_grow, aes(x = month, y = avg_temp, group = Subplot_Descriptions
   scale_color_manual(name="Treatment",
                      values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
                      labels=c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
-  labs(y="Temperature (°C)", x="Month") +
+  labs(y="Soil Temperature (°C)", x="Month") +
   theme_bw() +
   theme(axis.title = element_text(size=17),
         axis.text = element_text(size=15),

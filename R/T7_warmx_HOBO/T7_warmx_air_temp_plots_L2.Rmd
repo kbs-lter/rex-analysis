@@ -1,0 +1,85 @@
+---
+title: "T7 warmx air temperature plots"
+author: "Adrian Noecker"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+COLLABORATORS: Kara Dobson, Phoebe Zarnetske, Mark Hammond, Moriah Young
+DATA INPUT:  csv from the shared Google drive  
+DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
+PROJECT: REX
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(tidyverse)
+library(ggpubr)
+library(RColorBrewer)
+library(plotrix)
+
+# Set working directory from .Renviron
+ dir <- Sys.getenv("DATA_DIR")
+ list.files(dir)
+setwd("G:/Shared drives/KBS_LTER_REX/data/sensors/OTC Footprints/L1")
+
+#read in data
+airtemp <- read.csv("T7_warmx_HOBO_L1.csv")
+
+# re-making the data column a date
+airtemp$Date_Time <- as.POSIXct(airtemp$Date_Time, format = "%Y-%m-%d %H:%M:%S")
+str(airtemp)
+
+```
+
+```{r}
+# create new dataframe with only data from 7 AM - 7 PM 
+day_airtemp <- airtemp
+day_airtemp$date <- paste0(day_airtemp$month,"",day_airtemp$day)
+day_airtemp$date <- as.numeric(day_airtemp$date)
+# this is mainly what we'll work with for figures (could always adjust the parameters as needed)
+day_airtemp$month <- format(day_airtemp$Date_Time,format="%m")
+day_airtemp$year <- format(day_airtemp$Date_Time,format="%Y")
+day_airtemp$hour <- format(day_airtemp$Date_Time, format="%H")
+day_airtemp$day <- format(day_airtemp$Date_Time, format="%d")
+day_airtemp_22 <- day_airtemp %>%
+  filter(year == 2022) %>%
+  filter(hour > "06") %>%
+  filter(hour < "20")
+```
+
+```{r}
+# take average per month, per rep, per treatment
+avg_airtemp_22 <- day_airtemp_22 %>%
+  group_by(month, Treatment) %>%
+  summarize(avg_temp = mean(Temperature_C, na.rm = TRUE),
+            se_temp = std.error(Temperature_C, na.rm = TRUE))
+           
+```
+```{r}
+# plot - monthly
+#png("rex_airtemp_22.png", units="in", width=7, height=4, res=300)
+ggplot(avg_airtemp_22, aes(x = month, y = avg_temp, group = Treatment, color = Treatment)) +
+  geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp),width=0.1,color="black",linetype="solid") +
+  geom_line(linewidth = 1) +
+  geom_point(linewidth = 2) +
+  scale_color_manual(name="Treatment",
+                     values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E"),
+                     labels=c("Ambient","Drought","Warmed", "Warmed Drought")) +
+  labs(y="Air Temperature (°C)", x="Month") +
+  theme_bw() +
+  theme(axis.title = element_text(size=17),
+        axis.text = element_text(size=15),
+        legend.title = element_text(size=17),
+        legend.text = element_text(size=15))
+#dev.off()
+```
+
