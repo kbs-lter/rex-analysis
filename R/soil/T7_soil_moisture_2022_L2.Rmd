@@ -1,0 +1,80 @@
+---
+title: "T7 warmx soil moisture plots"
+author: "Adrian Noecker"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+COLLABORATORS: Kara Dobson, Phoebe Zarnetske, Mark Hammond, Moriah Young
+DATA INPUT:  csv from the shared Google drive  
+DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
+PROJECT: REX
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(tidyverse)
+library(ggpubr)
+library(RColorBrewer)
+library(plotrix)
+
+# Set working directory from .Renviron
+ dir <- Sys.getenv("DATA_DIR")
+ list.files(dir)
+setwd("G:/Shared drives/KBS_LTER_REX/data/soil/L1")
+
+# Read in data
+soilmoist <- read.csv("T7_warmx_soil_moisture_2022_L1.csv")
+
+# minor cleaning of data
+soil_moisture <- soilmoist[-c(1,2),] # no value and negative value
+# change "grav_soil_moisture" column from a character to numeric
+soil_moisture$grav_soil_moisture <- as.numeric(as.character(soil_moisture$grav_soil_moisture)) 
+```
+```{r}
+#creating new dataframe without insectide treatments
+soil_moisture <- soil_moisture %>% filter(!Subplot_Description %in% c("warmed_insecticide", "warmed_drought_insecticide", "drought_insecticide", "insecticide"))
+
+
+#group peak and post drought by treatment
+avg_soil_moisture <- soil_moisture %>%
+  group_by(time_of_sampling, Subplot_Description) %>%
+  summarize(avg_moist = mean(grav_soil_moisture, na.rm = TRUE),
+            se_moist = std.error(grav_soil_moisture, na.rm = TRUE))
+           
+```
+```{r}
+#Plot average soil moisture by treatment and drought timing - peak vs post drought
+
+# Specifying the order that we want the treatments to be listed in the figures on the x-axis
+level_order <- c('Control', 'ambient', 'drought', 'warmed','warmed_drought')
+
+#png("T7_warmx_avg_soil_moisture_2022.png", units="in", width=14, height=8, res=300)
+ggplot(avg_soil_moisture, aes(x = factor(Subplot_Description, levels = level_order), y = avg_moist, fill = Subplot_Description)) +
+        geom_bar(stat = "identity") +
+        facet_wrap(~time_of_sampling, scales = "free_x") +
+        geom_errorbar(aes(ymin = avg_moist - se_moist, ymax = avg_moist + se_moist), width = 0.2,
+                         position = "identity") +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought",
+                                  "Control" = "Irrigated \n Control")) +
+        scale_fill_manual(values = c("ambient" = "#a6bddb",
+                                  "drought" = "#2F4F4f",
+                                  "warmed" = "#8B6914",
+                                  "warmed_drought" = "#9D422E",
+                                  "Control" = "#6B8E23")) +
+        xlab("Treatment") +
+        ylab("Average Soil Moisture") +
+        theme(legend.position = "none")
+#dev.off
+```
+
