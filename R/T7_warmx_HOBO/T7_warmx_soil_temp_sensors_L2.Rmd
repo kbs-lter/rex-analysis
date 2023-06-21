@@ -3,6 +3,8 @@ title: "T7 warmx soil temperature Plots"
 author: "Adrian Noecker"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: pdf_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 COLLABORATORS: Kara Dobson, Phoebe Zarnetske, Mark Hammond, Moriah Young
@@ -28,8 +30,8 @@ library(RColorBrewer)
 library(plotrix)
 
 # Set working directory from .Renviron
-# dir <- Sys.getenv("DATA_DIR")
-# list.files(dir)
+ dir <- Sys.getenv("DATA_DIR")
+ list.files(dir)
 setwd("G:/Shared drives/KBS_LTER_REX/data/sensors/OTC Footprints/L1")
 
 # Read in data
@@ -45,7 +47,7 @@ level_order <- c('irrigated_control', 'ambient', 'drought', 'warmed','warmed_dro
 ```
 
 ```{r}
-# create new dataframe with only data from april - august from 7 AM - 7 PM (growing season during the day)
+# create new dataframe with only data from 7 AM - 7 PM 
 soil_season <- soiltemp
 soil_season$date <- paste0(soil_season$month,"",soil_season$day)
 soil_season$date <- as.numeric(soil_season$date)
@@ -61,10 +63,74 @@ soil_season_22 <- soil_season %>%
 ```
 
 ```{r}
-# take average per day, per rep, per treatment
+# take average per month, per rep, per treatment
 soil_sam <- soil_season_22 %>%
   group_by(month, Subplot_Descriptions) %>%
-  summarize(average_temp = mean(temperature, na.rm = TRUE))
-           se_temp = std.error(average_temp, na.rm = TRUE)
+  summarize(avg_temp = mean(temperature, na.rm = TRUE),
+            se_temp = std.error(temperature, na.rm = TRUE))
            
 ```
+
+```{r}
+# plot - monthly
+#png("rex_soiltemp_22.png", units="in", width=7, height=4, res=300)
+ggplot(soil_sam, aes(x = month, y = avg_temp, group = Subplot_Descriptions, color = Subplot_Descriptions)) +
+  geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp),width=0.1,color="black",linetype="solid") +
+  geom_line(linewidth = 1) +
+  geom_point(linewidth = 2) +
+  scale_color_manual(name="Treatment",
+                     values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
+                     labels=c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
+  labs(y="Temperature (°C)", x="Month") +
+  theme_bw() +
+  theme(axis.title = element_text(size=17),
+        axis.text = element_text(size=15),
+        legend.title = element_text(size=17),
+        legend.text = element_text(size=15))
+#dev.off()
+
+
+```
+Making plot that only includes growing season
+```{r}
+# making new data frame that only includes data during day (7am-7pm) from april to august
+soil_season$month <- format(soil_season$Date_Time,format="%m")
+soil_season$year <- format(soil_season$Date_Time,format="%Y")
+soil_season$hour <- format(soil_season$Date_Time, format="%H")
+soil_season$day <- format(soil_season$Date_Time, format="%d")
+soil_grow_season_22 <- soil_season %>%
+  filter(year == 2022) %>%
+  filter(hour > "06") %>%
+  filter(hour < "20") %>%
+  filter(month > "04") %>%
+  filter(month < "09")
+```
+
+```{r}
+# take average per month, per rep, per treatment
+soil_temp_grow <- soil_grow_season_22 %>%
+  group_by(month, Subplot_Descriptions) %>%
+  summarize(avg_temp = mean(temperature, na.rm = TRUE),
+            se_temp = std.error(temperature, na.rm = TRUE))
+           
+```
+
+```{r}
+# plot - monthly
+#png("rex_soiltemp_22.png", units="in", width=7, height=4, res=300)
+ggplot(soil_temp_grow, aes(x = month, y = avg_temp, group = Subplot_Descriptions, color = Subplot_Descriptions)) +
+  geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp),width=0.1,color="black",linetype="solid") +
+  geom_line(linewidth = 1) +
+  geom_point(linewidth = 2) +
+  scale_color_manual(name="Treatment",
+                     values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
+                     labels=c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
+  labs(y="Temperature (°C)", x="Month") +
+  theme_bw() +
+  theme(axis.title = element_text(size=17),
+        axis.text = element_text(size=15),
+        legend.title = element_text(size=17),
+        legend.text = element_text(size=15))
+#dev.off()
+```
+
