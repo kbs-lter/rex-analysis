@@ -11,6 +11,7 @@ COLLABORATORS: Kara Dobson, Phoebe Zarnetske, Mark Hammond, Moriah Young
 DATA INPUT:  csv from the shared Google drive  
 DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
 PROJECT: REX
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -26,8 +27,8 @@ library(RColorBrewer)
 library(plotrix)
 
 # Set working directory from .Renviron
- dir <- Sys.getenv("DATA_DIR")
- list.files(dir)
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
 setwd("G:/Shared drives/KBS_LTER_REX/data/soil/L1")
 
 # Read in data
@@ -38,10 +39,11 @@ soil_moisture <- soilmoist[-c(1,2),] # no value and negative value
 # change "grav_soil_moisture" column from a character to numeric
 soil_moisture$grav_soil_moisture <- as.numeric(as.character(soil_moisture$grav_soil_moisture)) 
 ```
+
+
 ```{r}
 #creating new dataframe without insectide treatments
 soil_moisture <- soil_moisture %>% filter(!Subplot_Description %in% c("warmed_insecticide", "warmed_drought_insecticide", "drought_insecticide", "insecticide"))
-
 
 #group peak and post drought by treatment
 avg_soil_moisture <- soil_moisture %>%
@@ -50,6 +52,8 @@ avg_soil_moisture <- soil_moisture %>%
             se_moist = std.error(grav_soil_moisture, na.rm = TRUE))
            
 ```
+
+
 ```{r}
 #Plot average soil moisture by treatment and drought timing - peak vs post drought
 

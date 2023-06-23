@@ -27,12 +27,13 @@ library(RColorBrewer)
 library(plotrix)
 
 # Set working directory from .Renviron
- dir <- Sys.getenv("DATA_DIR")
- list.files(dir)
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
 setwd("G:/Shared drives/KBS_LTER_REX/data/sensors/OTC Footprints/L1")
 
 #read in data
 airtemp <- read.csv("T7_warmx_HOBO_L1.csv")
+airtemp <- read.csv(file.path(dir, "sensors/OTC Footprints/L1/T7_warmx_HOBO_L1.csv")) 
 
 # re-making the data column a date
 airtemp$Date_Time <- as.POSIXct(airtemp$Date_Time, format = "%Y-%m-%d %H:%M:%S")
@@ -64,6 +65,7 @@ avg_airtemp_22 <- day_airtemp_22 %>%
             se_temp = std.error(Temperature_C, na.rm = TRUE))
            
 ```
+
 ```{r}
 # plot - monthly
 #png("rex_airtemp_22.png", units="in", width=7, height=4, res=300)
