@@ -233,6 +233,7 @@ air_temp <- ggplot(hobo_sampling_avg, aes(x = factor(Treatment, level = level_or
                             "Warmed" = "W",
                             "Warmed_Drought" = "WD")) +
   theme_bw() +
+  annotate("text", x = 0.6, y=31.8, label = "A", size=6) +
   theme(axis.title = element_text(size=17),
         axis.text = element_text(size=15),
         legend.title = element_text(size=17),
@@ -246,6 +247,7 @@ soil_temp <- ggplot(soil_sampling_avg, aes(x = factor(Subplot_Descriptions, leve
                             "irrigated_control" = "I", "warmed" = "W",
                             "warmed_drought" = "WD")) +
   theme_bw() +
+  annotate("text", x = 0.7, y=21.5, label = "B", size=6) +
   theme(axis.title = element_text(size=17),
         axis.text = element_text(size=15),
         legend.title = element_text(size=17),
@@ -259,6 +261,7 @@ soil_moist <- ggplot(soil_sampling_avg, aes(x = factor(Subplot_Descriptions, lev
                             "irrigated_control" = "I", "warmed" = "W",
                             "warmed_drought" = "WD")) +
   theme_bw() +
+  annotate("text", x = 0.7, y=0.28, label = "C", size=6) +
   theme(axis.title = element_text(size=17),
         axis.text = element_text(size=15),
         legend.title = element_text(size=17),
