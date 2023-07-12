@@ -29,10 +29,8 @@ library(plotrix)
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
-setwd("G:/Shared drives/KBS_LTER_REX/data/sensors/OTC Footprints/L1") # MLY - you don't need this anymore since you have the .Renviron working now
 
 # Read in data
-soiltemp <- read.csv("T7_warmx_soil_sensors_L1.csv") # MLY - read.csv is also a little different now that you have .Renviron working (see blow code)
 soiltemp <- read.csv(file.path(dir, "sensors/OTC Footprints/L1/T7_warmx_soil_sensors_L1.csv")) 
 
 # re-making the data column a date
@@ -101,7 +99,7 @@ soil_grow_season_22 <- soil_season %>%
   filter(year == 2022) %>%
   filter(hour > "06") %>%
   filter(hour < "20") %>%
-  filter(month > "03") %>% # MLY - changed this to March because it wasn't including April since it was selecting everything greater than April with filter(month > "04")
+  filter(month > "03") %>% 
   filter(month < "09")
 ```
 
@@ -141,6 +139,41 @@ Here are the dates of the post and peak droughts from last year if you want to m
 Peak Drought happened during the week of: 8/1/2022
 Post Drought happened during the week of: 8/8/2022
 ```{r}
+drought <- soil_grow_season_22 %>%
+  filter(month == "08") %>% 
+  filter(day > "00") %>%
+  filter(day < "09")
+
+# take average per day, per rep, per treatment
+drought_avg <- drought %>%
+  group_by(day, Subplot_Descriptions) %>%
+  summarize(avg_temp = mean(temperature, na.rm = TRUE),
+            se_temp = std.error(temperature, na.rm = TRUE))
+
+#plotting line graph
+ggplot(drought_avg, aes(x = day, y = avg_temp, group = Subplot_Descriptions, color = Subplot_Descriptions)) +
+  geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp), width=0.1, color="black", linetype="solid") +
+  geom_line(linewidth = 1) +
+  geom_point(linewidth = 2) +
+  scale_color_manual(name="Treatment",
+                     values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
+                     labels=c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
+  labs(y="Soil Temperature (°C)", x="Day in July 2022") +
+  theme_bw() +
+  theme(axis.title = element_text(size=17),
+        axis.text = element_text(size=15),
+        legend.title = element_text(size=17),
+        legend.text = element_text(size=15))
+#dev.off()
+
+#barplot- messy
+ggplot(drought_avg, aes(x = day, y = avg_temp, fill = Subplot_Descriptions)) +
+        geom_bar(position = 'dodge', stat = "identity") +
+        scale_fill_manual(values = c("ambient" = "#a6bddb", "drought" = "#2F4F4f", 
+        "irrigated_control" = "#6B8E23", "warmed" = "#8B6914", "warmed_drought" = "#9D422E")) +
+        labs(x = "Treatment", y = "Drought Daily Average Temp") +
+        theme(legend.position = "left")
+#dev.off
 
 ```
 
