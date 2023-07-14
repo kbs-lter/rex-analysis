@@ -26,7 +26,9 @@ rm(list=ls())
 library(tidyverse)
 library(plotrix)
 library(rstatix)
-
+library(car)
+library(lme4)
+        
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
@@ -103,6 +105,39 @@ ggplot(trfpr_anpp_noinsect, aes(x = Subplot_Descriptions, y = Biomass_g, fill = 
         theme(legend.position = "none")
 ```
 
+Data Exploration
+```{r}
+# checking raw data
+hist(trfpr_anpp_noinsect$Biomass_g) # raw data right skewed
+qqnorm(trfpr_anpp_noinsect$Biomass_g)
+
+# checking model with log transformation
+m1 <- lm(log(Biomass_g) ~ Subplot_Descriptions, data=trfpr_anpp_noinsect)
+hist(resid(m1))
+qqnorm(resid(m1))
+shapiro.test(resid(m1)) # still not normal p=0.02
+
+#checking with square transformation
+m2 <- lm(sqrt(Biomass_g) ~ Subplot_Descriptions, data=trfpr_anpp_noinsect)
+hist(resid(m2)) # histogram right skewed
+qqnorm(resid(m2))
+shapiro.test(resid(m2)) # homogeneity of variance? yes if p >0.05 (p=0.75)
+leveneTest(resid(m2) ~ Subplot_Descriptions, data = trfpr_anpp_noinsect) # p=0.36
+
+#models
+m3 <- lmer(sqrt(Biomass_g) ~ Subplot_Descriptions + (1|Rep/Footprint_Location), data=trfpr_anpp_noinsect, REML=F)
+anova(m3)
+summary(m3)
+
+# summing data to plot-level for analyses
+trfpr_plot <- trfpr_anpp_noinsect %>%
+  group_by(Rep, Footprint_Location, Subplot_Location, Subplot_Descriptions) %>% 
+  summarize(sum_biomass = sum(Biomass_g, na.rm = TRUE))
+hist(trfpr_plot$sum_biomass) #right skewed 
+
+# models
+m_plot1 <- lmer(sum_biomass ~ Subplot_Descriptions + (1|Rep/Footprint_Location), data=trfpr_plot, REML=F)
+anova(m_plot1) #F value = 1.64
 
 ```
 
