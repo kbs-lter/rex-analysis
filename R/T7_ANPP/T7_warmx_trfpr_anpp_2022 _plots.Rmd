@@ -129,6 +129,9 @@ m3 <- lmer(sqrt(Biomass_g) ~ Subplot_Descriptions + (1|Rep/Footprint_Location), 
 anova(m3)
 summary(m3)
 
+# code below lets you look at pairwise comparisons between the treatments
+emmeans(m3, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+
 # summing data to plot-level for analyses
 trfpr_plot <- trfpr_anpp_noinsect %>%
   group_by(Rep, Footprint_Location, Subplot_Location, Subplot_Descriptions) %>% 
