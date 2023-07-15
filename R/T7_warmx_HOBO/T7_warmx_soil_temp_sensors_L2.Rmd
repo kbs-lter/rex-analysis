@@ -158,7 +158,7 @@ ggplot(drought_avg, aes(x = day, y = avg_temp, group = Subplot_Descriptions, col
   scale_color_manual(name="Treatment",
                      values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
                      labels=c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
-  labs(y="Soil Temperature (°C)", x="Day in July 2022") +
+  labs(y="Soil Temperature (°C)", x="Day in August 2022") +
   theme_bw() +
   theme(axis.title = element_text(size=17),
         axis.text = element_text(size=15),

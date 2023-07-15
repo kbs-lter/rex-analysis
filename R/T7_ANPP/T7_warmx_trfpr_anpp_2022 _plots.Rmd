@@ -28,7 +28,8 @@ library(plotrix)
 library(rstatix)
 library(car)
 library(lme4)
-        
+library(emmeans)
+
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
