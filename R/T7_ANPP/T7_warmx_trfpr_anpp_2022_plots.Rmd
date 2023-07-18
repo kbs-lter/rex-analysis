@@ -83,7 +83,8 @@ ggplot(anpp_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_D
                          position = "identity") +
         scale_fill_manual(values = c("ambient" = "#a6bddb", "drought" = "#2F4F4f", 
         "irrigated_control" = "#6B8E23", "warmed" = "#8B6914", "warmed_drought" = "#9D422E")) +
-        labs(x = "Treatment", y = "2022 Average Biomass (g/0.20m^2)") +
+        ylab(bquote("2022 Red Clover Average Biomass" ('g/0.20m'^2))) +
+        xlab("Treatment") +
         scale_x_discrete(limits = level_order_1, labels=c("ambient" = "Ambient",
                                   "drought" = "Drought",
                                   "warmed" = "Warmed",
@@ -97,7 +98,8 @@ ggplot(trfpr_anpp_noinsect, aes(x = Subplot_Descriptions, y = Biomass_g, fill = 
         geom_boxplot(color = "black", outlier.shape = NA) +
         scale_fill_manual(values = c("ambient" = "#a6bddb", "drought" = "#2F4F4f", 
         "irrigated_control" = "#6B8E23", "warmed" = "#8B6914", "warmed_drought" = "#9D422E")) +
-        labs(x = "Treatment", y = "2022 Average Biomass (g/0.20m^2)") +
+        ylab(bquote("2022 Red Clover Average Biomass" ('g/0.20m'^2))) +
+        xlab("Treatment") +
         scale_x_discrete(limits = level_order_1, labels=c("ambient" = "Ambient",
                                   "drought" = "Drought",
                                   "irrigated_control" = "Irrigated \n Control",
