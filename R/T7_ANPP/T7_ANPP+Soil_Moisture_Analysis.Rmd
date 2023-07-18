@@ -1,0 +1,144 @@
+---
+title: "T7_ANPP+Soil_Moisture_Analysis"
+author: "Adrian Noecker"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+COLLABORATORS: Kara Dobson, Phoebe Zarnetske, Mark Hammond, Moriah Young
+DATA INPUT:  csv from the shared Google drive  
+DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
+PROJECT: REX
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+
+# Load packages
+library(tidyverse)
+library(plotrix)
+library(rstatix)
+library(car)
+library(lme4)
+library(emmeans)
+library(dplyr)
+library(ggpubr)
+library(lme4)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+anpp22 <- read.csv(file.path(dir, "T7_ANPP/L1/T7_warmx_ANPP_2022_L1.csv")) # 2022 ANPP data
+soilmoist <- read.csv(file.path(dir, "soil/L1/T7_warmx_soil_moisture_2022_L1.csv"))
+meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
+
+#making order for graph
+level_order_1 <- c('irrigated_control', 'ambient', 'drought', 'warmed','warmed_drought')
+
+```
+
+#Selecting for desired treatments in each dataset
+
+```{r}
+## Filtering Soil Moisture
+# minor cleaning of data
+soil_moisture <- soilmoist[-c(1,2),] # no value and negative value
+# change "grav_soil_moisture" column from a character to numeric
+soil_moisture$grav_soil_moisture <- as.numeric(as.character(soil_moisture$grav_soil_moisture)) 
+
+#creating new dataframe without insectide treatments
+soil_moisture <- soil_moisture %>% filter(!Subplot_Description %in% c("warmed_insecticide", "warmed_drought_insecticide", "drought_insecticide", "insecticide"))
+
+## Filtering ANPP
+# changing column name
+names(anpp22)[3] <- "Biomass_g"
+# selecting for only red clover
+trfpr_anpp <- anpp22 %>% 
+  filter(Species_Code == 'TRFPR')
+  
+# removing unwanted treatments
+trfpr_anpp_noinsect <- trfpr_anpp %>%
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
+
+#changing column name to match soil_moisture
+names(trfpr_anpp_noinsect)[6] <- "FP_location"
+```
+
+#Merging Dataframes
+
+```{r}
+
+# R join multiple columns
+df <- merge(x=trfpr_anpp_noinsect,y=soil_moisture, by.x=c("Rep","FP_location", "Subplot_Location"), 
+      by.y=c("Rep","FP_location", "Subplot_location"))
+
+
+```
+
+#Plots
+
+```{r pressure, echo=FALSE}
+# Scatter Plot
+ggplot(df, aes(x = grav_soil_moisture, y = Biomass_g, group = Subplot_Description, color = Subplot_Description)) +
+   geom_point() +
+   scale_color_manual(name="Treatment",
+                      values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
+                      labels = c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
+   labs(y="Trfpr Biomass", x="Soil Moisture") +
+   theme_bw() +
+   theme(axis.title = element_text(size=17),
+         axis.text = element_text(size=15),
+         legend.title = element_text(size=17),
+         legend.text = element_text(size=15))
+```
+
+#Data Exploration
+
+```{r}
+ #Correlation coefficient 
+ coefficient <- cor.test(df$Biomass_g, df$grav_soil_moisture)
+ View(coefficient)
+ coefficient$estimate
+ 
+ #Regression Plot
+ ggplot(df, aes(x = grav_soil_moisture, y = Biomass_g)) + 
+   geom_point() +
+   stat_smooth(method = "lm", col = "red")
+ 
+ #Model
+model1=lmer(Biomass_g ~ grav_soil_moisture + Subplot_Descriptions + (1|Rep/FP_location), data = df)
+ plot(model1)
+ summary(model1)
+ emmeans(model1, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+ 
+ #Regression Plot
+ ggplotRegression <- function (fit) {
+ 
+ require(ggplot2)
+ 
+ ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
+   geom_point() +
+   stat_smooth(method = "lm", col = "red") +
+   labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 5),
+                      "Intercept =",signif(fit$coef[[1]],5 ),
+                      " Slope =",signif(fit$coef[[2]], 5),
+                      " P =",signif(summary(fit)$coef[2,4], 5)))
+ }
+ fit1 <- lm(Biomass_g ~ grav_soil_moisture + Subplot_Descriptions + (1|Rep/FP_location), data = df)
+ ggplotRegression(fit1) # no correlation between soil moisture and trfpr biomass
+ 
+```
+
