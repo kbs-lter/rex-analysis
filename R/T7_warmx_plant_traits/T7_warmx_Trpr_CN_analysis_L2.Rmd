@@ -1,0 +1,65 @@
+---
+title: "T7 warmx Trpr CN 2022 Analysis"
+author: "Moriah Young"
+date: "2023-07-19"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# load packages
+library(tidyverse)
+library(lmerTest)
+library(car)
+library(bbmle)
+library(sjPlot)
+library(emmeans)
+library(stats)
+library(plotrix)
+library(fitdistrplus) # descdist() function
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+trpr_cn <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_CN_Trpr_2022_L1.csv")) # 2022 CN Trpr data
+
+```
+
+```{r}
+#### Data exploration ###
+# checking raw data
+hist(trpr_cn$Carbon)
+qqnorm(trpr_cn$Carbon)
+
+# Exploring distributions for these data:
+descdist(trpr_cn$Carbon, discrete = FALSE)
+
+# checking model with log transformation (untransformed data was right skewed)
+# is it normally distributed? no
+m1 <- lm(log(Carbon) ~ Subplot_Description, data=trpr_cn)
+outlierTest(m1)
+hist(resid(m1))
+qqnorm(resid(m1))
+shapiro.test(resid(m1))
+# homogeneity of variance? yes if p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1) ~ trpr_cn$Subplot_Description) # no but it's close
+
+# checking model with sqrt transformation (untransformed data was right skewed)
+# is it normally distributed? no
+m1.2 <- lm(sqrt(Carbon) ~ Subplot_Description, data=trpr_cn)
+hist(resid(m1.2))
+qqnorm(resid(m1.2))
+shapiro.test(resid(m1.2))
+# homogeneity of variance? yes if p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1.2) ~ soil_moisture$Subplot_Description) # no, but close
+
+# log normal transformation looks better
+```

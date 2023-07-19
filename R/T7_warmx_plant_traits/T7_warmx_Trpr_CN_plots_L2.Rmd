@@ -1,5 +1,5 @@
 ---
-title: "T7 warmx Trpr CN 2022 plots"
+title: "T7 warmx Trpr CN 2022 Plots"
 author: "Moriah Young"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: pdf_document
