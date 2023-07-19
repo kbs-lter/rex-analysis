@@ -26,6 +26,7 @@ library(tidyverse)
 library(plotrix)
 library(rstatix)
 library(car)
+library(ggpubr)
 
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
@@ -33,6 +34,8 @@ list.files(dir)
 
 # Read in data
 trpr_cn <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_CN_Trpr_2022_L1.csv")) # 2022 CN Trpr data
+alive <- subset(trpr_cn, Species_Code == "Trfpr (alive)")
+dead <- subset(trpr_cn, Species_Code == "Trfpr (dead)")
 
 #making order for graph
 level_order_1 <- c('irrigated_control', 'ambient', 'drought', 'warmed','warmed_drought')
@@ -51,6 +54,40 @@ carbon_treatment_avg <- trpr_cn %>%
   group_by(Species_Code, Subplot_Descriptions) %>%
   summarize(avg_carbon = mean(Carbon, na.rm = TRUE),
             se = std.error(Carbon, na.rm = TRUE))
+
+# average not considering alive vs dead samples
+carbon_rep_avg1 <- trpr_cn %>%
+  group_by(Unique_ID, Subplot_Descriptions) %>%
+  summarize(avg_rep_carbon = mean(Carbon, na.rm = TRUE),
+            se = std.error(Carbon, na.rm = TRUE))
+
+carbon_treatment_avg1 <- trpr_cn %>%
+  group_by(Subplot_Descriptions) %>%
+  summarize(avg_carbon = mean(Carbon, na.rm = TRUE),
+            se = std.error(Carbon, na.rm = TRUE))
+
+# just alive
+# carbon
+alive_carbon_rep_avg <- alive %>%
+  group_by(Unique_ID, Subplot_Descriptions) %>%
+  summarize(avg_rep_carbon = mean(Carbon, na.rm = TRUE),
+            se = std.error(Carbon, na.rm = TRUE))
+
+alive_carbon_treatment_avg <- trpr_cn %>%
+  group_by(Subplot_Descriptions) %>%
+  summarize(avg_carbon = mean(Carbon, na.rm = TRUE),
+            se = std.error(Carbon, na.rm = TRUE))
+
+# nitrogen
+alive_nitrogen_rep_avg <- alive %>%
+  group_by(Unique_ID, Subplot_Descriptions) %>%
+  summarize(avg_rep_nitrogen = mean(Nitrogen, na.rm = TRUE),
+            se = std.error(Nitrogen, na.rm = TRUE))
+
+alive_nitrogen_treatment_avg <- alive %>%
+  group_by(Subplot_Descriptions) %>%
+  summarize(avg_nitrogen = mean(Nitrogen, na.rm = TRUE),
+            se = std.error(Nitrogen, na.rm = TRUE))
 ```
 
 Nitrogen
@@ -65,9 +102,20 @@ nitrogen_treatment_avg <- trpr_cn %>%
   group_by(Species_Code, Subplot_Descriptions) %>%
   summarize(avg_nitrogen = mean(Nitrogen, na.rm = TRUE),
             se = std.error(Nitrogen, na.rm = TRUE))
+
+# average not considering alive vs dead samples
+nitrogen_rep_avg1 <- trpr_cn %>%
+  group_by(Unique_ID, Subplot_Descriptions) %>%
+  summarize(avg_rep_nitrogen = mean(Nitrogen, na.rm = TRUE),
+            se = std.error(Nitrogen, na.rm = TRUE))
+
+nitrogen_treatment_avg1 <- trpr_cn %>%
+  group_by(Subplot_Descriptions) %>%
+  summarize(avg_nitrogen = mean(Nitrogen, na.rm = TRUE),
+            se = std.error(Nitrogen, na.rm = TRUE))
 ```
 
-Box Plots
+Box Plots - alive vs. dead samples
 ```{r}
 # Carbon
 png("T7_warmx_Trpr_Carbon_2022.png", units="in", width=8, height=6, res=300)
@@ -102,5 +150,76 @@ ggplot(nitrogen_rep_avg, aes(x = factor(Subplot_Descriptions, levels = level_ord
                                   "warmed_drought" = "Warmed +\n Drought")) +
         theme(legend.position = "none")
 dev.off()
+```
+
+Just alive samples
+```{r}
+# Carbon
+carbon_alive <- ggplot(alive_carbon_rep_avg, aes(x = factor(Subplot_Descriptions, levels = level_order_1), y = avg_rep_carbon, fill = Subplot_Descriptions)) +
+        #geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment", y = "Carbon (%)") +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none")
+
+# Nitrogen
+#png("T7_warmx_Trpr_Nitrogen_2022.png", units="in", width=8, height=6, res=300)
+nitrogen_alive <- ggplot(alive_nitrogen_rep_avg, aes(x = factor(Subplot_Descriptions, levels = level_order_1), y = avg_rep_nitrogen, fill = Subplot_Descriptions)) +
+        #geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment", y = "Nitrogen (%)") +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none")
+#dev.off()
+
+figure <- ggarrange(carbon_alive, nitrogen_alive,
+                    ncol = 2, nrow = 1)
+figure
+```
+
+# Graphs that combined alive and dead values C or N together
+```{r}
+# Carbon
+ggplot(carbon_rep_avg1, aes(x = factor(Subplot_Descriptions, levels = level_order_1), y = avg_rep_carbon, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment", y = "2022 Red Clover Carbon (%)") +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none")
+
+# Nitrogen
+#png("T7_warmx_Trpr_Nitrogen_2022.png", units="in", width=8, height=6, res=300)
+ggplot(nitrogen_rep_avg1, aes(x = factor(Subplot_Descriptions, levels = level_order_1), y = avg_rep_nitrogen, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment", y = "2022 Red Clover Nitrogen (%)") +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none")
+
+#dev.off()
 ```
 
