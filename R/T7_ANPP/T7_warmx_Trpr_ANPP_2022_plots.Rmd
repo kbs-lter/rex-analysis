@@ -1,5 +1,5 @@
 ---
-title: "T7 warmx Trfpr anpp 2022 plots"
+title: "T7 warmx Trpr ANPP 2022 Plots & Analysis"
 author: "Adrian Noecker"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: pdf_document
@@ -125,8 +125,8 @@ shapiro.test(resid(m1)) # still not normal p=0.02
 m2 <- lm(sqrt(Biomass_g) ~ Subplot_Descriptions, data=trfpr_anpp_noinsect)
 hist(resid(m2)) # histogram right skewed
 qqnorm(resid(m2))
-shapiro.test(resid(m2)) # homogeneity of variance? yes if p >0.05 (p=0.75)
-leveneTest(resid(m2) ~ Subplot_Descriptions, data = trfpr_anpp_noinsect) # p=0.36
+shapiro.test(resid(m2)) #(p=0.75)
+leveneTest(resid(m2) ~ Subplot_Descriptions, data = trfpr_anpp_noinsect) # p=0.36 -- homogeneity of variance? yes if p >0.05
 
 #models
 m3 <- lmer(sqrt(Biomass_g) ~ Subplot_Descriptions + (1|Rep/Footprint_Location), data=trfpr_anpp_noinsect, REML=F)
