@@ -21,7 +21,6 @@ knitr::opts_chunk$set(echo = TRUE)
 # Clear all existing data
 rm(list=ls())
 
-
 # Load packages
 library(tidyverse)
 library(plotrix)
@@ -32,6 +31,7 @@ library(emmeans)
 library(dplyr)
 library(ggpubr)
 library(lme4)
+library(ggplot2)
 
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
@@ -44,7 +44,6 @@ meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
 
 #making order for graph
 level_order_1 <- c('irrigated_control', 'ambient', 'drought', 'warmed','warmed_drought')
-
 ```
 
 #Selecting for desired treatments in each dataset
@@ -56,7 +55,7 @@ soil_moisture <- soilmoist[-c(1,2),] # no value and negative value
 # change "grav_soil_moisture" column from a character to numeric
 soil_moisture$grav_soil_moisture <- as.numeric(as.character(soil_moisture$grav_soil_moisture)) 
 
-#creating new dataframe without insectide treatments
+#creating new dataframe without insecticide treatments
 soil_moisture <- soil_moisture %>% filter(!Subplot_Description %in% c("warmed_insecticide", "warmed_drought_insecticide", "drought_insecticide", "insecticide"))
 
 ## Filtering ANPP
@@ -92,17 +91,18 @@ df <- merge(x=trfpr_anpp_noinsect,y=soil_moisture, by.x=c("Rep","FP_location", "
 
 ```{r pressure, echo=FALSE}
 # Scatter Plot
+png("rex_scatter_biomass_soilmoisture_22.png", units="in", width=8, height=8, res=300)
 ggplot(df, aes(x = grav_soil_moisture, y = Biomass_g, group = Subplot_Description, color = Subplot_Description)) +
-   geom_point() +
+   geom_point(size = 4) +
    scale_color_manual(name="Treatment",
                       values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
                       labels = c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
-   labs(y="Trfpr Biomass", x="Soil Moisture") +
+        xlab("Soil Moisture") +
+        ylab(bquote("2022 Red Clover Avg Biomass" ('g/0.20m'^2))) +
    theme_bw() +
    theme(axis.title = element_text(size=17),
-         axis.text = element_text(size=15),
-         legend.title = element_text(size=17),
-         legend.text = element_text(size=15))
+         axis.text = element_text(size=15))
+dev.off()
 ```
 
 #Data Exploration
@@ -114,9 +114,16 @@ ggplot(df, aes(x = grav_soil_moisture, y = Biomass_g, group = Subplot_Descriptio
  coefficient$estimate
  
  #Regression Plot
- ggplot(df, aes(x = grav_soil_moisture, y = Biomass_g)) + 
-   geom_point() +
-   stat_smooth(method = "lm", col = "red")
+ png("rex_regression_biomass_soilmoisture_22.png", units="in", width=8, height=6, res=300)
+ ggplot(df, aes(x = grav_soil_moisture, y = Biomass_g, color = Subplot_Description)) + 
+         geom_point(size = 3) +
+         stat_smooth(method = "lm", col = "red") +
+         xlab("Soil Moisture") +
+         ylab(bquote("2022 Red Clover Avg Biomass" ('g/0.20m'^2))) +
+         scale_color_manual(name="Treatment",
+                      values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
+                      labels = c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control"))
+ dev.off()
  
  #Model
 model1=lmer(Biomass_g ~ grav_soil_moisture + Subplot_Descriptions + (1|Rep/FP_location), data = df)
@@ -138,7 +145,7 @@ model1=lmer(Biomass_g ~ grav_soil_moisture + Subplot_Descriptions + (1|Rep/FP_lo
                       " P =",signif(summary(fit)$coef[2,4], 5)))
  }
  fit1 <- lm(Biomass_g ~ grav_soil_moisture + Subplot_Descriptions + (1|Rep/FP_location), data = df)
- ggplotRegression(fit1) # no correlation between soil moisture and trfpr biomass
+ ggplotRegression(fit1) # no correlation between soil moisture and Trfpr biomass
  
 ```
 

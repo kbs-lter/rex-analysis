@@ -1,5 +1,5 @@
 ---
-title: "T7 warmx trfpr anpp 2022  plots"
+title: "T7 warmx Trfpr anpp 2022 plots"
 author: "Adrian Noecker"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: pdf_document
@@ -20,7 +20,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 # Clear all existing data
 rm(list=ls())
-
 
 # Load packages
 library(tidyverse)
@@ -61,7 +60,7 @@ trfpr_anpp_noinsect <- trfpr_anpp %>%
              Subplot_Descriptions=='warmed_insecticide'))
 
 # to get average biomass per treatment, first sum total biomass per plot
-# then, take the average of that
+# then, take the average of hat
 anpp22_avg <- trfpr_anpp_noinsect %>%
   group_by(Field_Loc_Code, Subplot_Descriptions) %>% 
   summarize(sum_biomass = sum(Biomass_g, na.rm = TRUE)) # summing biomass per plot
@@ -76,7 +75,7 @@ making plots
 
 ```{r}
 #bar graph
-#png("avg_anpp_no_insect_2022_barplot.png", units="in", width=6, height=6, res=300)
+png("avg_anpp_no_insect_2022_barplot.png", units="in", width=6, height=6, res=300)
 ggplot(anpp_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
         geom_bar(stat = "identity") +
         geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
@@ -94,6 +93,7 @@ ggplot(anpp_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_D
 dev.off
 
 # boxplot
+png("avg_anpp_no_insect_2022_boxplot.png", units="in", width=6, height=6, res=300)
 ggplot(trfpr_anpp_noinsect, aes(x = Subplot_Descriptions, y = Biomass_g, fill = Subplot_Descriptions)) +
         geom_boxplot(color = "black", outlier.shape = NA) +
         scale_fill_manual(values = c("ambient" = "#a6bddb", "drought" = "#2F4F4f", 
@@ -106,6 +106,7 @@ ggplot(trfpr_anpp_noinsect, aes(x = Subplot_Descriptions, y = Biomass_g, fill = 
                                   "warmed" = "Warmed",
                                   "warmed_drought" = "Warmed +\n Drought")) +
         theme(legend.position = "none")
+dev.off()
 ```
 
 Data Exploration
@@ -134,16 +135,6 @@ summary(m3)
 
 # code below lets you look at pairwise comparisons between the treatments
 emmeans(m3, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
-
-# summing data to plot-level for analyses
-trfpr_plot <- trfpr_anpp_noinsect %>%
-  group_by(Rep, Footprint_Location, Subplot_Location, Subplot_Descriptions) %>% 
-  summarize(sum_biomass = sum(Biomass_g, na.rm = TRUE))
-hist(trfpr_plot$sum_biomass) #right skewed 
-
-# models
-m_plot1 <- lmer(sum_biomass ~ Subplot_Descriptions + (1|Rep/Footprint_Location), data=trfpr_plot, REML=F)
-anova(m_plot1) #F value = 1.64
 
 ```
 
