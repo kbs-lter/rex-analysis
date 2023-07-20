@@ -163,34 +163,6 @@ fit1 <- lm(Nitrogen ~ Weight..mg. + Subplot_Descriptions + (1|Rep/Footprint_Loca
 ggplotRegression(fit1) # no correlation between soil moisture and Trfpr biomass
 ```
 
-Alive and dead combined
-```{r}
-#### Data exploration ###
-# checking raw data
-hist(trpr_cn$Nitrogen)
-qqnorm(trpr_cn$Nitrogen)
-
-# Exploring distributions for these data:
-descdist(trpr_cn$Nitrogen, discrete = FALSE)
-
-# checking model with log transformation (untransformed data was right skewed)
-# is it normally distributed? no
-m1 <- lm(Nitrogen ~ Subplot_Descriptions, data=trpr_cn)
-outlierTest(m1)
-hist(resid(m1))
-qqnorm(resid(m1))
-shapiro.test(resid(m1))
-# homogeneity of variance? yes if p >0.05 (no significant difference between the group variances)
-leveneTest(residuals(m1) ~ trpr_cn$Subplot_Descriptions)
-
-m_plot1 <- lmer(Nitrogen ~ Subplot_Descriptions + (1|Rep/Footprint_Location), data=trpr_cn, REML=F)
-hist(resid(m_plot1))
-shapiro.test(resid(m_plot1))
-summary(m_plot1)
-anova(m_plot1)
-emmeans(m_plot3, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
-```
-
 Nitrogen - alive samples
 ```{r}
 #### Data exploration ###
@@ -221,5 +193,73 @@ shapiro.test(resid(m_plot1))
 anova(m_plot1)
 summary(m_plot1)
 emmeans(m_plot1, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+```
+
+Alive and dead combined
+```{r}
+#### Data exploration ###
+# checking raw data
+hist(trpr_cn$Nitrogen)
+qqnorm(trpr_cn$Nitrogen)
+
+# Exploring distributions for these data:
+descdist(trpr_cn$Nitrogen, discrete = FALSE)
+
+# checking model with log transformation (untransformed data was right skewed)
+# is it normally distributed? no
+m1 <- lm(Nitrogen ~ Subplot_Descriptions, data=trpr_cn)
+outlierTest(m1)
+hist(resid(m1))
+qqnorm(resid(m1))
+shapiro.test(resid(m1))
+# homogeneity of variance? yes if p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1) ~ trpr_cn$Subplot_Descriptions)
+
+m_plot1 <- lmer(Nitrogen ~ Subplot_Descriptions + (1|Rep/Footprint_Location), data=trpr_cn, REML=F)
+hist(resid(m_plot1))
+shapiro.test(resid(m_plot1))
+summary(m_plot1)
+anova(m_plot1)
+emmeans(m_plot1, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+```
+
+# Regression Plot
+```{r}
+#Correlation coefficient 
+coefficient <- cor.test(trpr_cn$Weight..mg., trpr_cn$Nitrogen)
+coefficient$estimate
+ 
+#Regression Plot
+png("rex_regression_biomass_nitrogen_2022.png", units="in", width=8, height=6, res=300)
+ggplot(trpr_cn, aes(x = Nitrogen, y = Weight..mg., color = Subplot_Descriptions)) + 
+         geom_point(size = 3) +
+         stat_smooth(method = "lm", col = "red") +
+         xlab("Nitrogen Content (%)") +
+         ylab(bquote("2022 Red Clover Avg Alive Biomass" ('g/0.20m'^2))) +
+         scale_color_manual(name="Treatment",
+                      values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
+                      labels = c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control"))
+dev.off()
+
+#Model
+model1=lmer(Nitrogen ~ Weight..mg. + Subplot_Descriptions + (1|Rep/Footprint_Location), data = trpr_cn)
+plot(model1)
+summary(model1)
+anova(model1)
+emmeans(model1, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+ 
+#Regression Plot
+ggplotRegression <- function (fit) {
+ 
+ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
+   geom_point() +
+   stat_smooth(method = "lm", col = "red") +
+   labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 5),
+                      "Intercept =",signif(fit$coef[[1]],5 ),
+                      " Slope =",signif(fit$coef[[2]], 5),
+                      " P =",signif(summary(fit)$coef[2,4], 5)))
+ }
+fit1 <- lm(Nitrogen ~ Weight..mg. + Subplot_Descriptions + (1|Rep/Footprint_Location), data = trpr_cn)
+ggplotRegression(fit1) # no correlation between soil moisture and Trfpr biomass
 ```
 
