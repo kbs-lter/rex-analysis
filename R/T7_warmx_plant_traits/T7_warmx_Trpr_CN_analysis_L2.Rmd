@@ -36,6 +36,9 @@ trpr_cn <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_CN_Trpr_20
 alive <- subset(trpr_cn, Species_Code == "Trfpr (alive)")
 dead <- subset(trpr_cn, Species_Code == "Trfpr (dead)")
 
+# calculating C:N ratio
+trpr_cn$CN_ratio <- trpr_cn$Carbon/trpr_cn$Nitrogen
+
 ```
 
 ```{r}
@@ -113,7 +116,7 @@ emmeans(m_plot3, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
 ```{r}
 # Scatter Plot
 #png("rex_scatter_biomass_nitrogen_22.png", units="in", width=8, height=8, res=300)
-ggplot(alive, aes(x = Nitrogen, y = Weight..mg., group = Subplot_Descriptions, color = Subplot_Descriptions)) +
+ggplot(alive, aes(x = Nitrogen, y = Dried_Plant_Biomass_gram, group = Subplot_Descriptions, color = Subplot_Descriptions)) +
    geom_point(size = 4) +
    scale_color_manual(name="Treatment",
                       values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
@@ -126,12 +129,12 @@ ggplot(alive, aes(x = Nitrogen, y = Weight..mg., group = Subplot_Descriptions, c
 dev.off()
 
 #Correlation coefficient 
-coefficient <- cor.test(alive$Weight..mg., alive$Nitrogen)
+coefficient <- cor.test(alive$Dried_Plant_Biomass_gram., alive$Nitrogen)
 coefficient$estimate
  
 #Regression Plot
 png("rex_regression_biomass_nitrogen_2022.png", units="in", width=8, height=6, res=300)
-ggplot(alive, aes(x = Nitrogen, y = Weight..mg., color = Subplot_Descriptions)) + 
+ggplot(alive, aes(x = Nitrogen, y = Dried_Plant_Biomass_gram, color = Subplot_Descriptions)) + 
          geom_point(size = 3) +
          stat_smooth(method = "lm", col = "red") +
          xlab("Nitrogen Content (%)") +
@@ -142,7 +145,7 @@ ggplot(alive, aes(x = Nitrogen, y = Weight..mg., color = Subplot_Descriptions)) 
 dev.off()
 
 #Model
-model1=lmer(Nitrogen ~ Weight..mg. + Subplot_Descriptions + (1|Rep/Footprint_Location), data = alive)
+model1=lmer(Nitrogen ~ Dried_Plant_Biomass_gram. + Subplot_Descriptions + (1|Rep/Footprint_Location), data = alive)
 plot(model1)
 summary(model1)
 anova(model1)
@@ -159,7 +162,7 @@ ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) 
                       " Slope =",signif(fit$coef[[2]], 5),
                       " P =",signif(summary(fit)$coef[2,4], 5)))
  }
-fit1 <- lm(Nitrogen ~ Weight..mg. + Subplot_Descriptions + (1|Rep/Footprint_Location), data = alive)
+fit1 <- lm(Nitrogen ~ Dried_Plant_Biomass_gram + Subplot_Descriptions + (1|Rep/Footprint_Location), data = alive)
 ggplotRegression(fit1) # no correlation between soil moisture and Trfpr biomass
 ```
 
@@ -215,7 +218,7 @@ shapiro.test(resid(m1))
 # homogeneity of variance? yes if p >0.05 (no significant difference between the group variances)
 leveneTest(residuals(m1) ~ trpr_cn$Subplot_Descriptions)
 
-m_plot1 <- lmer(Nitrogen ~ Subplot_Descriptions + (1|Rep/Footprint_Location), data=trpr_cn, REML=F)
+m_plot1 <- lmer(Nitrogen ~ Subplot_Descriptions + Dried_Plant_Biomass_gram + (1|Rep/Footprint_Location), data=trpr_cn, REML=F)
 hist(resid(m_plot1))
 shapiro.test(resid(m_plot1))
 summary(m_plot1)
@@ -226,23 +229,23 @@ emmeans(m_plot1, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
 # Regression Plot
 ```{r}
 #Correlation coefficient 
-coefficient <- cor.test(trpr_cn$Weight..mg., trpr_cn$Nitrogen)
+coefficient <- cor.test(trpr_cn$Dried_Plant_Biomass_gram, trpr_cn$Nitrogen)
 coefficient$estimate
  
 #Regression Plot
 png("rex_regression_biomass_nitrogen_2022.png", units="in", width=8, height=6, res=300)
-ggplot(trpr_cn, aes(x = Nitrogen, y = Weight..mg., color = Subplot_Descriptions)) + 
+ggplot(trpr_cn, aes(x = Nitrogen, y = Dried_Plant_Biomass_gram, color = Subplot_Descriptions)) + 
          geom_point(size = 3) +
          stat_smooth(method = "lm", col = "red") +
          xlab("Nitrogen Content (%)") +
-         ylab(bquote("2022 Red Clover Avg Alive Biomass" ('g/0.20m'^2))) +
+         ylab(bquote("Red Clover Biomass"('g/0.20m'^2))) +
          scale_color_manual(name="Treatment",
                       values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
                       labels = c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control"))
 dev.off()
 
 #Model
-model1=lmer(Nitrogen ~ Weight..mg. + Subplot_Descriptions + (1|Rep/Footprint_Location), data = trpr_cn)
+model1=lmer(Nitrogen ~ Dried_Plant_Biomass_gram + Subplot_Descriptions + (1|Rep/Footprint_Location), data = trpr_cn)
 plot(model1)
 summary(model1)
 anova(model1)
@@ -259,7 +262,7 @@ ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) 
                       " Slope =",signif(fit$coef[[2]], 5),
                       " P =",signif(summary(fit)$coef[2,4], 5)))
  }
-fit1 <- lm(Nitrogen ~ Weight..mg. + Subplot_Descriptions + (1|Rep/Footprint_Location), data = trpr_cn)
+fit1 <- lm(Nitrogen ~ Dried_Plant_Biomass_gram + Subplot_Descriptions + (1|Rep/Footprint_Location), data = trpr_cn)
 ggplotRegression(fit1) # no correlation between soil moisture and Trfpr biomass
 ```
 

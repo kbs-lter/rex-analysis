@@ -42,6 +42,22 @@ level_order_1 <- c('irrigated_control', 'ambient', 'drought', 'warmed','warmed_d
 
 ```
 
+Calculating C:N ratios
+```{r}
+trpr_cn$CN_ratio <- trpr_cn$Carbon/trpr_cn$Nitrogen
+
+# average not considering alive vs dead samples
+ratio_rep_avg1 <- trpr_cn %>%
+  group_by(Unique_ID, Subplot_Descriptions) %>%
+  summarize(avg_rep_ratio = mean(CN_ratio, na.rm = TRUE),
+            se = std.error(CN_ratio, na.rm = TRUE))
+
+ratio_treatment_avg1 <- trpr_cn %>%
+  group_by(Subplot_Descriptions) %>%
+  summarize(avg_ratio = mean(CN_ratio, na.rm = TRUE),
+            se = std.error(CN_ratio, na.rm = TRUE))
+```
+
 Carbon
 ```{r}
 # Average by cn weighsheet replicate
@@ -189,7 +205,7 @@ figure <- ggarrange(carbon_alive, nitrogen_alive,
 figure
 ```
 
-# Graphs that combined alive and dead values C or N together
+# Graphs that combined alive and dead C or N values together
 ```{r}
 # Carbon
 ggplot(carbon_rep_avg1, aes(x = factor(Subplot_Descriptions, levels = level_order_1), y = avg_rep_carbon, fill = Subplot_Descriptions)) +
@@ -221,5 +237,21 @@ ggplot(nitrogen_rep_avg1, aes(x = factor(Subplot_Descriptions, levels = level_or
         theme(legend.position = "none")
 
 #dev.off()
+```
+
+CN ratio
+```{r}
+ggplot(trpr_cn, aes(x = factor(Subplot_Descriptions, levels = level_order_1), y = CN_ratio, fill = Subplot_Descriptions)) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment", y = "C:N Ratio") +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none")
 ```
 
