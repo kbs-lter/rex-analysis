@@ -80,3 +80,103 @@ ggplot(avg_airtemp_22, aes(x = month, y = avg_temp, group = Treatment, color = T
 dev.off()
 ```
 
+Making plot that only includes growing season
+```{r}
+# making new data frame that only includes data during day (7am-7pm) from April to August
+day_airtemp$month <- format(day_airtemp$Date_Time,format="%m")
+day_airtemp$year <- format(day_airtemp$Date_Time,format="%Y")
+day_airtemp$hour <- format(day_airtemp$Date_Time, format="%H")
+day_airtemp$day <- format(day_airtemp$Date_Time, format="%d")
+day_airtemp_22 <- day_airtemp %>%
+  filter(year == 2022) %>%
+  filter(hour > "06") %>%
+  filter(hour < "20") %>%
+  filter(month > "03") %>% 
+  filter(month < "09")
+```
+
+```{r}
+# take average per month, per rep, per treatment
+air_temp_grow <- day_airtemp_22 %>%
+  group_by(month, Treatment) %>%
+  summarize(avg_temp = mean(Temperature_C, na.rm = TRUE),
+            se_temp = std.error(Temperature_C, na.rm = TRUE))
+```
+
+Average monthly soil temperature plot from April - August
+```{r}
+# plot - monthly
+png("rex_airtemp_growing_season_22.png", units="in", width=6, height=6, res=300)
+air_growing_season <- 
+        ggplot(air_temp_grow, aes(x = month, y = avg_temp, group = Treatment, color = Treatment)) +
+        geom_line(linewidth = 1) +
+        geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp), width=0.1, color="black", linetype="solid") +
+        scale_color_manual(name="Treatment",
+                     values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
+                     labels=c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
+        labs(y="Air Temperature (°C)", x="Month") +
+        theme_bw() +
+        theme(axis.title = element_text(size=17),
+              axis.text = element_text(size=15))
+dev.off()
+```
+
+######################
+Adding soil temp below but seperate script already exists
+```{r}
+# Read in data
+soiltemp <- read.csv(file.path(dir, "sensors/OTC Footprints/L1/T7_warmx_soil_sensors_L1.csv")) 
+
+# re-making the data column a date
+soiltemp$Date_Time <- as.POSIXct(soiltemp$sample_datetime, format = "%Y-%m-%d %H:%M:%S")
+str(soiltemp)
+
+# create new dataframe with only data from 7 AM - 7 PM 
+soil_season <- soiltemp
+soil_season$date <- paste0(soil_season$month,"",soil_season$day)
+soil_season$date <- as.numeric(soil_season$date)
+# this is mainly what we'll work with for figures (could always adjust the parameters as needed)
+soil_season$month <- format(soil_season$Date_Time,format="%m")
+soil_season$year <- format(soil_season$Date_Time,format="%Y")
+soil_season$hour <- format(soil_season$Date_Time, format="%H")
+soil_season$day <- format(soil_season$Date_Time, format="%d")
+soil_grow_season_22 <- soil_season %>%
+  filter(year == 2022) %>%
+  filter(hour > "06") %>%
+  filter(hour < "20") %>%
+  filter(month > "03") %>% 
+  filter(month < "09")
+
+# take average per month, per rep, per treatment
+soil_temp_grow <- soil_grow_season_22 %>%
+  group_by(month, Subplot_Descriptions) %>%
+  summarize(avg_temp = mean(temperature, na.rm = TRUE),
+            se_temp = std.error(temperature, na.rm = TRUE))
+
+soil_growing_season <- 
+        ggplot(soil_temp_grow, aes(x = month, y = avg_temp, group = Subplot_Descriptions, color = Subplot_Descriptions)) +
+        geom_line(linewidth = 1) +
+        geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp), width=0.1, color="black", linetype="solid") +
+        scale_color_manual(name="Treatment",
+                     values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
+                     labels=c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
+        labs(y="Soil Temperature (°C)", x= "Month") +
+        theme_bw() +
+        theme(axis.title = element_text(size=17),
+              axis.text = element_text(size=15))
+```
+
+combining air and soil temp growing season graphs in one
+```{r}
+figure <- ggarrange(air_growing_season, soil_growing_season,
+                    ncol = 2, nrow = 1)
+
+figure
+
+png("rex_air_soil_temp_2022.png", units="in", width=8, height=5, res=300)
+ggpubr::ggarrange(air_growing_season, soil_growing_season,
+                                nrow = 1, ncol = 2, common.legend = T, legend = "right", label.x = "Month",
+                                align = "v")
+dev.off()
+```
+
