@@ -226,7 +226,7 @@ anova(m_plot1)
 emmeans(m_plot1, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
 ```
 
-# Regression Plot - Nitrogen
+# Regression Plot - Nitrogen & Biomass
 ```{r}
 #Correlation coefficient 
 coefficient <- cor.test(trpr_cn$Dried_Plant_Biomass_gram, trpr_cn$Nitrogen)
@@ -242,6 +242,7 @@ nitrogen <- ggplot(trpr_cn, aes(x = Nitrogen, y = Dried_Plant_Biomass_gram, colo
          scale_color_manual(name="Treatment",
                       values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
                       labels = c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
+        theme_bw() +
         theme(axis.title = element_text(size=17),
               axis.text = element_text(size=15))
 dev.off()
@@ -284,6 +285,7 @@ carbon <- ggplot(trpr_cn, aes(x = Carbon, y = Dried_Plant_Biomass_gram, color = 
          scale_color_manual(name="Treatment",
                       values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
                       labels = c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
+                theme_bw() +
         theme(axis.title = element_text(size=17),
               axis.text = element_text(size=15))
 dev.off()
@@ -326,6 +328,7 @@ ratio <- ggplot(trpr_cn, aes(x = CN_ratio, y = Dried_Plant_Biomass_gram, color =
          scale_color_manual(name="Treatment",
                       values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
                       labels = c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
+                theme_bw() +
         theme(axis.title = element_text(size=17),
               axis.text = element_text(size=15))
 dev.off()
@@ -358,7 +361,7 @@ figure <- ggarrange(carbon, nitrogen, ratio,
                     ncol = 3, nrow = 1)
 figure
 
-png("rex_biomass_cn_regression_2022.png", units="in", width=10, height=5, res=300)
+png("rex_biomass_cn_regression_2022.png", units="in", width=15, height=5, res=300)
 ggpubr::ggarrange(carbon, nitrogen, ratio,
                                 nrow = 1, ncol = 3, common.legend = T, legend="right",
                                 align = "v")
