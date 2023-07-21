@@ -28,6 +28,7 @@ library(rstatix)
 library(car)
 library(lme4)
 library(emmeans)
+library(lmerTest)
 
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
@@ -130,7 +131,7 @@ leveneTest(resid(m2) ~ Subplot_Descriptions, data = trfpr_anpp_noinsect) # p=0.3
 
 #models
 m3 <- lmer(sqrt(Biomass_g) ~ Subplot_Descriptions + (1|Rep/Footprint_Location), data=trfpr_anpp_noinsect, REML=F)
-anova(m3)
+anova(m3) #p=0.068
 summary(m3)
 
 # code below lets you look at pairwise comparisons between the treatments
