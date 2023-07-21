@@ -241,7 +241,9 @@ nitrogen <- ggplot(trpr_cn, aes(x = Nitrogen, y = Dried_Plant_Biomass_gram, colo
          ylab(NULL) +
          scale_color_manual(name="Treatment",
                       values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
-                      labels = c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control"))
+                      labels = c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
+        theme(axis.title = element_text(size=17),
+              axis.text = element_text(size=15))
 dev.off()
 
 #Model
@@ -278,10 +280,12 @@ carbon <- ggplot(trpr_cn, aes(x = Carbon, y = Dried_Plant_Biomass_gram, color = 
          geom_point(size = 2) +
          stat_smooth(method = "lm", col = "red") +
          xlab("Carbon (%)") +
-         ylab(bquote("Biomass"('g/0.20m'^2))) +
+         ylab(bquote("Biomass "('g/0.20m'^2))) +
          scale_color_manual(name="Treatment",
                       values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
-                      labels = c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control"))
+                      labels = c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
+        theme(axis.title = element_text(size=17),
+              axis.text = element_text(size=15))
 dev.off()
 
 #Model
@@ -321,7 +325,9 @@ ratio <- ggplot(trpr_cn, aes(x = CN_ratio, y = Dried_Plant_Biomass_gram, color =
          ylab(NULL) +
          scale_color_manual(name="Treatment",
                       values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
-                      labels = c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control"))
+                      labels = c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
+        theme(axis.title = element_text(size=17),
+              axis.text = element_text(size=15))
 dev.off()
 
 #Model
@@ -357,5 +363,33 @@ ggpubr::ggarrange(carbon, nitrogen, ratio,
                                 nrow = 1, ncol = 3, common.legend = T, legend="right",
                                 align = "v")
 dev.off()
+```
+
+C:N Ratio models
+```{r}
+#### Data exploration ###
+# checking raw data
+hist(trpr_cn$CN_ratio)
+qqnorm(trpr_cn$CN_ratio)
+
+# Exploring distributions for these data:
+descdist(trpr_cn$CN_ratio, discrete = FALSE)
+
+# checking model with log transformation (untransformed data was right skewed)
+# is it normally distributed? no
+m1 <- lm(CN_ratio ~ Subplot_Descriptions, data=trpr_cn)
+outlierTest(m1)
+hist(resid(m1))
+qqnorm(resid(m1))
+shapiro.test(resid(m1))
+# homogeneity of variance? yes if p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1) ~ trpr_cn$Subplot_Descriptions)
+
+m_plot1 <- lmer(CN_ratio ~ Subplot_Descriptions + Dried_Plant_Biomass_gram + (1|Rep/Footprint_Location), data=trpr_cn, REML=F)
+hist(resid(m_plot1))
+shapiro.test(resid(m_plot1))
+summary(m_plot1)
+anova(m_plot1)
+emmeans(m_plot1, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
 ```
 
