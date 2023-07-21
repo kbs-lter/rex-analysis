@@ -93,19 +93,21 @@ ggplot(anpp_avg, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_D
 dev.off
 
 # boxplot
-png("avg_trpr_anpp_no_insect_2022_boxplot.png", units="in", width=6, height=6, res=300)
+png("avg_trpr_anpp_no_insect_2022_boxplot.png", units="in", width=8, height=6, res=300)
 ggplot(trfpr_anpp_noinsect, aes(x = Subplot_Descriptions, y = Biomass_g, fill = Subplot_Descriptions)) +
-        geom_boxplot(color = "black", outlier.shape = NA) +
+        geom_boxplot(color = "black", outlier.shape = NA, show.legend = FALSE) +
         scale_fill_manual(values = c("ambient" = "#a6bddb", "drought" = "#2F4F4f", 
         "irrigated_control" = "#6B8E23", "warmed" = "#8B6914", "warmed_drought" = "#9D422E")) +
-        ylab(bquote("Red Clover Average Biomass"  ('g/0.20m'^2))) +
+        ylab(bquote("Average Biomass " ('g/0.20m'^2))) +
         xlab("Treatment") +
         scale_x_discrete(limits = level_order_1, labels=c("ambient" = "Ambient",
                                   "drought" = "Drought",
                                   "irrigated_control" = "Irrigated \n Control",
                                   "warmed" = "Warmed",
                                   "warmed_drought" = "Warmed +\n Drought")) +
-        theme(legend.position = "none")
+                        theme_bw() +
+        theme(axis.title = element_text(size=17),
+              axis.text = element_text(size=15))
 dev.off()
 ```
 
