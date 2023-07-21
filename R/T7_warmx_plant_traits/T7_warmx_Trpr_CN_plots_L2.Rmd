@@ -243,16 +243,21 @@ CN ratio
 ```{r}
 cnratio <- ggplot(trpr_cn, aes(x = factor(Subplot_Descriptions, levels = level_order_1), y = CN_ratio, fill = Subplot_Descriptions)) +
         #geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
-        geom_boxplot(color = "black", outlier.shape = NA) +
-        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
-        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        geom_boxplot(color = "black", outlier.shape = NA, show.legend = FALSE) +
+        scale_fill_manual(values = c("ambient" = "#a6bddb", "drought" = "#2F4F4f", 
+        "irrigated_control" = "#6B8E23", "warmed" = "#8B6914", "warmed_drought" = "#9D422E")) +
         labs(x = "Treatment", y = "C:N Ratio") +
         scale_x_discrete(labels=c("ambient" = "Ambient",
                                   "drought" = "Drought",
                                   "irrigated_control" = "Irrigated \n Control",
                                   "warmed" = "Warmed",
                                   "warmed_drought" = "Warmed +\n Drought")) +
-        theme(legend.position = "none")
+        theme_bw() +
+        theme(axis.title = element_text(size=17),
+              axis.text = element_text(size=15))
+png("cnratio_no_insect_2022_boxplot.png", units="in", width=8, height=6, res=300)
+cnratio
+dev.off()
 ```
 
 Combining graphs
