@@ -228,6 +228,7 @@ emmeans(m_plot1, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
 
 # Regression Plot - Nitrogen & Biomass
 ```{r}
+hist(trpr_cn$Nitrogen)
 #Correlation coefficient 
 coefficient <- cor.test(trpr_cn$Dried_Plant_Biomass_gram, trpr_cn$Nitrogen, method = "pearson")
 coefficient$estimate
@@ -247,6 +248,7 @@ nitrogen <- ggplot(trpr_cn, aes(x = Nitrogen, y = Dried_Plant_Biomass_gram, colo
         theme(axis.title = element_text(size=17),
               axis.text = element_text(size=15))
 dev.off()
+nitrogen
 
 #Model
 model1=lmer(Nitrogen ~ Dried_Plant_Biomass_gram + Subplot_Descriptions + (1|Rep/Footprint_Location), data = trpr_cn)
@@ -355,7 +357,7 @@ ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) 
                       " P =",signif(summary(fit)$coef[2,4], 5)))
  }
 fit1 <- lm(CN_ratio ~ Dried_Plant_Biomass_gram + Subplot_Descriptions + (1|Rep/Footprint_Location), data = trpr_cn)
-ggplotRegression(fit1) # no correlation between soil moisture and Trfpr biomass
+ggplotRegression(fit1) 
 ```
 
 Combining Regression Plots
