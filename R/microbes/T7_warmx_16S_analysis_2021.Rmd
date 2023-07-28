@@ -41,6 +41,8 @@ library(microViz)
 library(DESeq2)
 library(ANCOMBC)
 library(permute)
+library(pheatmap)
+library(plotrix)
 
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
@@ -478,12 +480,21 @@ ggplot(sum4, aes(x = Drought, y = means, fill = Genus)) +
 #dev.off()
 ```
 
-
-Create phyloseq object that doesn't include insecticide treatments
+#Create phyloseq object that doesn't include insecticide treatments
 ```{r}
 data_16S_filtered_noinsect <- subset_samples(data_16S_filtered, Subplot_Descriptions%in%c("ambient", "irrigated_control", "warmed_drought", "drought", "warmed"))
 summarize_phyloseq(data_16S_filtered_noinsect)
 
+# just peak drought
+data_16S_filtered_nona <- subset_samples(data_16S_filtered_noinsect, !is.na(Drought))
+data_16S_filtered_noinsect_peakdrought <- subset_samples(data_16S_filtered_nona, Drought == "Peak-Drought")
+summarize_phyloseq(data_16S_filtered_noinsect_peakdrought)
+
+
+```
+
+#Alpha Diversity
+```{r}
 #  Rarefy the samples without replacement. Rarefaction is used to simulate even number of reads per sample. The rarefaction depth chosen is the 90% of the minimum sample depth in the dataset.
 ps.rarefied = rarefy_even_depth(data_16S_filtered_noinsect, rngseed=1, sample.size = 0.9*min(sample_sums(data_16S_filtered_noinsect)), replace=F)
 
@@ -528,7 +539,7 @@ kruskal.test(richness$Shannon ~ sample_data(ps.rarefied)$Drought)
 pairwise.wilcox.test(richness$Shannon, sample_data(ps.rarefied)$Drought, p.adj = "bonf")
 ```
 
-Beta Diversity
+#Beta Diversity
 PCoA
 ```{r}
 # Weighted-Unifrac takes into account the relative abundance of species/taxa shared between samples, whereas 
@@ -640,17 +651,19 @@ plot_ordination(
 ```
 
 Code below is very much a work in progress!!
-ASV differential abundance testing with DESeq2
+#Differential abundance testing
 
-I want to know the differential abundances between warming and drought treatments (to start off with)
+# DESeq2 - warmed vs drought
 ```{r}
-# Convert phyloseq data to DESeq2 dds (DESeq2 Data Set?) object
+# Convert phyloseq data to DESeq2 dds (dds = DESeq2 Data Set) object
 # Note - cannot use phyloseq object that has sample data ordered or the line of code will not work
 # Re line 102
 dds <- phyloseq_to_deseq2(data_16S_filtered_noinsect, ~ Subplot_Descriptions + Drought)
-dds <- DESeq(dds)
+dds <- DESeq(dds, fitType="parametric")
 alpha = 0.01
 res = results(dds)
+summary(res)
+# whatever you list first for the contrasts, is going to be on the top of your ggplot that you make below
 res = results(dds, contrast = c("Subplot_Descriptions", "drought", "warmed"), alpha=alpha)
 res = res[order(res$padj, na.last=NA), ]
 res_sig = res[(res$padj < alpha), ]
@@ -663,6 +676,7 @@ df <- as.data.frame(res)
 # Adds taxon column that includes names of taxa
 df$taxon <- rownames(df)
 # Orders the rows of data frame in increasing order firstly based on column "log2FoldChange" and secondly based on "padj" column
+# log2FoldChange = The effect size estimate. This value indicates how much the gene or transcript's expression seems to have changed between the comparison and control groups. This value is reported on a logarithmic scale to base 2
 df <- df %>% arrange(log2FoldChange, padj)
 
 knitr::kable(head(df)) %>% 
@@ -674,29 +688,42 @@ scale_fill_discrete <- function(palname = "Set1", ...) {
     scale_fill_brewer(palette = palname, ...)
 }
 # Genus order
-x = tapply(res_sig$log2FoldChange, res_sig$Genus, function(x) max(x))
+x = tapply(res_sig$log2FoldChange, res_sig$Class, function(x) max(x))
 x = sort(x, TRUE)
-res_sig$Genus = factor(as.character(res_sig$Genus), levels=names(x))
+res_sig$Genus = factor(as.character(res_sig$Class), levels=names(x))
+
 png("diff_abun_warmed_drought.png", units="in", width=14, height=7, res=300)
-ggplot(res_sig, aes(x=Genus, y=log2FoldChange, color=Phylum)) + geom_point(size=3) + 
-  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
+
+ggplot(res_sig, aes(x=Genus, y=log2FoldChange, color=Phylum)) + 
+        geom_point(size=3) + 
+        geom_hline(yintercept=0, linewidth=1) +
+        #annotate("text", x = 80, y=15, label = "Drought", size=4) +
+        #annotate("text", x = 80, y=-15, label = "Warmed", size=4) +
+        theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
+        
 dev.off()
 ```
+
+# DESeq2 - drought vs ambient
+```{r}
+
+```
+
 
 ```{r}
 # trying something different from above
 # https://rstudio-pubs-static.s3.amazonaws.com/187480_55b8817c975341c0bbc81934d773e768.html
-res <- results(dds, tidy=TRUE, contrast=c("Subplot_Descriptions", "warmed", "drought")) %>%
+res1 <- results(dds, tidy=TRUE, contrast=c("Subplot_Descriptions", "warmed", "drought")) %>%
   arrange(padj, pvalue) %>%
   tbl_df()
 # contrast argument from above is comparing "warmed" and "drought" from "subplot_descriptions"
-res
+res1
 
-knitr::kable(head(res)) %>% 
+knitr::kable(head(res1)) %>% 
   kableExtra::kable_styling("striped") %>% 
   kableExtra::scroll_box(width = "100%")
 
-taxa_of_interest <- res$row[1:12]
+taxa_of_interest <- res1$row[1:12]
 stopifnot(all(taxa_of_interest %in% names(dds)))
 taxa_of_interest
 
@@ -714,12 +741,11 @@ tcounts1 <- merge(tcounts, taxonomy)
 
 ggplot(tcounts1, aes(Subplot_Descriptions, relative_abun, fill=Drought)) + 
   geom_boxplot() + 
-  facet_wrap(~Family, scales="free_y") + 
+  facet_wrap(~Phylum, scales="free_y") + 
   labs(x="Treatment", 
        y="Relative Abundance (log normalized counts)", 
        fill="Drought")
 ```
-
 
 Differential abundance using ANCOM - this doesn't work below, I think bc the package has been updated
 ```{r}
@@ -787,5 +813,77 @@ head(marker_table(lefse))
 plot_ef_bar(lefse)
 # dot plot
 plot_ef_dot(lefse)
+```
+
+#Heat Map
+```{r}
+set.seed(01221990)
+
+#top100ITSsklearn <- names(sort(taxa_sums(ITSsklearn), decreasing=TRUE))[1:20]
+#ITSsklearn.top20 <- transform_sample_counts(ITSsklearn, function(OTU) OTU / sum(OTU))
+#ITSsklearn.top20 <- prune_taxa(top20ITSsklearn, ITSsklearn.top20)
+
+set.seed(01221990)
+rare_16S <- rarefy_even_depth(data_16S_counts, sample.size = 1000)
+data_16S_rel <- transform_sample_counts(rare_16S, function(x) x/sum(x))
+top30Genus_16S <- names(sort(genus_sum_16S, TRUE))[1:30]
+abundant_16S_genus_top30 <- subset_taxa(data_16S_rel, Genus %in% top30Genus_16S)
+abundant_16S_genus_top30_glom <- tax_glom(abundant_16S_genus_top30, taxrank = "Genus")
+
+abundant_16S_genus_top30_melt <- psmelt(abundant_16S_genus_top30_glom)
+abundant_16S_genus_sum <- abundant_16S_genus_top30_melt %>% 
+        group_by(Subplot_Descriptions, Drought, Genus) %>% 
+        summarize(avg_abundance = mean(Abundance, na.rm = TRUE),
+                  se = std.error(Abundance, na.rm = TRUE))
+sum5 <- abundant_16S_genus_top30_melt %>% 
+  group_by(Subplot_Descriptions, Drought, Genus) %>%
+  summarise(means = mean(Abundance))
+
+# code below doesn't work
+heat.map <- plot_taxa_heatmap(abundant_16S_genus,
+  subset.top = 20,
+  VariableA = "Subplot_Descriptions",
+  taxonomic.level = "Genus",
+  #heatcolors = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(100),
+  transformation = "log10"
+)
+
+# code below works but isn't what I want
+abundance_heatmap(abundant_16S_genus_top30_glom, treatment = c("Drought"), subset = NULL,
+classification = 'Genus', transformation = 'log', colors = 'default',
+treatment_labels = NULL, sample_labels = NULL, classification_labels= NULL)
+
+plot_heatmap(abundant_16S_genus_top30_glom, "unifrac", taxa.label = "Genus", sample.label = "Drought", weighted=TRUE)
+
+heatmap(sum4)
+```
+
+Peak-Drought Heat Map
+```{r}
+data_16S_filtered_noinsect_peakdrought
+set.seed(01221990)
+rare_16S <- rarefy_even_depth(data_16S_filtered_noinsect_peakdrought, sample.size = 1000)
+data_16S_rel <- transform_sample_counts(rare_16S, function(x) x/sum(x))
+top30Genus_16S <- names(sort(genus_sum_16S, TRUE))[1:30]
+abundant_16S_genus_top30 <- subset_taxa(data_16S_rel, Genus %in% top30Genus_16S)
+abundant_16S_genus_top30_glom <- tax_glom(abundant_16S_genus_top30, taxrank = "Genus")
+
+# this one looks the best 
+abundance_heatmap(abundant_16S_genus_top30_glom, treatment = c("Drought"), subset = NULL,
+classification = 'Genus', transformation = 'log', colors = 'default',
+treatment_labels = NULL, sample_labels = NULL, classification_labels= NULL)
+
+plot_heatmap(abundant_16S_genus_top30_glom, taxa.label = "Genus", sample.label = NULL, weighted=TRUE)
+```
+
+
+```{r}
+mine.heatmap <- ggplot(data = abundant_16S_genus_sum, mapping = aes(x = Subplot_Descriptions,
+                                                       y = Genus,
+                                                       fill = avg_abundance)) +
+  geom_tile() +
+  xlab(label = "Treatment")
+
+mine.heatmap
 ```
 
