@@ -22,6 +22,7 @@ rm(list=ls())
 
 # Load packages
 library(tidyverse)
+library(dplyr)
 library(ggpubr)
 library(RColorBrewer)
 library(plotrix)
@@ -98,7 +99,7 @@ day_airtemp_22 <- day_airtemp %>%
 ```{r}
 # take average per month, per rep, per treatment
 air_temp_grow <- day_airtemp_22 %>%
-  group_by(month, Treatment) %>%
+  dplyr::group_by(month, Treatment) %>%
   summarize(avg_temp = mean(Temperature_C, na.rm = TRUE),
             se_temp = std.error(Temperature_C, na.rm = TRUE))
 ```
@@ -112,8 +113,8 @@ air_growing_season <-
         geom_line(linewidth = 1) +
         geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp), width=0.1, color="black", linetype="solid") +
         scale_color_manual(name="Treatment",
-                     values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
-                     labels=c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
+                     values = c("#a6bddb", "#687689", "#fb6a4a", "#9D422E"),
+                     labels=c("Ambient","Drought","Warmed", "Warmed Drought")) +
         labs(y="Air Temperature (°C)", x="Month") +
         theme_bw() +
         theme(axis.title = element_text(size=17),
@@ -122,7 +123,7 @@ dev.off()
 ```
 
 ######################
-Adding soil temp below but seperate script already exists
+Adding soil temp below but separate script already exists
 ```{r}
 # Read in data
 soiltemp <- read.csv(file.path(dir, "sensors/OTC Footprints/L1/T7_warmx_soil_sensors_L1.csv")) 
@@ -158,8 +159,8 @@ soil_growing_season <-
         geom_line(linewidth = 1) +
         geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp), width=0.1, color="black", linetype="solid") +
         scale_color_manual(name="Treatment",
-                     values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "#6B8E23"),
-                     labels=c("Ambient","Drought","Warmed", "Warmed Drought", "Irrigated Control")) +
+                     values = c("#6B8E23","#a6bddb", "#687689", "#fb6a4a", "#9D422E"),
+                     labels=c("Irrigated Control", "Ambient","Drought","Warmed", "Warmed Drought")) +
         labs(y="Soil Temperature (°C)", x= "Month") +
         theme_bw() +
         theme(axis.title = element_text(size=17),

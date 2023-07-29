@@ -31,18 +31,10 @@ dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
 
 # Read in data
-insects <- read.csv(file.path(dir, "T7_warmx_insect/L1/T7_warmx_insect_preference_2021_L1.csv"))
+insects <- read.csv(file.path(dir, "T7_warmx_insect/L0/T7_warmx_insect_preference_2021_L1.csv"))
 
 # meta data of T7s OTC plots
 meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
-
-# Set ggplot2 plotting
-# This code for ggplot2 sets the theme to mostly black and white 
-# (Arial font, and large font, base size=24)
-theme_set(theme_bw(14))
-theme_update(axis.text.x = element_text(size = 16),
-             axis.text.y = element_text(size = 16),
-             axis.title = element_text(size=16,face="bold"))
 ```
 
 ```{r}

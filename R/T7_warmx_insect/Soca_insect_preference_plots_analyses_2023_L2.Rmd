@@ -1,0 +1,110 @@
+---
+title: "REX: Insect Preference Trial Plots & Analyses"
+author: "Moriah Young"
+date: "July 28th, 2023"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy.opts=list(width.cutoff=60),tidy=TRUE)
+```
+
+```{r, echo=FALSE}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(bbmle)
+library(lmerTest)
+library(fitdistrplus)
+library(sjPlot)
+library(car)
+library(emmeans)
+library(tidyverse)
+library(ggpubr)
+library(jtools) #summ 
+library(rstatix)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+# Read in data
+insects <- read.csv(file.path(dir, "T7_warmx_insect/L0/T7_warmx_insect_preference_2022_L0.csv")) # data not cleaned
+insects[is.na(insects)] <- 0 # replace NAs with zeros
+
+# meta data of T7s OTC plots
+meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
+
+# merge insects dataframe with meta data
+insects1 <- merge(insects, meta, by = "Unique_ID")
+
+```
+
+# calculate the proportion of leaves eaten
+```{r}
+insects2 <- insects1 %>% 
+        group_by(Unique_ID, plant_number, Subplot_Descriptions) %>%
+        dplyr::summarize(prop_eaten = consumed_leaf_area_cm2 / total_leaf_area_cm2) 
+insects2[is.na(insects2)] <- 0 # replace NAs with zeros
+
+insects3 <- insects2 %>% 
+        group_by(Subplot_Descriptions) %>%
+        dplyr::summarize(prop_eaten_avg = mean(prop_eaten)) 
+        
+```
+
+```{r}
+# Subplot level graph
+#png("insect_preference_treatments.png", units="in", width=7, height=6, res=300)
+ggplot(insects2, aes(x = Subplot_Descriptions, y = prop_eaten, fill = Subplot_Descriptions)) +
+        geom_boxplot(color = "black", outlier.shape = NA) +
+        geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, size= 2) +
+        #geom_errorbar(aes(ymin = lower, ymax =upper)) +
+        labs(x = "Treatment", y = "Proportion of Leaf Eaten") +
+        scale_fill_brewer(palette = "YlOrRd") +
+        scale_x_discrete(limits = c("ambient", "drought", "warmed", "warmed_drought"),
+                         labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed & \n Drought"),
+                         guide = guide_axis(n.dodge=2)) +
+        theme(legend.position="none")
+#dev.off()
+
+ggplot(insects3, aes(x = Subplot_Descriptions, y = prop_eaten_avg, fill = Subplot_Descriptions)) +
+        geom_bar(stat = "identity") +
+        #geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, size= 2) +
+        #geom_errorbar(aes(ymin = lower, ymax =upper)) +
+        labs(x = "Treatment", y = "Proportion of Leaf Eaten") +
+        scale_fill_brewer(palette = "YlOrRd") +
+        scale_x_discrete(limits = c("ambient", "drought", "warmed", "warmed_drought"),
+                         labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed & \n Drought")) +
+        theme(legend.position="none")
+```
+
+```{r}
+#### Data exploration ###
+# checking raw data
+hist(insects2$prop_eaten)
+qqnorm(insects2$prop_eaten)
+
+# Exploring distributions for these data:
+descdist(insects2$prop_eaten, discrete = FALSE)
+
+# checking model with log transformation (untransformed data was right skewed)
+# is it normally distributed? no
+m1 <- lm(prop_eaten ~ Subplot_Descriptions, data=insects2)
+outlierTest(m1)
+hist(resid(m1))
+qqnorm(resid(m1))
+shapiro.test(resid(m1))
+# homogeneity of variance? yes if p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1) ~ insects2$prop_eaten)
+```
+
