@@ -1,6 +1,6 @@
 # TITLE:          REX: Abiotic analyses
-# AUTHORS:        Kara Dobson
-# COLLABORATORS:  Phoebe Zarnetske, Mark Hammond, Moriah Young, Emily Parker
+# AUTHORS:        Kara Dobson, Moriah Young
+# COLLABORATORS:  Phoebe Zarnetske, Mark Hammond, Emily Parker
 # DATA INPUT:     Data imported as csv files from shared REX Google drive sensor data L1 folder
 # DATA OUTPUT:    Analyses of abiotic data
 # PROJECT:        REX
@@ -45,48 +45,68 @@ soil_data$year <- format(soil_data$Date_Time,format="%Y")
 soil_data$hour <- format(soil_data$Date_Time, format="%H")
 soil_data$day <- format(soil_data$Date_Time, format="%d")
 
-
-# taking 2022 temp average for july 11 - july 15 (sampling period)
 hobo_data$date <- paste0(hobo_data$month,"",hobo_data$day)
 hobo_data$date <- as.numeric(hobo_data$date)
-# selecting 2022 and june 1 - july 15
-hobo_sampling <- hobo_data %>%
-  filter(year == 2022) %>%
-  filter(date > "710") %>%
-  filter(date < "716")
-# limit to the reps I used
-hobo_sampling <- hobo_sampling %>%
-  filter(Rep == 2 | Rep == 3 | Rep == 4 | Rep == 5)
-
-
-# taking 2022 soil average for july 11 - july 15 (sampling period)
 soil_data$date <- paste0(soil_data$month,"",soil_data$day)
 soil_data$date <- as.numeric(soil_data$date)
+
+###############################################################################
+# Below is for Kara's VOC sampling in 2022
+# taking 2022 temp average for july 11 - july 15 (VOC sampling period)
 # selecting 2022 and june 1 - july 15
-soil_sampling <- soil_data %>%
+hobo_sampling_VOC <- hobo_data %>%
   filter(year == 2022) %>%
   filter(date > "710") %>%
   filter(date < "716")
 # limit to the reps I used
-soil_sampling <- soil_sampling %>%
+hobo_sampling_VOC <- hobo_sampling_VOC %>%
   filter(Rep == 2 | Rep == 3 | Rep == 4 | Rep == 5)
 
 
-# HOBO model exploration
-descdist(hobo_sampling$Temperature_C, discrete = FALSE)
-hist(hobo_sampling$Temperature_C)
-qqnorm(hobo_sampling$Temperature_C)
-shapiro.test(hobo_sampling$Temperature_C)
+# taking 2022 soil average for july 11 - july 15 (VOC sampling period)
+# selecting 2022 and june 1 - july 15
+soil_sampling_VOC <- soil_data %>%
+  filter(year == 2022) %>%
+  filter(date > "710") %>%
+  filter(date < "716")
+# limit to the reps I used
+soil_sampling_VOC <- soil_sampling_VOC %>%
+  filter(Rep == 2 | Rep == 3 | Rep == 4 | Rep == 5)
+
+
+# HOBO model exploration for air temperature
+descdist(hobo_sampling_VOC$Temperature_C, discrete = FALSE)
+hist(hobo_sampling_VOC$Temperature_C)
+qqnorm(hobo_sampling_VOC$Temperature_C)
+shapiro.test(hobo_sampling_VOC$Temperature_C)
 # kinda right skewed, lets see once its in a model
-hobo_sampling <- within(hobo_sampling, Treatment <- relevel(factor(Treatment), ref = "Warmed_Drought"))
-m.hobo.test <- lmer(Temperature_C ~ Treatment + (1|Rep), data = hobo_sampling, REML=FALSE)
+#hobo_sampling <- within(hobo_sampling, Treatment <- relevel(factor(Treatment), ref = "Warmed_Drought"))
+m.hobo.test <- lmer(Temperature_C ~ Treatment + (1|Rep), data = hobo_sampling_VOC, REML=FALSE)
 anova(m.hobo.test)
 summary(m.hobo.test)
 hist(resid(m.hobo.test))
 shapiro.test(resid(m.hobo.test)) # still not normal, but going with this model
 descdist(resid(m.hobo.test), discrete = FALSE)
 emmeans(m.hobo.test, list(pairwise ~ Treatment), adjust = "tukey")
+################################################################################
 
+# select just for 2022 data
+hobo_sampling_2022 <- hobo_data %>%
+        filter(year == 2022)
+soil_sampling_VOC <- soil_data %>%
+        filter(year == 2022)
 
+# HOBO model exploration for air temperature
+descdist(hobo_sampling_2022$Temperature_C, discrete = FALSE)
+hist(hobo_sampling_2022$Temperature_C)
+qqnorm(hobo_sampling_2022$Temperature_C)
+shapiro.test(hobo_sampling_2022$Temperature_C)
+m.hobo.test <- lmer(Temperature_C ~ Treatment + (1|Rep), data = hobo_sampling_2022, REML=FALSE)
+anova(m.hobo.test)
+summary(m.hobo.test)
+hist(resid(m.hobo.test))
+shapiro.test(resid(m.hobo.test))
+descdist(resid(m.hobo.test), discrete = FALSE)
+emmeans(m.hobo.test, list(pairwise ~ Treatment), adjust = "tukey")
 
 

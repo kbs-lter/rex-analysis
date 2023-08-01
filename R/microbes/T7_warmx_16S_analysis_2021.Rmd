@@ -802,15 +802,20 @@ plot_richness(ps.rarefied, x="Drought", measures=c("Observed", "Shannon")) + geo
 plot_richness(ps.rarefied, x="Subplot_Descriptions", measures=c("Observed")) + geom_boxplot() + facet_grid(.~Drought)
 plot_richness(ps.rarefied, x="Subplot_Descriptions", measures=c("Shannon")) + geom_boxplot() + facet_grid(.~Drought)
 
-#png("T7_warmx_16S_observed_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
+png("T7_warmx_16S_observed_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
 plot_richness(ps.rarefied, x="Drought", measures=c("Observed")) + 
         geom_boxplot(aes(fill = Subplot_Descriptions)) + 
         labs(y = "Observed OTUs", x = "Time of Sampling") +
         facet_grid(.~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
         scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
         "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
-        theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-#dev.off()
+        theme(legend.position = "none", 
+              axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 15),
+              axis.text.y = element_text(size = 12),
+              axis.title.x = element_text(size=12),
+              axis.title.y = element_text(size=12),
+              strip.text.x = element_text(size = 12, face = "italic"))
+dev.off()
 
 #png("T7_warmx_16S_shannon_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
 plot_richness(ps.rarefied, x="Drought", measures=c("Shannon")) + 
@@ -913,6 +918,10 @@ plot_ordination(ps.rarefied_nopredrought, ordination, color="Subplot_Description
         #     y="Axis 2") +
         theme(aspect.ratio=1)
 #dev.off()
+
+# Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
+set.seed(22)
+adonis2(weighted_unifrac_dist ~ sample_data(ps.rarefied_nopredrought)$Subplot_Descriptions + sample_data(ps.rarefied_nopredrought)$Drought)
 ```
 
 
@@ -962,6 +971,8 @@ anosim(dist, metadata$Drought)
 # Convert phyloseq data to DESeq2 dds (dds = DESeq2 Data Set) object
 # Note - cannot use phyloseq object that has sample data ordered or the line of code will not work
 # Re line 102
+# x <- factor( x , ordered = FALSE )
+sample_data(data_16S_filtered_nopredrought) <- factor(sample_data(data_16S_filtered_nopredrought), ordered = FALSE)
 dds <- phyloseq_to_deseq2(data_16S_filtered_nopredrought, ~ Subplot_Descriptions + Drought)
 dds <- DESeq(dds, 
              fitType="parametric")
