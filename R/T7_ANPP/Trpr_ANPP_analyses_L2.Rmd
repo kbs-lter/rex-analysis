@@ -3,6 +3,8 @@ title: "REX: T7 Red Clover ANPP Analyses"
 author: "Moriah Young"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: pdf_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 COLLABORATORS: Kara Dobson, Phoebe Zarnetske, Mark Hammond
@@ -45,6 +47,7 @@ list.files(dir)
 # Read in data
 anpp19 <- read.csv(file.path(dir, "T7_ANPP/L1/T7_warmx_ANPP_2019_L1.csv")) # 2019 ANPP data
 anpp21 <- read.csv(file.path(dir, "T7_ANPP/L1/T7_warmx_ANPP_2021_L1.csv")) # 2021 ANPP data
+anpp22 <- read.csv(file.path(dir, "T7_ANPP/L1/T7_warmx_ANPP_2022_L1.csv")) # 2022 ANPP data
 meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
 
 # Specifying the order that we want the treatments to be listed in the figures on the x-axis
@@ -413,3 +416,48 @@ m2 <- lmer(Biomass ~ Subplot_Descriptions + (1|Replicate/Footprint_Location), da
 summary(m2)
 emmeans(m2, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
 ```
+
+
+2022 TRPR data
+```{r}
+# selecting for only red clover
+trfpr_anpp <- anpp22 %>% 
+  filter(Species_Code == 'TRFPR')
+  
+# removing unwanted treatments
+trfpr_anpp_noinsect <- trfpr_anpp %>%
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
+```
+
+Model Exploration
+```{r}
+#### Data exploration ###
+# checking raw data
+hist(trfpr_anpp_noinsect$Dried_Plant_Biomass_g)
+qqnorm(trfpr_anpp_noinsect$Dried_Plant_Biomass_g)
+
+# Exploring distributions for these data:
+descdist(trfpr_anpp_noinsect$Dried_Plant_Biomass_g, discrete = FALSE)
+
+# checking model with log transformation (untransformed data was right skewed)
+# is it normally distributed? no
+m1 <- lm(sqrt(Dried_Plant_Biomass_g) ~ Subplot_Descriptions, data=trfpr_anpp_noinsect)
+outlierTest(m1)
+hist(resid(m1))
+qqnorm(resid(m1))
+shapiro.test(resid(m1))
+# homogeneity of variance? yes if p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1) ~ trfpr_anpp_noinsect$Subplot_Descriptions)
+
+m_plot1 <- lmer(sqrt(Dried_Plant_Biomass_g) ~ Subplot_Descriptions + (1|Rep/Footprint_Location), data=trfpr_anpp_noinsect, REML=F)
+hist(resid(m_plot1))
+shapiro.test(resid(m_plot1))
+summary(m_plot1)
+anova(m_plot1)
+emmeans(m_plot1, list(pairwise ~ Subplot_Descriptions), adjust = "tukey")
+```
+
+
