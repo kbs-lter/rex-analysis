@@ -69,6 +69,35 @@ soil_moisture_avg_noinsect <- filter(soil_moisture_avg, Subplot_Description%in%c
         
 ```
 
+Subtracting peak drought from post drought to get difference
+```{r}
+soil_moisture_diff <- soil_moisture_avg_noinsect
+soil_moisture_diff <- soil_moisture_diff %>%
+  group_by(Subplot_Description) %>%
+        mutate(diff = avg_soil_moisture[time_of_sampling == "Post Drought"] - avg_soil_moisture[time_of_sampling == "Peak Drought"])
+# warmed drought had the smallest increase
+
+hist(soil_moisture_diff$diff)
+qqnorm(soil_moisture_diff$diff)
+
+# Exploring distributions for these data:
+descdist(soil_moisture_diff$diff, discrete = FALSE)
+
+# checking model with log transformation (untransformed data was right skewed)
+# is it normally distributed? no
+m1 <- lm(diff ~ Subplot_Description, data=soil_moisture_diff)
+outlierTest(m1)
+hist(resid(m1))
+qqnorm(resid(m1))
+shapiro.test(resid(m1))
+# homogeneity of variance? yes if p >0.05 (no significant difference between the group variances)
+leveneTest(residuals(m1) ~ soil_moisture_diff$Subplot_Description) # no but it's close
+
+anova(m1)
+emmeans(m1, list(pairwise ~ Subplot_Description), adjust = "tukey")
+
+```
+
 Plot average soil moisture by treatment and drought timing - peak vs post drought
 ```{r}
 png("T7_warmx_avg_soil_moisture_2022.png", units="in", width=14, height=8, res=300)

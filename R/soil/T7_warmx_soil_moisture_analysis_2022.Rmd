@@ -3,6 +3,8 @@ title: "T7 warmx soil moisture analysis"
 author: "Moriah Young"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: pdf_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -86,6 +88,7 @@ shapiro.test(resid(m_plot3))
 anova(m_plot3)
 summary(m_plot3)
 emmeans(m_plot3, list(pairwise ~ Subplot_Description), adjust = "tukey")
+emmeans(m_plot3, list(pairwise ~ time_of_sampling), adjust = "tukey")
 emmeans(m_plot3, list(pairwise ~ Subplot_Description * time_of_sampling))
 #anpp_plot <- within(anpp_plot, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "warmed"))
 ```
