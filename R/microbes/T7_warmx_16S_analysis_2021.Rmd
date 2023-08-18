@@ -36,6 +36,7 @@ library(phylosmith)
 library(qiime2R)
 library(tidyverse)
 library(vegan)
+library(emmeans)
 library(zCompositions)
 library(microViz)
 library(DESeq2)
@@ -780,6 +781,33 @@ data_16S_filtered_no_insect_noIRC <- subset_samples(data_16S_filtered_noinsect, 
 data_16S_filtered_noinsect_peakdrought <- subset_samples(data_16S_filtered, Drought%in%c("Peak-Drought"))
 summarize_phyloseq(data_16S_filtered_noinsect_peakdrought)
 
+#####
+data_16S_filtered_noinsect_peakdrought_wd <- subset_samples(data_16S_filtered, Drought%in%c("Peak-Drought", "Post-Drought"))
+
+data_16S_filtered_noinsect_peakdrought_wd <- subset_samples(data_16S_filtered_noinsect_peakdrought_wd, Subplot_Descriptions%in%c("drought", "warmed"))
+
+## Brandon's mess
+otu_table <- t(as(data_16S_filtered_noinsect_peakdrought_wd@otu_table, "matrix"))
+otu_table <- as.data.frame(otu_table)
+
+library(hillR)
+shan <- hill_taxa(otu_table, q=1)
+shan <- merge(data_16S_filtered_noinsect_peakdrought_wd@sam_data, shan, by = 0)
+
+shan %>%
+        ggplot(aes(x=Drought, y = y, fill = Subplot_Descriptions)) +
+        geom_boxplot()
+
+mod <- lm(y ~ Drought * Subplot_Descriptions + 0, data = shan)
+aov <- aov(y ~ Drought * Subplot_Descriptions, data = shan)
+summary(aov)
+
+# comparisons
+emmeans(aov, list(pairwise ~ Drought*Subplot_Descriptions), adjust = "tukey")
+mod_aov.emm <- emmeans(aov, ~ Drought*Subplot_Descriptions)
+contrast(mod_aov.emm, "consec", simple = "each", combine = F, adjust = "mvt")
+emmip(mod_aov.emm, Drought ~ Subplot_Descriptions)
+
 # removing just pre drought
 data_16S_filtered_nopredrought <- subset_samples(data_16S_filtered_noinsect, Drought%in%c("Peak-Drought", "Post-Drought", "Recovery"))
 summarize_phyloseq(data_16S_filtered_nopredrought)
@@ -1070,7 +1098,6 @@ summary(sigtab_results)
 sigtab_results_TAX <- cbind(as(sigtab_results, "data.frame"), as(tax_table(data_16S_filtered_noinsect)[row.names(sigtab_results), ], "matrix"))
 sigtab_results_TAX_genra <- subset(sigtab_results_TAX, !is.na(Genus))
 
-
 # Order Genus 
 x <- tapply(sigtab_results_TAX_genra$log2FoldChange, sigtab_results_TAX_genra$Class, function(x) max(x))
 x <- sort(x, TRUE)
@@ -1117,6 +1144,10 @@ summary(sigtab_results1)
 sigtab_results_TAX1 <- cbind(as(sigtab_results1, "data.frame"), as(tax_table(data_16S_filtered_noinsect)[row.names(sigtab_results1), ], "matrix"))
 sigtab_results_TAX_genra1 <- subset(sigtab_results_TAX1, !is.na(Genus))
 
+# Order Phylum
+x <- tapply(sigtab_results_TAX_genra$log2FoldChange, sigtab_results_TAX_genra$Phylum, function(x) max(x))
+x <- sort(x, TRUE)
+sigtab_results_TAX_genra$Class <- factor(as.character(sigtab_results_TAX_genra$Phylum), levels=names(x))
 # Order Genus 
 x <- tapply(sigtab_results_TAX_genra1$log2FoldChange, sigtab_results_TAX_genra1$Class, function(x) max(x))
 x <- sort(x, TRUE)
@@ -1144,7 +1175,7 @@ knitr::kable(head(df2)) %>%
 
 png("diff_abun_irrigated_drought.png", units="in", width=14, height=7, res=300)
 ggplot(sigtab_results_TAX_genra1, aes(x=Class, y=log2FoldChange, color=Phylum)) + 
-        geom_point(size=3) + 
+        geom_point(size=5) + 
         geom_hline(yintercept=0, linewidth=1) +
         annotate("text", x = 30, y=15, label = "Irrigated Control", size=4) +
         annotate("text", x = 30, y=-5, label = "Drought", size=4) +
@@ -1296,8 +1327,8 @@ knitr::kable(head(df5)) %>%
 ggplot(sigtab_results_TAX_genra4, aes(x=Class, y=log2FoldChange, color=Phylum)) + 
         geom_point(size=3) + 
         geom_hline(yintercept=0, linewidth=1) +
-        #annotate("text", x = 40, y=15, label = "Drought", size=4) +
-        #annotate("text", x = 40, y=-5, label = "Warmed", size=4) +
+        annotate("text", x = 40, y=15, label = "Drought", size=4) +
+        annotate("text", x = 40, y=-5, label = "Warmed", size=4) +
         scale_colour_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
                                      "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4", "aquamarine", "darkmagenta", "gold", "mediumblue", "salmon", "deepskyblue", "darkseagreen", "gray0", "darkslategrey", "firebrick2")) +
         theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
