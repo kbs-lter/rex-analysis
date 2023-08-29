@@ -129,6 +129,9 @@ Adding soil temp below but separate script already exists
 # Read in data
 soiltemp <- read.csv(file.path(dir, "sensors/OTC Footprints/L1/T7_warmx_soil_sensors_L1.csv")) 
 
+# remove irrigated control treatments to match air temp graph above
+soiltemp <- soiltemp[!(soiltemp$Subplot_Descriptions == "irrigated_control"),]
+
 # re-making the data column a date
 soiltemp$Date_Time <- as.POSIXct(soiltemp$sample_datetime, format = "%Y-%m-%d %H:%M:%S")
 str(soiltemp)
@@ -160,8 +163,8 @@ soil_growing_season <-
         geom_line(linewidth = 1) +
         geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp), width=0.1, color="black", linetype="solid") +
         scale_color_manual(name="Treatment",
-                     values = c("#00008B","#a6bddb", "#687689", "#fb6a4a", "#9D422E"),
-                     labels=c("Irrigated Control", "Ambient","Drought","Warmed", "Warmed Drought")) +
+                     values = c("#a6bddb", "#687689", "#fb6a4a", "#9D422E"),
+                     labels=c("Ambient","Drought","Warmed", "Warmed Drought")) +
         labs(y="Soil Temperature (°C)", x= "Month") +
         theme_bw() +
         theme(axis.title = element_text(size=17),
