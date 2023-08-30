@@ -56,7 +56,7 @@ Read QZA files into dataframe and re-upload them as .csv files
 # the qza files are found in the qiime2 artifacts folder in the L1 folder in the REX data microbes folder and also on my hpcc account
 #SVs16S <- read_qza("/Users/moriahyoung/Downloads/16S-2021-merged-dada2table.qza")
 #SVs16Stable <- SVs16S$data
-#write.csv(SVs16Stable, file = "/Users/moriahyoung/Downloads/16S-merged-dada2table.csv") # I think I renamed this to "16S-merged-table.csv"
+#write.csv(SVs16Stable, file = "/Users/moriahyoung/Downloads/16S-merged-dada2table.csv")
 
 #taxonomy16S <- read_qza("/Users/moriahyoung/Downloads/16S-taxonomy.qza")
 #tax16S <- taxonomy16S$data %>% as_tibble() %>%
