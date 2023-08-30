@@ -36,7 +36,6 @@ library(phylosmith)
 library(qiime2R)
 library(tidyverse)
 library(vegan)
-library(emmeans)
 library(zCompositions)
 library(microViz)
 library(DESeq2)
@@ -50,10 +49,9 @@ dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
 ```
 
-Read QZA files into dataframe and re-upload them as .csv files
+Read QZA files into dataframe, re-format taxonomic tables, and re-upload them as .csv files
 ```{r}
 # Code below you only need to do once so it's # out as to not have to run every time
-# the qza files are found in the qiime2 artifacts folder in the L1 folder in the REX data microbes folder and also on my hpcc account
 #SVs16S <- read_qza("/Users/moriahyoung/Downloads/16S-2021-merged-dada2table.qza")
 #SVs16Stable <- SVs16S$data
 #write.csv(SVs16Stable, file = "/Users/moriahyoung/Downloads/16S-merged-dada2table.csv")
@@ -65,6 +63,11 @@ Read QZA files into dataframe and re-upload them as .csv files
 #  mutate(Phylum=replace_na(Phylum,"empty"))
 #write.csv(tax16S, file = "/Users/moriahyoung/Downloads/16S-taxonomy.csv", row.names =F)
 
+physeq_tree <- qza_to_phyloseq(
+        tree = "/Users/moriahyoung/Desktop/physeq_object/16S-2021-fasttree-rooted-tree.qza"
+        )
+physeq_tree
+
 # create phyloseq object
 #data_16S_unfiltered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Downloads/16S-merged-dada2table.csv",
 #                                         taxonomy.file = "/Users/moriahyoung/Downloads/16S-taxonomy.csv",
@@ -72,8 +75,9 @@ Read QZA files into dataframe and re-upload them as .csv files
 #summarize_phyloseq(data_16S_unfiltered)
 ```
 
-Re-format taxonomic tables & filter data
 ```{r}
+# filter data
+
 # filter out non bacteria
 #data_16S_uf1 <- subset_taxa(data_16S_unfiltered, Kingdom == "Bacteria" | Kingdom == "Archaea")
 #data_16S_uf2 <- subset_taxa(data_16S_uf1, Kingdom != "Eukaryota")
@@ -88,20 +92,11 @@ Re-format taxonomic tables & filter data
 # Export filtered data
 # write.csv(data_16S_uf5@otu_table, "/Users/moriahyoung/Desktop/16S-merged-table-filtered.csv")
 # write.csv(data_16S_uf5@tax_table, "/Users/moriahyoung/Desktop/16S-taxonomy-filtered.csv")
-# uploaded these to REX google shared drive
-```
-
-# Create phyloseq object with filtered data
-```{r}
-# read in phylogenetic tree qza 
-physeq_tree <- qza_to_phyloseq(
-        tree = "/Users/moriahyoung/Desktop/physeq_object/16S-2021-fasttree-rooted-tree.qza"
-        )
-physeq_tree
+# upload these to REX google shared drive
 
 taxonomy <- read.csv("/Users/moriahyoung/Desktop/physeq_object/16S-taxonomy-filtered.csv")
 
-# Create phyloseq objects of filtered data (16S)
+# Create phyloseq objects of filtered data (16S and ITS)
 data_16S_filtered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/physeq_object/16S-merged-table-filtered.csv",
                                        taxonomy.file = "/Users/moriahyoung/Desktop/physeq_object/16S-taxonomy-filtered.csv",
                                        metadata.file = "/Users/moriahyoung/Desktop/physeq_object/16S_2021_metadata.csv")
@@ -110,11 +105,7 @@ summarize_phyloseq(data_16S_filtered)
 # merge the phyloseq object with the phylogenetic tree with the other phyloseq object
 data_16S_filtered <- merge_phyloseq(data_16S_filtered, physeq_tree)
 summarize_phyloseq(data_16S_filtered)
-```
 
-Order sample data
-Don't do the below code if you're working on differential abundance
-```{r}
 # order sample data - "Drought" and "Subplot_Descriptions"
 sample_data(data_16S_filtered)$Drought <- ordered(sample_data(data_16S_filtered)$Drought, c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"))
 sample_data(data_16S_filtered)$Subplot_Descriptions <- ordered(sample_data(data_16S_filtered)$Subplot_Descriptions, c("irrigated_control", "ambient", "warmed", "warmed_insecticide", "insecticide", "drought", "warmed_drought", "drought_insecticide", "warmed_drought_insecticide"))
@@ -782,43 +773,15 @@ ggplot(sum4_noinsect, aes(x = Drought, y = means, fill = Genus)) +
 data_16S_filtered_noinsect <- subset_samples(data_16S_filtered, Subplot_Descriptions%in%c("ambient", "irrigated_control", "warmed_drought", "drought", "warmed"))
 summarize_phyloseq(data_16S_filtered_noinsect)
 
-# no irrigated control for balanced design in adonis2 restricted permutations
-data_16S_filtered_no_insect_noIRC <- subset_samples(data_16S_filtered_noinsect, Subplot_Descriptions%in%c("ambient", "warmed_drought", "drought", "warmed"))
-
 # just peak drought
-data_16S_filtered_noinsect_peakdrought <- subset_samples(data_16S_filtered, Drought%in%c("Peak-Drought"))
+data_16S_filtered_nona <- subset_samples(data_16S_filtered_noinsect, !is.na(Drought))
+data_16S_filtered_noinsect_peakdrought <- subset_samples(data_16S_filtered_nona, Drought == "Peak-Drought")
 summarize_phyloseq(data_16S_filtered_noinsect_peakdrought)
-
-#####
-data_16S_filtered_noinsect_peakdrought_wd <- subset_samples(data_16S_filtered, Drought%in%c("Peak-Drought", "Post-Drought"))
-
-data_16S_filtered_noinsect_peakdrought_wd <- subset_samples(data_16S_filtered_noinsect_peakdrought_wd, Subplot_Descriptions%in%c("drought", "warmed"))
-
-## Brandon's mess
-otu_table <- t(as(data_16S_filtered_noinsect_peakdrought_wd@otu_table, "matrix"))
-otu_table <- as.data.frame(otu_table)
-
-library(hillR)
-shan <- hill_taxa(otu_table, q=1)
-shan <- merge(data_16S_filtered_noinsect_peakdrought_wd@sam_data, shan, by = 0)
-
-shan %>%
-        ggplot(aes(x=Drought, y = y, fill = Subplot_Descriptions)) +
-        geom_boxplot()
-
-mod <- lm(y ~ Drought * Subplot_Descriptions + 0, data = shan)
-aov <- aov(y ~ Drought * Subplot_Descriptions, data = shan)
-summary(aov)
-
-# comparisons
-emmeans(aov, list(pairwise ~ Drought*Subplot_Descriptions), adjust = "tukey")
-mod_aov.emm <- emmeans(aov, ~ Drought*Subplot_Descriptions)
-contrast(mod_aov.emm, "consec", simple = "each", combine = F, adjust = "mvt")
-emmip(mod_aov.emm, Drought ~ Subplot_Descriptions)
 
 # removing just pre drought
 data_16S_filtered_nopredrought <- subset_samples(data_16S_filtered_noinsect, Drought%in%c("Peak-Drought", "Post-Drought", "Recovery"))
 summarize_phyloseq(data_16S_filtered_nopredrought)
+
 
 ```
 
@@ -921,44 +884,18 @@ adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Subplot_Descriptions + sample_d
 # Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
 set.seed(22)
 adonis2(weighted_unifrac_dist ~ sample_data(ps.rarefied)$Subplot_Descriptions + sample_data(ps.rarefied)$Drought)
-```
-
-Beta Diversity - no insecticide plots and no irrigated control
-```{r}
-#  Rarefy the samples without replacement. Rarefaction is used to simulate even number of reads per sample. The rarefaction depth chosen is the 90% of the minimum sample depth in the dataset.
-ps.rarefied_no_insect_noIRC = rarefy_even_depth(data_16S_filtered_no_insect_noIRC, rngseed=1, sample.size = 0.9*min(sample_sums(data_16S_filtered_no_insect_noIRC)), replace=F)
-
-# PCoA plot using WEIGHTED UniFrac as distance
-weighted_unifrac_dist_no_insect_noIRC = phyloseq::distance(ps.rarefied_no_insect_noIRC, method="unifrac", weighted=T)
-ordination = ordinate(ps.rarefied_no_insect_noIRC, method="PCoA", distance=weighted_unifrac_dist_no_insect_noIRC)
-
-#png("T7_warmx_16S_pcoa_weighted_unifrac_no_insects.png", units="in", width=10, height=6, res=300)
-plot_ordination(ps.rarefied_no_insect_noIRC, ordination, color="Subplot_Descriptions", shape = "Drought") + 
-        geom_point(aes(color = Subplot_Descriptions, shape = Drought), size=4, alpha=0.75) +
-        #stat_ellipse() +
-        scale_colour_manual(name = "Subplot Descriptions", 
-                          breaks = c("irrigated_control", "ambient", "warmed", "drought", "warmed_drought"),
-                          labels = c("Irrigated Control", "Ambient", "Warmed", "Drought", "Warmed + Drought"),
-                          values = c("ambient" = "darkblue", "drought" = "gray58", "warmed" = "red2", "warmed_drought" = "darkred")) +
-        
-        #labs(x="Axis 1",
-        #     y="Axis 2") +
-        theme(aspect.ratio=1)
-#dev.off()
 
 # trying Jennifer's code below:
-# https://uw.pressbooks.pub/appliedmultivariatestatistics/chapter/restricting-permutations/
+#bray.dist <- phyloseq::distance(ps.rarefied, method = "bray”)
 
-set.seed(53)
+#set.seed(53)
+
 # setting up the permutation object
-perm1 <- with(sample_data(ps.rarefied_no_insect_noIRC), how(blocks = Replicate, plots = Plots(strata = Footprint_Location, type = "free"), nperm = 9999))
+#perm1 <- with(sample_data(ps.rarefied), how(blocks = Replicate, plots = Plots(strata = Footprint, #type="free”), nperm = 9999))
 
-# code wont work below - says its unbalanced
-adonis2(weighted_unifrac_dist_no_insect_noIRC ~ sample_data(ps.rarefied_no_insect_noIRC)$Subplot_Descriptions*sample_data(ps.rarefied_no_insect_noIRC)$Drought, by = "margin", permutations = perm1)
-
-#If the interaction is not significant, you should rerun the model without the interaction. For this #code, if the interaction is not significant, it won’t show you if the main effects are significant. 
+#adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Footprint*sample_data(ps.rarefied)$Subplot, by = #"margin”, permutations = #perm1) 
+#If the interaction is not significant, you should rerun the model without the interaction. For this code, if the interaction is not significant, it won’t show you if the main effects are significant. 
 ```
-
 
 PCoA excluding pre drought data
 ```{r}
@@ -1037,7 +974,8 @@ anosim(dist, metadata$Drought)
 # x <- factor( x , ordered = FALSE )
 sample_data(data_16S_filtered_nopredrought) <- factor(sample_data(data_16S_filtered_nopredrought), ordered = FALSE)
 dds <- phyloseq_to_deseq2(data_16S_filtered_nopredrought, ~ Subplot_Descriptions + Drought)
-dds <- DESeq(dds, fitType="parametric")
+dds <- DESeq(dds, 
+             fitType="parametric")
 alpha = 0.01
 res = results(dds)
 summary(res)
@@ -1102,7 +1040,6 @@ diagdds = DESeq(diagdds, fitType="parametric")
 results <- results(diagdds, alpha = 0.01, contrast = c("Subplot_Descriptions", "drought", "warmed"))
 sigtab_results <- results[which(results$padj < 0.01), ]
 #sigtab_results_drought_vs_warmed <- results[which(results$padj < 0.01), ]
-summary(sigtab_results)
 sigtab_results_TAX <- cbind(as(sigtab_results, "data.frame"), as(tax_table(data_16S_filtered_noinsect)[row.names(sigtab_results), ], "matrix"))
 sigtab_results_TAX_genra <- subset(sigtab_results_TAX, !is.na(Genus))
 
@@ -1135,27 +1072,22 @@ png("diff_abun_warmed_drought_1.png", units="in", width=14, height=7, res=300)
 ggplot(sigtab_results_TAX_genra, aes(x=Class, y=log2FoldChange, color=Phylum)) + 
         geom_point(size=3) + 
         geom_hline(yintercept=0, linewidth=1) +
-        #annotate("text", x = 40, y=15, label = "Drought", size=4) +
-        #annotate("text", x = 40, y=-5, label = "Warmed", size=4) +
+        annotate("text", x = 40, y=15, label = "Drought", size=4) +
+        annotate("text", x = 40, y=-5, label = "Warmed", size=4) +
         scale_colour_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
                                      "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4", "aquamarine", "darkmagenta", "gold", "mediumblue", "salmon", "deepskyblue", "darkseagreen", "gray0", "darkslategrey", "firebrick2")) +
         theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
 dev.off()
 ```
 
-# DIFFERENTIAL ABUNDANCE - irrigated_control vs drought
+# DIFFERENTIAL ABUNDANCE - ambient vs drought
 ```{r}
-results1 <- results(diagdds, alpha = 0.01, contrast = c("Subplot_Descriptions", "irrigated_control", "drought"))
+results1 <- results(diagdds, alpha = 0.01, contrast = c("Subplot_Descriptions", "ambient", "drought"))
 sigtab_results1 <- results1[which(results1$padj < 0.01), ]
 #sigtab_results_ambient_vs_drought <- results[which(results$padj < 0.01), ]
-summary(sigtab_results1)
 sigtab_results_TAX1 <- cbind(as(sigtab_results1, "data.frame"), as(tax_table(data_16S_filtered_noinsect)[row.names(sigtab_results1), ], "matrix"))
 sigtab_results_TAX_genra1 <- subset(sigtab_results_TAX1, !is.na(Genus))
 
-# Order Phylum
-x <- tapply(sigtab_results_TAX_genra$log2FoldChange, sigtab_results_TAX_genra$Phylum, function(x) max(x))
-x <- sort(x, TRUE)
-sigtab_results_TAX_genra$Class <- factor(as.character(sigtab_results_TAX_genra$Phylum), levels=names(x))
 # Order Genus 
 x <- tapply(sigtab_results_TAX_genra1$log2FoldChange, sigtab_results_TAX_genra1$Class, function(x) max(x))
 x <- sort(x, TRUE)
@@ -1181,26 +1113,23 @@ knitr::kable(head(df2)) %>%
   kableExtra::kable_styling("striped") %>% 
   kableExtra::scroll_box(width = "100%")
 
-png("diff_abun_irrigated_drought.png", units="in", width=14, height=7, res=300)
+png("diff_abun_ambient_drought.png", units="in", width=14, height=7, res=300)
 ggplot(sigtab_results_TAX_genra1, aes(x=Class, y=log2FoldChange, color=Phylum)) + 
-        geom_point(size=5) + 
+        geom_point(size=3) + 
         geom_hline(yintercept=0, linewidth=1) +
-        annotate("text", x = 30, y=15, label = "Irrigated Control", size=4) +
-        annotate("text", x = 30, y=-5, label = "Drought", size=4) +
+        annotate("text", x = 10, y=15, label = "Ambient", size=4) +
+        annotate("text", x = 10, y=-5, label = "Drought", size=4) +
         scale_colour_manual(values = c("firebrick4","tomato", "olivedrab1", "orange1" ,"deepskyblue", "khaki1",
-                                     "forestgreen", "darkorange3", "midnightblue", "powderblue", "mediumorchid4", "aquamarine", "deeppink", "gold", "mediumblue", "salmon", "goldenrod4", "darkseagreen", "gray0", "darkslategrey", "firebrick2")) +
+                                     "forestgreen", "darkorange3", "midnightblue", "powderblue", "mediumorchid4", "aquamarine", "darkmagenta", "gold", "mediumblue", "salmon", "goldenrod4", "darkseagreen", "gray0", "darkslategrey", "firebrick2")) +
         theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
 dev.off()
-# 50 OTUs are enriched in irrigated control (adj p-value < 0.01)
-# 41 OTUs are enriched in drought (adj p-value < 0.01)
 ```
 
-# DIFFERENTIAL ABUNDANCE - irrigated control vs warmed
+# DIFFERENTIAL ABUNDANCE - ambient vs warmed
 ```{r}
-results2 <- results(diagdds, alpha = 0.01, contrast = c("Subplot_Descriptions", "irrigated_control", "warmed"))
+results2 <- results(diagdds, alpha = 0.01, contrast = c("Subplot_Descriptions", "ambient", "warmed"))
 sigtab_results2 <- results2[which(results2$padj < 0.01), ]
 #sigtab_results_ambient_vs_warmed <- results[which(results$padj < 0.01), ]
-summary(sigtab_results2)
 sigtab_results_TAX2 <- cbind(as(sigtab_results2, "data.frame"), as(tax_table(data_16S_filtered_noinsect)[row.names(sigtab_results2), ], "matrix"))
 sigtab_results_TAX_genra2 <- subset(sigtab_results_TAX2, !is.na(Genus))
 
@@ -1229,30 +1158,27 @@ knitr::kable(head(df3)) %>%
   kableExtra::kable_styling("striped") %>% 
   kableExtra::scroll_box(width = "100%")
 
-png("diff_abun_irrigated_warmed.png", units="in", width=14, height=7, res=300)
+png("diff_abun_ambient_warmed.png", units="in", width=14, height=7, res=300)
 ggplot(sigtab_results_TAX_genra2, aes(x=Class, y=log2FoldChange, color=Phylum)) + 
         geom_point(size=3) + 
         geom_hline(yintercept=0, linewidth=1) +
-        annotate("text", x = 25, y=10, label = "Irrigated Control", size=4) +
-        annotate("text", x = 25, y=-5, label = "Warmed", size=4) +
+        annotate("text", x = 20, y=10, label = "Ambient", size=4) +
+        annotate("text", x = 20, y=-5, label = "Warmed", size=4) +
         scale_colour_manual(values = c("firebrick4","tomato", "olivedrab1", "orange1" ,"deepskyblue", "khaki1",
                                      "forestgreen", "darkorange3", "midnightblue", "powderblue", "mediumorchid4", "aquamarine", "darkmagenta", "gold", "mediumblue", "salmon", "goldenrod4", "darkseagreen", "gray0", "darkslategrey", "firebrick2", "lightslateblue")) +
         theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
 dev.off()
-# 62 OTUs are enriched in irrigated control (adj p-value < 0.01)
-# 34 OTUs are enriched in warmed (adj p-value < 0.01)
 ```
 
-# DIFFERENTIAL ABUNDANCE - irrigated control vs warmed + drought
+# DIFFERENTIAL ABUNDANCE - ambient vs warmed + drought
 ```{r}
-results3 <- results(diagdds, alpha = 0.01, contrast = c("Subplot_Descriptions", "irrigated_control", "warmed_drought"))
+results3 <- results(diagdds, alpha = 0.01, contrast = c("Subplot_Descriptions", "ambient", "warmed_drought"))
 sigtab_results3 <- results3[which(results3$padj < 0.01), ]
-summary(sigtab_results3)
 #sigtab_results_ambient_vs_warmed <- results[which(results$padj < 0.01), ]
 sigtab_results_TAX3 <- cbind(as(sigtab_results3, "data.frame"), as(tax_table(data_16S_filtered_noinsect)[row.names(sigtab_results3), ], "matrix"))
 sigtab_results_TAX_genra3 <- subset(sigtab_results_TAX3, !is.na(Genus))
 
-# Class order 
+# Order Genus 
 x <- tapply(sigtab_results_TAX_genra3$log2FoldChange, sigtab_results_TAX_genra3$Class, function(x) max(x))
 x <- sort(x, TRUE)
 sigtab_results_TAX_genra3$Class <- factor(as.character(sigtab_results_TAX_genra3$Class), levels=names(x))
@@ -1260,7 +1186,7 @@ sigtab_results_TAX_genra3$Class <- factor(as.character(sigtab_results_TAX_genra3
 x <- tapply(sigtab_results_TAX_genra3$log2FoldChange, sigtab_results_TAX_genra3$Genus, function(x) max(x))
 x <- sort(x, TRUE)
 sigtab_results_TAX_genra3$Genus <- factor(as.character(sigtab_results_TAX_genra3$Genus), levels=names(x))
-# Family order
+# Family
 x <- tapply(sigtab_results_TAX_genra3$log2FoldChange, sigtab_results_TAX_genra3$Family, function(x) max(x))
 x <- sort(x, TRUE)
 sigtab_results_TAX_genra3$Family <- factor(as.character(sigtab_results_TAX_genra3$Family), levels=names(x))
@@ -1277,18 +1203,16 @@ knitr::kable(head(df4)) %>%
   kableExtra::kable_styling("striped") %>% 
   kableExtra::scroll_box(width = "100%")
 
-png("diff_abun_irrigated_warmed_drought.png", units="in", width=14, height=7, res=300)
+png("diff_abun_ambient_warmed_drought.png", units="in", width=14, height=7, res=300)
 ggplot(sigtab_results_TAX_genra3, aes(x=Class, y=log2FoldChange, color=Phylum)) + 
         geom_point(size=3) + 
         geom_hline(yintercept=0, linewidth=1) +
-        annotate("text", x = 30, y=15, label = "Irrigated Control", size=4) +
-        annotate("text", x = 30, y=-5, label = "Warmed + Drought", size=4) +
+        annotate("text", x = 20, y=15, label = "Ambient", size=4) +
+        annotate("text", x = 20, y=-5, label = "Warmed + Drought", size=4) +
         scale_colour_manual(values = c("firebrick4","tomato", "olivedrab1", "orange1" ,"deepskyblue", "khaki1",
-                                     "forestgreen", "darkorange3", "midnightblue", "powderblue", "mediumorchid4", "aquamarine", "deeppink", "gold", "mediumblue", "salmon", "goldenrod4", "darkseagreen", "gray0", "darkslategrey", "firebrick2", "springgreen", "thistle1", "turquoise4")) +
+                                     "forestgreen", "darkorange3", "midnightblue", "powderblue", "mediumorchid4", "aquamarine", "darkmagenta", "gold", "mediumblue", "salmon", "goldenrod4", "darkseagreen", "gray0", "darkslategrey", "firebrick2", "springgreen", "thistle1", "turquoise4")) +
         theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
 dev.off()
-# 52 OTUs are enriched in irrigated control (adj p-value < 0.01)
-# 48 OTUs are enriched in warmed + drought (adj p-value < 0.01)
 ```
 
 # DIFFERENTIAL ABUNDANCE: ambient vs drought
@@ -1335,8 +1259,8 @@ knitr::kable(head(df5)) %>%
 ggplot(sigtab_results_TAX_genra4, aes(x=Class, y=log2FoldChange, color=Phylum)) + 
         geom_point(size=3) + 
         geom_hline(yintercept=0, linewidth=1) +
-        annotate("text", x = 40, y=15, label = "Drought", size=4) +
-        annotate("text", x = 40, y=-5, label = "Warmed", size=4) +
+        #annotate("text", x = 40, y=15, label = "Drought", size=4) +
+        #annotate("text", x = 40, y=-5, label = "Warmed", size=4) +
         scale_colour_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
                                      "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4", "aquamarine", "darkmagenta", "gold", "mediumblue", "salmon", "deepskyblue", "darkseagreen", "gray0", "darkslategrey", "firebrick2")) +
         theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust=0.5))
