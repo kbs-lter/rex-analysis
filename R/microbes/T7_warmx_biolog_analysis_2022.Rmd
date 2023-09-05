@@ -1,0 +1,176 @@
+---
+title: "Biolog Analysis Script"
+author: "Adrian Noecker"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+COLLABORATORS: Moriah Young, Phoebe Zarnetske, Mark Hammond, Taylor Ulbrich
+DATA INPUT:  csv from the shared Google drive  
+DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
+PROJECT: REX
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+#load packages
+library(car)
+library(tidyr)
+library(dplyr)
+library(vegan)
+library(tibble)
+library(plyr)
+library(readr)
+library(tidyverse)
+library(ggplot2)
+library(lsmeans)
+library(lme4)
+library(tibble)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+setwd(dir)
+
+## Read in data
+biolognowater <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/Biolog_data_NOWater_L1.csv"))
+
+standardbiolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/Biolog_data_L1.csv"))
+```
+
+#reformatting and checking absorbances
+```{r}
+#changing row name and reformatting, combine hour and ID to one column
+df <- biolognowater %>%
+  unite(SampleID_Hour, Biolog_column_ID, Hour, sep ="_", remove = FALSE)
+
+#renaming new column
+df$rowname <- df$SampleID_Hour
+
+#changing column to row
+biologmatrix<-column_to_rownames(df, "rowname")
+
+#Check control absorbances (all should == 0 if no contamination)
+biologcontrol <- biologmatrix %>% filter(Sample_ID=="BIOLOG CONTROL")
+####Tween 40, Tween 80, D Xylose, X4 Hydroxy Benzoic Acid, and X2 Hydroxy Benzoic Acid larger than 0.01 in a few controls, most hour 0 in plates 5, 7, 9, and 10 so maybe just the initial color of well and not contamination??
+
+#exclude controls for analysis
+biologsamples <- biologmatrix %>% filter(!Sample_ID %in% c("BIOLOG CONTROL"))
+```
+
+#grouping by  hour
+```{r}
+# split data by Hour so we can calculate AWCD by each Hour 
+biologHr0 <- filter(biologsamples, Hour == 0)
+biologHr24 <- filter(biologsamples, Hour == 24)
+biologHr48 <- filter(biologsamples, Hour == 48)
+biologHr72 <- filter(biologsamples, Hour == 72)
+biologHr96 <- filter(biologsamples, Hour == 96)
+biologHr120 <- filter(biologsamples, Hour == 120)
+biologHr144 <- filter(biologsamples, Hour == 144)
+biologHr168 <- filter(biologsamples, Hour == 168)
+
+```
+
+#Diversity Calculations seperated by hour
+```{r}
+###Hour 168
+# First, richness of subsrates used; add all indices as a column to the metadata file 
+Richness168hr<- rowSums(biologHr168[,-c(1:5)]>0)
+
+# Second, calculate shannon diversity 
+Shannon168hr <- diversity(biologHr168[,-c(1:5)], index = "shannon")
+
+# Third, calculate Average Well Color Development (mean color change across all 31 substrates)
+AWCD168hr <- apply(biologHr168[,-c(1:5)],1,mean)
+
+# merge diversity data with SampleID_Hour for 168hr
+biologHr168diversity <- cbind(biologHr168[1], Richness168hr, Shannon168hr, AWCD168hr)
+
+###Hour 144
+# First, richness of subsrates used; add all indices as a column to the metadata file 
+Richness144hr<- rowSums(biologHr144[,-c(1:5)]>0)
+
+# Second, calculate shannon diversity 
+Shannon144hr <- diversity(biologHr144[,-c(1:5)], index = "shannon")
+
+# Third, calculate Average Well Color Development (mean color change across all 31 substrates)
+AWCD144hr <- apply(biologHr144[,-c(1:5)],1,mean)
+
+# merge diversity data with SampleID_Hour for 168hr
+biologHr144diversity <- cbind(biologHr144[1], Richness144hr, Shannon144hr, AWCD144hr)
+
+###Hour 120
+# First, richness of subsrates used; add all indices as a column to the metadata file 
+Richness120hr<- rowSums(biologHr120[,-c(1:5)]>0)
+
+# Second, calculate shannon diversity 
+Shannon120hr <- diversity(biologHr120[,-c(1:5)], index = "shannon")
+
+# Third, calculate Average Well Color Development (mean color change across all 31 substrates)
+AWCD120hr <- apply(biologHr120[,-c(1:5)],1,mean)
+
+# merge diversity data with SampleID_Hour for 168hr
+biologHr120diversity <- cbind(biologHr120[1], Richness120hr, Shannon120hr, AWCD120hr)
+
+###Hour 96
+# First, richness of subsrates used; add all indices as a column to the metadata file 
+Richness96hr<- rowSums(biologHr96[,-c(1:5)]>0)
+
+# Second, calculate shannon diversity 
+Shannon96hr <- diversity(biologHr96[,-c(1:5)], index = "shannon")
+
+# Third, calculate Average Well Color Development (mean color change across all 31 substrates)
+AWCD96hr <- apply(biologHr96[,-c(1:5)],1,mean)
+
+# merge diversity data with SampleID_Hour for 168hr
+biologHr96diversity <- cbind(biologHr96[1], Richness96hr, Shannon96hr, AWCD96hr)
+
+###Hour 72
+# First, richness of subsrates used; add all indices as a column to the metadata file 
+Richness72hr<- rowSums(biologHr72[,-c(1:5)]>0)
+
+# Second, calculate shannon diversity 
+Shannon72hr <- diversity(biologHr72[,-c(1:5)], index = "shannon")
+
+# Third, calculate Average Well Color Development (mean color change across all 31 substrates)
+AWCD72hr <- apply(biologHr72[,-c(1:5)],1,mean)
+
+# merge diversity data with SampleID_Hour for 168hr
+biologHr72diversity <- cbind(biologHr72[1], Richness72hr, Shannon72hr, AWCD72hr)
+
+###Hour 48
+# First, richness of subsrates used; add all indices as a column to the metadata file 
+Richness48hr<- rowSums(biologHr48[,-c(1:5)]>0)
+
+# Second, calculate shannon diversity 
+Shannon48hr <- diversity(biologHr48[,-c(1:5)], index = "shannon")
+
+# Third, calculate Average Well Color Development (mean color change across all 31 substrates)
+AWCD48hr <- apply(biologHr48[,-c(1:5)],1,mean)
+
+# merge diversity data with SampleID_Hour for 168hr
+biologHr48diversity <- cbind(biologHr48[1], Richness48hr, Shannon48hr, AWCD48hr)
+
+###Hour 24
+# First, richness of subsrates used; add all indices as a column to the metadata file 
+Richness24hr<- rowSums(biologHr24[,-c(1:5)]>0)
+
+# Second, calculate shannon diversity 
+Shannon24hr <- diversity(biologHr24[,-c(1:5)], index = "shannon")
+
+# Third, calculate Average Well Color Development (mean color change across all 31 substrates)
+AWCD24hr <- apply(biologHr24[,-c(1:5)],1,mean)
+
+# merge diversity data with SampleID_Hour for 168hr
+biologHr24diversity <- cbind(biologHr24[1], Richness24hr, Shannon24hr, AWCD24hr)
+
+```
+
