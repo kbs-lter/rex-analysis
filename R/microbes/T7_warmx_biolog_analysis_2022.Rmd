@@ -63,6 +63,21 @@ biologcontrol <- biologmatrix %>% filter(Sample_ID=="BIOLOG CONTROL")
 
 #exclude controls for analysis
 biologsamples <- biologmatrix %>% filter(!Sample_ID %in% c("BIOLOG CONTROL"))
+
+#import meta data to get treatment type
+meta <- read.csv(file.path(dir, "/REX_warmx_metadata.csv"))
+                 
+#get rid of unneeded columns
+meta1 <- meta %>% select(Subplot_Descriptions, Unique_ID)
+
+#change date to hour 
+biologsamples <- merge(x=biologsamples,y=meta1, by.x=c('Plot_ID'), 
+      by.y=c('Unique_ID'))
+
+#change column order
+biologsamples <- biologsamples %>% relocate(Subplot_Descriptions, .after = Biolog_column_ID)
+
+
 ```
 
 #grouping by  hour
@@ -83,94 +98,143 @@ biologHr168 <- filter(biologsamples, Hour == 168)
 ```{r}
 ###Hour 168
 # First, richness of subsrates used; add all indices as a column to the metadata file 
-Richness168hr<- rowSums(biologHr168[,-c(1:5)]>0)
+Richness168hr<- rowSums(biologHr168[,-c(1:6)]>0)
 
 # Second, calculate shannon diversity 
-Shannon168hr <- diversity(biologHr168[,-c(1:5)], index = "shannon")
+Shannon168hr <- diversity(biologHr168[,-c(1:6)], index = "shannon")
 
 # Third, calculate Average Well Color Development (mean color change across all 31 substrates)
-AWCD168hr <- apply(biologHr168[,-c(1:5)],1,mean)
+AWCD168hr <- apply(biologHr168[,-c(1:6)],1,mean)
 
 # merge diversity data with SampleID_Hour for 168hr
-biologHr168diversity <- cbind(biologHr168[1], Richness168hr, Shannon168hr, AWCD168hr)
+biologHr168diversity <- cbind(biologHr168[1:6], Richness168hr, Shannon168hr, AWCD168hr)
 
 ###Hour 144
 # First, richness of subsrates used; add all indices as a column to the metadata file 
-Richness144hr<- rowSums(biologHr144[,-c(1:5)]>0)
+Richness144hr<- rowSums(biologHr144[,-c(1:6)]>0)
 
 # Second, calculate shannon diversity 
-Shannon144hr <- diversity(biologHr144[,-c(1:5)], index = "shannon")
+Shannon144hr <- diversity(biologHr144[,-c(1:6)], index = "shannon")
 
 # Third, calculate Average Well Color Development (mean color change across all 31 substrates)
-AWCD144hr <- apply(biologHr144[,-c(1:5)],1,mean)
+AWCD144hr <- apply(biologHr144[,-c(1:6)],1,mean)
 
 # merge diversity data with SampleID_Hour for 168hr
-biologHr144diversity <- cbind(biologHr144[1], Richness144hr, Shannon144hr, AWCD144hr)
+biologHr144diversity <- cbind(biologHr144[1:6], Richness144hr, Shannon144hr, AWCD144hr)
 
 ###Hour 120
 # First, richness of subsrates used; add all indices as a column to the metadata file 
-Richness120hr<- rowSums(biologHr120[,-c(1:5)]>0)
+Richness120hr<- rowSums(biologHr120[,-c(1:6)]>0)
 
 # Second, calculate shannon diversity 
-Shannon120hr <- diversity(biologHr120[,-c(1:5)], index = "shannon")
+Shannon120hr <- diversity(biologHr120[,-c(1:6)], index = "shannon")
 
 # Third, calculate Average Well Color Development (mean color change across all 31 substrates)
-AWCD120hr <- apply(biologHr120[,-c(1:5)],1,mean)
+AWCD120hr <- apply(biologHr120[,-c(1:6)],1,mean)
 
 # merge diversity data with SampleID_Hour for 168hr
-biologHr120diversity <- cbind(biologHr120[1], Richness120hr, Shannon120hr, AWCD120hr)
+biologHr120diversity <- cbind(biologHr120[1:6], Richness120hr, Shannon120hr, AWCD120hr)
 
 ###Hour 96
 # First, richness of subsrates used; add all indices as a column to the metadata file 
-Richness96hr<- rowSums(biologHr96[,-c(1:5)]>0)
+Richness96hr<- rowSums(biologHr96[,-c(1:6)]>0)
 
 # Second, calculate shannon diversity 
-Shannon96hr <- diversity(biologHr96[,-c(1:5)], index = "shannon")
+Shannon96hr <- diversity(biologHr96[,-c(1:6)], index = "shannon")
 
 # Third, calculate Average Well Color Development (mean color change across all 31 substrates)
-AWCD96hr <- apply(biologHr96[,-c(1:5)],1,mean)
+AWCD96hr <- apply(biologHr96[,-c(1:6)],1,mean)
 
 # merge diversity data with SampleID_Hour for 168hr
-biologHr96diversity <- cbind(biologHr96[1], Richness96hr, Shannon96hr, AWCD96hr)
+biologHr96diversity <- cbind(biologHr96[1:6], Richness96hr, Shannon96hr, AWCD96hr)
 
 ###Hour 72
 # First, richness of subsrates used; add all indices as a column to the metadata file 
-Richness72hr<- rowSums(biologHr72[,-c(1:5)]>0)
+Richness72hr<- rowSums(biologHr72[,-c(1:6)]>0)
 
 # Second, calculate shannon diversity 
-Shannon72hr <- diversity(biologHr72[,-c(1:5)], index = "shannon")
+Shannon72hr <- diversity(biologHr72[,-c(1:6)], index = "shannon")
 
 # Third, calculate Average Well Color Development (mean color change across all 31 substrates)
-AWCD72hr <- apply(biologHr72[,-c(1:5)],1,mean)
+AWCD72hr <- apply(biologHr72[,-c(1:6)],1,mean)
 
 # merge diversity data with SampleID_Hour for 168hr
-biologHr72diversity <- cbind(biologHr72[1], Richness72hr, Shannon72hr, AWCD72hr)
+biologHr72diversity <- cbind(biologHr72[1:6], Richness72hr, Shannon72hr, AWCD72hr)
 
 ###Hour 48
 # First, richness of subsrates used; add all indices as a column to the metadata file 
-Richness48hr<- rowSums(biologHr48[,-c(1:5)]>0)
+Richness48hr<- rowSums(biologHr48[,-c(1:6)]>0)
 
 # Second, calculate shannon diversity 
-Shannon48hr <- diversity(biologHr48[,-c(1:5)], index = "shannon")
+Shannon48hr <- diversity(biologHr48[,-c(1:6)], index = "shannon")
 
 # Third, calculate Average Well Color Development (mean color change across all 31 substrates)
-AWCD48hr <- apply(biologHr48[,-c(1:5)],1,mean)
+AWCD48hr <- apply(biologHr48[,-c(1:6)],1,mean)
 
 # merge diversity data with SampleID_Hour for 168hr
-biologHr48diversity <- cbind(biologHr48[1], Richness48hr, Shannon48hr, AWCD48hr)
+biologHr48diversity <- cbind(biologHr48[1:6], Richness48hr, Shannon48hr, AWCD48hr)
 
 ###Hour 24
 # First, richness of subsrates used; add all indices as a column to the metadata file 
-Richness24hr<- rowSums(biologHr24[,-c(1:5)]>0)
+Richness24hr<- rowSums(biologHr24[,-c(1:6)]>0)
 
 # Second, calculate shannon diversity 
-Shannon24hr <- diversity(biologHr24[,-c(1:5)], index = "shannon")
+Shannon24hr <- diversity(biologHr24[,-c(1:6)], index = "shannon")
 
 # Third, calculate Average Well Color Development (mean color change across all 31 substrates)
-AWCD24hr <- apply(biologHr24[,-c(1:5)],1,mean)
+AWCD24hr <- apply(biologHr24[,-c(1:6)],1,mean)
 
 # merge diversity data with SampleID_Hour for 168hr
-biologHr24diversity <- cbind(biologHr24[1], Richness24hr, Shannon24hr, AWCD24hr)
+biologHr24diversity <- cbind(biologHr24[1:6], Richness24hr, Shannon24hr, AWCD24hr)
+
+```
+
+#Looking at distribution of data
+```{r}
+###Starting with final reading (hour=168) 
+
+# test for normal residuals and equal variances (ANOVA assumptions)
+# normal residuals?
+library(ggpubr)
+ggqqplot(biologHr168diversity$Richness168hr)
+hist(biologHr168diversity$Richness168hr) ##slightly skewed left
+
+# Shapiro test - null hypothesis: residuals are normally distributed 
+require(lme4)
+require(lmerTest)
+model = lm(Richness168hr ~ Subplot_Descriptions, data = biologHr168diversity)
+res = model$residuals
+shapiro.test(res) 
+#p = 0.002237 so not normally distributed?
+
+
+# homogeneity of variances
+bartlett.test(Richness168hr ~ Subplot_Descriptions, data = biologHr168diversity) 
+# 0.6396 so all groups have same variance?
+
+#ANOVA
+Anova(model, type = "III")
+
+#Response: Richness for hour 168
+#                     Sum Sq Df F value    Pr(>F)    
+#(Intercept)          3750.0  1 79.9290 2.009e-08 ***
+#Subplot_Descriptions   53.0  3  0.3766    0.7709    
+#Residuals             938.3 20   
+
+# confidence intervals for every pairwise comparison
+tukey <- TukeyHSD(aov(Richness168hr ~ Subplot_Descriptions, data = biologHr168diversity))
+tukey
+plot(tukey)
+
+#Subplot_Descriptions
+#                            diff        lwr       upr     p adj
+#drought-ambient        -0.500000 -11.568683 10.568683 0.9992524
+#warmed-ambient         -3.833333 -14.902016  7.235349 0.7680882
+#warmed_drought-ambient -1.000000 -12.068683 10.068683 0.9941408
+#warmed-drought         -3.333333 -14.402016  7.735349 0.8334310
+#warmed_drought-drought -0.500000 -11.568683 10.568683 0.9992524
+#warmed_drought-warmed   2.833333  -8.235349 13.902016 0.8893834
+
 
 ```
 
