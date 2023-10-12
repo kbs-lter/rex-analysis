@@ -41,9 +41,9 @@ list.files(dir)
 setwd(dir)
 
 ## Read in data
-biolognowater <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L1/Biolog_data_NOWater_L1.csv"))
+biolognowater <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/Biolog_data_NOWater_L1.csv"))
 
-standardbiolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L1/Biolog_data_L1.csv"))
+standardbiolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/Biolog_data_L1.csv"))
 ```
 
 #reformatting and checking absorbances
@@ -232,6 +232,83 @@ plot(tukey)
 #warmed-drought         -3.333333 -14.402016  7.735349 0.8334310
 #warmed_drought-drought -0.500000 -11.568683 10.568683 0.9992524
 #warmed_drought-warmed   2.833333  -8.235349 13.902016 0.8893834
+
+```
+
+Preliminary Plots
+```{r}
+#group by hour and sample for average
+biolog2<- biologsamples[,!(names(biologsamples) %in% c("Plot_ID", "SampleID_Hour", "Sample_ID", "Biolog_column_ID"))]
+
+##X2.Hydroxybenzoic Acid
+#take average of each treatment per hour 
+X2HydroxyBen_mean <- aggregate(biolog2$X2.Hydroxy_Benzoic_Acid, by=list(biolog2$Hour,biolog2$Subplot_Descriptions), FUN=mean)
+
+#Plotting avg absorbance of each treatment across time
+ggplot(X2HydroxyBen_mean, aes(x = Group.1, y = x, group = Group.2, color = Group.2)) +
+  geom_line(linewidth = 1) +
+  geom_point(position=position_dodge(0.1)) + # "position = position_dodge()" is the code used to dodge overlapping points
+  labs(y="X2.Hydroxybenzoic Acid", x="Hour") +
+  theme_bw() +
+  theme(axis.title = element_text(size=17),
+        axis.text = element_text(size=15))
+dev.off()
+
+##X4.Hydroxybenzoic Acid
+#take average of each treatment per hour 
+X4HydroxyBen_mean <- aggregate(biolog2$X4.Hydroxy_Benzoic_Acid, by=list(biolog2$Hour,biolog2$Subplot_Descriptions), FUN=mean)
+
+#Plotting avg absorbance of each treatment across time
+ggplot(X4HydroxyBen_mean, aes(x = Group.1, y = x, group = Group.2, color = Group.2)) +
+  geom_line(linewidth = 1) +
+  geom_point(position=position_dodge(0.1)) + # "position = position_dodge()" is the code used to dodge overlapping points
+  labs(y="X4.Hydroxybenzoic Acid", x="Hour") +
+  theme_bw() +
+  theme(axis.title = element_text(size=17),
+        axis.text = element_text(size=15))
+dev.off()
+
+##D.Cellobiose 
+#take average of each treatment per hour 
+DCell_mean <- aggregate(biolog2$D.Cellobiose, by=list(biolog2$Hour,biolog2$Subplot_Descriptions), FUN=mean)
+
+#Plotting avg absorbance of each treatment across time
+ggplot(DCell_mean, aes(x = Group.1, y = x, group = Group.2, color = Group.2)) +
+  geom_line(linewidth = 1) +
+  geom_point(position=position_dodge(0.1)) + # "position = position_dodge()" is the code used to dodge overlapping points
+  labs(y="D.Cellobiose", x="Hour") +
+  theme_bw() +
+  theme(axis.title = element_text(size=17),
+        axis.text = element_text(size=15))
+dev.off()
+
+##D.Galactonic Acid Y Lactone
+#take average of each treatment per hour 
+DGalactonic_mean <- aggregate(biolog2$D.Galactonic_Acid_γ.Lactone, by=list(biolog2$Hour,biolog2$Subplot_Descriptions), FUN=mean)
+
+#Plotting avg absorbance of each treatment across time
+ggplot(DGalactonic_mean, aes(x = Group.1, y = x, group = Group.2, color = Group.2)) +
+  geom_line(linewidth = 1) +
+  geom_point(position=position_dodge(0.1)) + # "position = position_dodge()" is the code used to dodge overlapping points
+  labs(y="D.Galactonic Acid Y Lactone", x="Hour") +
+  theme_bw() +
+  theme(axis.title = element_text(size=17),
+        axis.text = element_text(size=15))
+dev.off()
+
+##D.Galacturonic Acid
+#take average of each treatment per hour 
+DGalacturonic_mean <- aggregate(biolog2$D.Galacturonic_Acid, by=list(biolog2$Hour,biolog2$Subplot_Descriptions), FUN=mean)
+
+#Plotting avg absorbance of each treatment across time
+ggplot(DGalacturonic_mean, aes(x = Group.1, y = x, group = Group.2, color = Group.2)) +
+  geom_line(linewidth = 1) +
+  geom_point(position=position_dodge(0.1)) + # "position = position_dodge()" is the code used to dodge overlapping points
+  labs(y="D.Galacturonic Acid", x="Hour") +
+  theme_bw() +
+  theme(axis.title = element_text(size=17),
+        axis.text = element_text(size=15))
+dev.off()
 
 ```
 
