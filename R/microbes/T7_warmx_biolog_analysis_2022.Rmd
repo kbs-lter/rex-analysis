@@ -41,9 +41,9 @@ list.files(dir)
 setwd(dir)
 
 ## Read in data
-biolognowater <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/Biolog_data_NOWater_L1.csv"))
+biolognowater <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L1/Biolog_data_NOWater_L1.csv"))
 
-standardbiolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/Biolog_data_L1.csv"))
+standardbiolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L1/Biolog_data_L1.csv"))
 ```
 
 #reformatting and checking absorbances
