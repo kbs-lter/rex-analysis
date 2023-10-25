@@ -17,6 +17,7 @@ library(broom)
 library(fitdistrplus)
 library(lmerTest)
 library(emmeans)
+library(knitr)
 
 # Set working directory
 dir<-Sys.getenv("DATA_DIR")
@@ -52,17 +53,21 @@ ab.pair
 indval = multipatt(ab, voc_transpose$Treatment, 
                    control = how(nperm=999)) 
 summary(indval)
+
 # same test, but this time not allowing for the grouping of treatments
 indval2 = multipatt(ab, voc_transpose$Treatment, duleg=T,
                    control = how(nperm=999)) 
 summary(indval2)
+
 # same test, but this time allowing for max of 2 treatments to be grouped
 indval3 = multipatt(ab, voc_transpose$Treatment, max.order=2,
                    control = how(nperm=999)) 
 summary(indval3)
+
 # is the association random? last column is p-value
 prefsign = signassoc(ab, cluster=voc_transpose$Treatment, alternative = "two.sided", 
                      control = how(nperm=199)) 
+
 # compound combinations as indicators?
 # note: this output it really large
 ab.comb = combinespecies(ab, max.order = 2)$XC
