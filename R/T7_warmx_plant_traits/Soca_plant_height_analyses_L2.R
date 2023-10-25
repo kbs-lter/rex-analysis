@@ -4,7 +4,7 @@
 # DATA INPUT:     Data imported as csv files from shared REX Google drive T7_warmx_plant_traits L1 folder
 # DATA OUTPUT:    analyses
 # PROJECT:        REX
-# DATE:           Jan 2022
+# DATE:           Jan. 2022; updated Oct. 2023
 
 # Clear all existing data
 rm(list=ls())
@@ -23,128 +23,88 @@ library(multcomp)
 dir<-Sys.getenv("DATA_DIR")
 
 # Read in data
-height <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_Soca_plant_height_L1.csv"))
+height <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_soca_height_L1.csv"))
 
-# Data exploration
-descdist(height$plant_height_cm, discrete = FALSE)
-hist(height$plant_height_cm)
-qqnorm(height$plant_height_cm)
-shapiro.test(height$plant_height_cm)
-# looks pretty normal, going to try some transformations but might not need them
+
+###### Data exploration #######
+# The first thing we do is check the distribution of the raw data
+# We're checking for a normal distribution; the distribution of the raw data
+# doesn't matter as much as the distribution of a model's residuals (which we'll also check),
+# but its a good way to get a glimpse of how the data look
+descdist(height$Height_cm, discrete = FALSE) # checks what type of distribution your data matches
+hist(height$Height_cm) # should be a bell curve if normal
+qqnorm(height$Height_cm) # should be a straight diagonal line if normal
+shapiro.test(height$Height_cm) # p > 0.05 if normal
+# making a model to test distribution of model residuals
+raw.data.test <- lm(Height_cm ~ Climate_Treatment * Galling_Status, data=height) # testing model
+hist(resid(raw.data.test)) # checking model residuals
+shapiro.test(resid(raw.data.test))
+# looks pretty good, going to try some transformations but might not need them
 
 # square root transformation
-height$sqrt_height <- sqrt(height$plant_height_cm)
+height$sqrt_height <- sqrt(height$Height_cm)
 descdist(height$sqrt_height, discrete = FALSE)
 hist(height$sqrt_height)
 qqnorm(height$sqrt_height)
 shapiro.test(height$sqrt_height) # looks good
+# making a model to test distribution of model residuals w/ sqrt transformation
+raw.data.test.sqrt <- lm(sqrt_height ~ Climate_Treatment * Galling_Status, data=height) # testing model
+hist(resid(raw.data.test.sqrt)) # checking model residuals
+shapiro.test(resid(raw.data.test.sqrt))
+# better - going with sqrt transformation
 
-# log transformation
-height$log_height <- log(height$plant_height_cm)
-descdist(height$log_height, discrete = FALSE)
-hist(height$log_height)
-qqnorm(height$log_height)
-shapiro.test(height$log_height) # slightly better than sqrt
+# Other transformations you could try include log transformation, reciprocal transformation, 
+# cubed root transformation, etc. These are all ways to transform the data to fit a normal distrib.
+# If transformations don't work, you may need to run a model for a non-normal distribution of data
 
-# Assumption checking - log transformation
-m1 <- lmer(log_height ~ treatment + drought_period + gall_present + (1|rep), data = height, REML=F)
+
+
+######### Assumption checking ##########
+# in the assumption checking, we're making sure that our full model meets the assumptions of the model.
+# the model below is the model structure we can use for all response variables; its testing to see
+# if there is 1. an effect of climate treatment on height, 2. an effect of galling status on height, and 3. does the effect
+# of climate on height depend on galling status. Subplot nested within footprint nested within rep is used as our random effect
+# to account for variation between plots. Year is also included as a random effect to account for variation between years.
+m1 <- lmer(sqrt_height ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = height, REML=F)
 # Check Assumptions:
 # (1) Linearity: if covariates are not categorical
 # (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
 plot(m1, main = "Plant height")
-# Homogeneity of variance is ok here (increasing variance in resids is not increasing with fitted values)
+# Homogeneity of variance looks a bit off (increasing variance in resids does increase with fitted values)
 # Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
-leveneTest(residuals(m1) ~ height$treatment)
-leveneTest(residuals(m1) ~ height$drought_period)
-leveneTest(residuals(m1) ~ height$gall_present)
-# Assumption not met - ignoring for now
+leveneTest(residuals(m1) ~ height$Climate_Treatment) # not met
+leveneTest(residuals(m1) ~ height$Galling_Status) # not met
 # (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
 # Check for normal residuals
 qqPlot(resid(m1), main = "Plant height")
 hist(residuals(m1), main = "Plant height")
 shapiro.test(resid(m1))
-outlierTest(m1)
+outlierTest(m1) # checking for outliers - there are some in the data. Removing these might help the model
 
-# comparison with other models
-m2 <- lmer(log_height ~ treatment + drought_period + (1|rep/footprint), data = height, REML=F)
-m3 <- lmer(log_height ~ treatment + (1|drought_period) + (1|rep), data = height, REML=F)
-m4 <- lmer(log_height ~ treatment * drought_period + (1|rep), data = height, REML=F)
-m5 <- lmer(log_height ~ treatment + drought_period + (1|rep), data = height, REML=F)
-m6 <- lmer(log_height ~ treatment * gall_present + drought_period + (1|rep), data = height, REML=F)
-m7 <- lmer(log_height ~ treatment * gall_present + drought_period + (1|rep/footprint), data = height, REML=F)
-m8 <- lmer(log_height ~ treatment + gall_present + drought_period + (1|rep/footprint), data = height, REML=F)
-AICctab(m1, m2, m3, m4, m5,m6,m7,m8,weights=T) # model 7
-leveneTest(residuals(m7) ~ height$treatment)
-leveneTest(residuals(m7) ~ height$drought_period)
-anova(m7)
-summary(m7)
-emmeans(m7, list(pairwise ~ treatment*gall_present), adjust = "tukey")
-png("height_galling_lm.png", units="in", width=7, height=6, res=300)
-emmip(m7, treatment ~ gall_present)
-dev.off()
+# removing outliers and re-testing assumptions
+height2 <- height[-c(437,225,422,449),]
+m2 <- lmer(sqrt_height ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = height2, REML=F)
+# Check Assumptions:
+# (1) Linearity: if covariates are not categorical
+# (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
+plot(m2, main = "Plant height")
+# Homogeneity of variance looks better here (increasing variance in resids does not increase with fitted values)
+# Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
+leveneTest(residuals(m2) ~ height2$Climate_Treatment) # not met
+leveneTest(residuals(m2) ~ height2$Galling_Status) # not met
+# this homogeneity looks better than the above model, so going with it
+# (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
+# Check for normal residuals
+qqPlot(resid(m2), main = "Plant height")
+hist(residuals(m2), main = "Plant height")
+shapiro.test(resid(m2)) # better
+outlierTest(m2) # leaving this for now
 
-# re-leveling the data & checking summary
-height <- within(height, treatment <- relevel(factor(treatment), ref = "Ambient Drought"))
-m7 <- lmer(log_height ~ treatment * gall_present + drought_period + (1|rep/footprint), data = height, REML=F)
-summary(m7)
-height <- within(height, treatment <- relevel(factor(treatment), ref = "Irrigated Control"))
-m7 <- lmer(log_height ~ treatment * gall_present + drought_period + (1|rep/footprint), data = height, REML=F)
-summary(m7)
-height <- within(height, treatment <- relevel(factor(treatment), ref = "Warm"))
-m7 <- lmer(log_height ~ treatment * gall_present + drought_period + (1|rep/footprint), data = height, REML=F)
-summary(m7)
-height <- within(height, treatment <- relevel(factor(treatment), ref = "Warm Drought"))
-m7 <- lmer(log_height ~ treatment * gall_present + drought_period + (1|rep/footprint), data = height, REML=F)
-summary(m7)
-height <- within(height, treatment <- relevel(factor(treatment), ref = "Ambient"))
-m7 <- lmer(log_height ~ treatment * gall_present + drought_period + (1|rep/footprint), data = height, REML=F)
-summary(m7)
 
-height <- within(height, drought_period <- relevel(factor(drought_period), ref = "Post-Drought"))
-m7 <- lmer(log_height ~ treatment * gall_present + drought_period + (1|rep/footprint), data = height, REML=F)
-summary(m7)
-
-## note: these estimates below are slightly different now for m7 - didn't update after adding in interaction term
-# calculating effect size accounting for log
-exp(4.173e+00 + 1.954e-01*0) # 64.90989 - average for ambient
-exp(4.173e+00 + 1.954e-01*1) # 78.91726 - average for warmed
-# effect:
-78.91726 - 64.90989 # 14.00737cm taller plants in warmed compared to ambient
-
-# calculating effect size accounting for log
-exp(4.173e+00 + 1.899e-01*0) # 64.90989 - average for ambient
-exp(4.173e+00 + 1.899e-01*1) # 78.48441 - average for warmed drought
-# effect:
-78.48441 - 64.90989 # 13.57452cm taller plants in warmed drought compared to ambient
-
-# calculating effect size accounting for log
-exp(4.166e+00 + 2.023e-01*0) # 64.45711 - average for drought
-exp(4.166e+00 + 2.023e-01*1) # 78.90937 - average for warmed
-# effect:
-78.90937 - 64.45711  # 14.45226cm taller plants in warmed compared to drought
-
-# calculating effect size accounting for log
-exp(4.166e+00 + 1.968e-01*0) # 64.45711 - average for drought
-exp(4.166e+00 + 1.968e-01*1) # 78.47656 - average for warmed drought
-# effect:
-78.47656 - 64.45711  # 14.01945cm taller plants in warmed drought compared to drought
-
-# calculating effect size accounting for log
-exp(4.12117 + 0.24760*0) # 61.63131 - average for irr control
-exp(4.12117 + 0.24760*1) # 78.94647 - average for warmed
-# effect:
-78.94647 - 61.63131  # 17.31516cm taller plants in warmed compared to irr control
-
-# calculating effect size accounting for log
-exp(4.12117 + 0.24208 *0) # 61.63131 - average for irr control
-exp(4.12117 + 0.24208 *1) # 78.51188 - average for warmed
-# effect:
-78.51188 - 61.63131  # 16.88057cm taller plants in warmed drought compared to irr control
-
-# this is updated for m7 values
-# calculating effect size accounting for log
-exp(4.14017 + 0.13394 *0) # 62.8135 - average for gall
-exp(4.14017 + 0.13394 *1) # 71.81619 - average for no gall
-# effect:
-71.81619 - 62.8135  # 9.00269cm taller non galled plants compared to galled plants
+###### Checking model results ########
+anova(m2)
+# this outcome shows us that the interaction term (Climate_Treatment:Galling_Status) is significant
+# therefore, we need to check the pairwise comparisons of all treatments with a post-hoc test
+contrast(emmeans(m1, ~Climate_Treatment*Galling_Status), "pairwise", simple = "each", combine = F, adjust = "mvt")
+emmip(m2, Climate_Treatment~Galling_Status)
 
