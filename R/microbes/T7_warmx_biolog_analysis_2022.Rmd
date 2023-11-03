@@ -58,7 +58,7 @@ standardbiolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_war
 ```
 
 Notes from Moriah:
-- Model structure is a little more complex in REX - need to have random effects as such: (1|Rep/Footprint/Subplot). This is a nested plot design. For lack of better explanation, it goes from largest "scale" (rep) to smallest "scale" (subplot) This means that you'll want to retain the rep and footpring numbers in the dataframe you ultimately create below and with the diversity metrics.
+- Model structure is a little more complex in REX - need to have random effects as such: (1|Rep/Footprint/Subplot). This is a nested plot design. For lack of better explanation, it goes from largest "scale" (rep) to smallest "scale" (subplot) This means that you'll want to retain the rep and footprint numbers in the dataframe you ultimately create below and with the diversity metrics.
 
 
 #reformatting and checking absorbances
@@ -259,7 +259,7 @@ Example script from other REX data on data analysis with steps for checking for 
 https://github.com/kbs-lter/rex-analysis/blob/main/R/T7_warmx_plant_traits/Soca_plant_height_analyses_L2.R
 ```{r}
 # without checking assumptions - need to do this. Just laying out the mixed effects model
-m1 <- lmer(Richness168hr ~ Subplot_Descriptions + (1|Rep/Footprint/Subplot), data = biologHr168diversity, REML=F)
+m1 <- lmer(Richness168hr ~ Subplot_Descriptions + (1|Rep/Footprint_Location/Subplot), data = biologHr168diversity, REML=F)
 summary(m1)
 ```
 
