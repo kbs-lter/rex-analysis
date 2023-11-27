@@ -86,7 +86,7 @@ levels(seg.data$group)
 # make figure
 png("climate_pcoa.png", units="in", width=6.5, height=5, res=300)
 ggplot() + 
-  stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.8, geom="polygon")+
+  stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.95, geom="polygon")+
   #geom_point(data=centroids, aes(x=PCoA1,y=PCoA2),size=4.7,color="black",shape=16) + 
   geom_point(data=seg.data, aes(x=v.PCoA1,y=v.PCoA2, color=group),alpha=0.7,size=3,shape=16) +
   geom_point(data=centroids, aes(x=PCoA1,y=PCoA2, fill=group),color="black",size=5,shape=21) + 
@@ -117,7 +117,7 @@ levels(seg.data$group)
 # make figure
 png("climate_pcoa_no_ir.png", units="in", width=6.5, height=5, res=300)
 ggplot() + 
-  stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.8, geom="polygon")+
+  stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.95, geom="polygon")+
   #geom_point(data=centroids, aes(x=PCoA1,y=PCoA2),size=4.7,color="black",shape=16) + 
   geom_point(data=seg.data, aes(x=v.PCoA1,y=v.PCoA2, color=group),alpha=0.7,size=3,shape=16) +
   geom_point(data=centroids, aes(x=PCoA1,y=PCoA2, fill=group),color="black",size=5,shape=21) + 
@@ -126,10 +126,10 @@ ggplot() +
   scale_fill_manual(labels=c("Ambient (A)", "Warmed (W)", "Drought (D)", "Warmed + Drought \n (WD)"),
                     values=c('#2c7bb6',"khaki1","#fdae61","#d7191c"))+
   labs(x="PCoA 1",y="PCoA 2", color="Treatment", fill="Treatment") +
-  annotate("text", x = -0.125, y=0.03, label = "A", size=5) +
-  annotate("text", x = -0.07, y=0.05, label = "A", size=5) +
-  annotate("text", x = 0.04, y=0.06, label = "B", size=5) +
-  annotate("text", x = 0.1, y=0.08, label = "B", size=5) +
+  annotate("text", x = -0.125, y=0.04, label = "A", size=5) +
+  annotate("text", x = -0.07, y=0.06, label = "A", size=5) +
+  annotate("text", x = 0.04, y=0.07, label = "B", size=5) +
+  annotate("text", x = 0.1, y=0.09, label = "B", size=5) +
   theme_classic()
 dev.off()
 
@@ -312,6 +312,121 @@ ggplot() +
         axis.title.y = element_text(size=15),
         axis.title.x = element_text(size=15))
 dev.off()
+
+
+
+
+#### stacked bar plot - composition #####
+# transforming from wide to long
+voc_long <- voc_transpose_rm5 %>%
+  pivot_longer(names_to = "compound", values_to = "avg_abun", cols = -c(Sample_ID,Unique_ID,Rep,Footprint,Subplot,Treatment,Notes))
+# selecting compounds that popped up in indicator species analysis
+# focusing on these compounds because including all of them would be too confusing on a fig
+# first, all compounds associated w/ 1 treatment (but still allowing grouping, just not included here)
+voc_long_cmpd <- voc_long %>%
+  filter(compound == "Ethanone..1..4.ethylphenyl.." |
+           compound == "Salicylic.acid..tert..butyl.ester" |
+           compound == "Butanenitrile..2.hydroxy.3.methyl." |
+           compound == "Butane..2.cyclopropyl." |
+           compound == "X1.3.Bis.cyclopentyl..1.cyclopentanone" |
+           compound == "X2.3.4.Trimethyl.1.pentanol" |
+           compound == "Propanoic.acid..2.methyl...3.hydroxy.2.2.4.trimethylpentyl.ester" |
+           compound == "X1.7.Nonadiene..4.8.dimethyl." |
+           compound == "X5.Hepten.2.one..6.methyl." |
+           compound == "dl.Menthol" |
+           compound == "Pentane..2.bromo." |
+           compound == "X3.Heptanone..2.methyl." |
+           compound == "Benzoic.acid..2.ethylhexyl.ester" |
+           compound == "X3.Butenoic.acid..ethyl.ester " |
+           compound == "Acetic.acid..1.1.dimethylethyl.ester") %>%
+  group_by(Treatment, compound) %>%
+  summarize(avg_abundance = mean(avg_abun*10000))
+# second, all compounds associated w/ 1 treatment (not allowing grouping)
+voc_long_cmpd2 <- voc_long %>%
+  filter(compound == "Ethanone..1..4.ethylphenyl.." |
+           compound == "Salicylic.acid..tert..butyl.ester" |
+           compound == "Butanenitrile..2.hydroxy.3.methyl." |
+           compound == "Bicyclo.3.2.0.hepta.2.6.diene" |
+           compound == "X1.3.Bis.cyclopentyl..1.cyclopentanone" |
+           compound == "X2.3.4.Trimethyl.1.pentanol" |
+           compound == "Acetyl.valeryl" |
+           compound == "Propanoic.acid..2.methyl...3.hydroxy.2.2.4.trimethylpentyl.ester" |
+           compound == "X4.tert.Butylcyclohexyl.acetate" |
+           compound == "X1.7.Nonadiene..4.8.dimethyl." |
+           compound == "Diisopropyl.adipate" |
+           compound == "X5.Hepten.2.one..6.methyl." |
+           compound == "X1.Hexanol..2.ethyl." |
+           compound == "o.Xylene" |
+           compound == "dl.Menthol" |
+           compound == "Pentane..2.bromo." |
+           compound == "Linalyl.acetate" |
+           compound == "X3.Heptanone..2.methyl." |
+           compound == "Benzoic.acid..2.ethylhexyl.ester" |
+           compound == "Octane..2.methyl." |
+           compound == "Acetic.acid..1.1.dimethylethyl.ester") %>%
+  group_by(Treatment, compound) %>%
+  summarize(avg_abundance = mean(avg_abun*10000))
+# custom axis order
+voc_long_cmpd2$Treatment <- factor(voc_long_cmpd2$Treatment, levels=c("Ambient_Control","Warmed",
+                                                                      "Drought","Warmed_Drought"))
+
+# stacked bar plot
+# https://jkzorz.github.io/2019/06/05/stacked-bar-plots.html
+ggplot(voc_long_cmpd2, aes(x = Treatment, fill = compound, y = avg_abundance)) + 
+  geom_bar(stat = "identity", colour = "black") + 
+  theme(axis.text.x = element_text(angle = 90, size = 14, colour = "black", vjust = 0.5, hjust = 1, face= "bold"), 
+        axis.title.y = element_text(size = 16, face = "bold"), legend.title = element_text(size = 16, face = "bold"), 
+        legend.text = element_text(size = 12, face = "bold", colour = "black"), 
+        axis.text.y = element_text(colour = "black", size = 12, face = "bold")) + 
+  scale_y_continuous(expand = c(0,0)) + 
+  labs(x = "", y = "Average VOC Abundance \n (peak area*10,000/g/hr)", fill = "Compound")
+
+# bubble plot
+# https://jkzorz.github.io/2019/06/05/Bubble-plots.html
+colours = c( "#fe0000",  "#800001", "#fe6a00", "#803400","#ffd800","#806b00", "#00fe21", "#007f0e", "#0094fe",
+             "#00497e","#0026ff","#001280","#b100fe","#590080")
+colours2 = c("#771155", "#AA4488", "#CC99BB", "#114477", "#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC",
+             "#117744", "#44AA77", "#88CCAA", "#777711", "#AAAA44", "#DDDD77", "#774411", "#AA7744", "#DDAA77",
+             "#771122", "#AA4455", "#DD7788")
+voc_long_cmpd2$compound = reorder(voc_long_cmpd2$compound, voc_long_cmpd2$avg_abundance, FUN = mean)
+ggplot(voc_long_cmpd2, aes(x = Treatment, y = compound)) + 
+  geom_point(aes(size = avg_abundance, fill = compound), alpha = 0.75, shape = 21) + 
+  #scale_size_continuous(limits = c(0.000001, 100), range = c(1,17), breaks = c(1,10,50,75)) + 
+  labs( x= "", y = "", size = "Average VOC Abundance \n (peak area*10,000/g/hr)", fill = "")  + 
+  theme(legend.key=element_blank(), 
+        axis.text.x = element_text(colour = "black", size = 12, face = "bold", angle = 90, vjust = 0.3, hjust = 1), 
+        axis.text.y = element_text(colour = "black", face = "bold", size = 11), 
+        legend.text = element_text(size = 10, face ="bold", colour ="black"), 
+        legend.title = element_text(size = 12, face = "bold"), 
+        panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2), 
+        legend.position = "right") +
+  scale_fill_manual(values = colours2, guide="none") +
+  scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
+                            "Warmed" = "Warmed",
+                            "Drought" = "Drought",
+                            "Warmed_Drought" = "Warmed Drought")) +
+  scale_y_discrete(labels=c("Acetic.acid..1.1.dimethylethyl.ester" = "Acetic acid, 1,1-dimethylethyl ester",
+                            "Acetyl.valeryl" = "Acetyl valeryl",
+                            "Benzoic.acid..2.ethylhexyl.ester" = "Benzoic acid, 2-ethylhexyl ester",
+                            "Bicyclo.3.2.0.hepta.2.6.diene" = "Bicyclo[3.2.0]hepta-2,6-diene",
+                            "Butanenitrile..2.hydroxy.3.methyl." = "Butanenitrile, 2-hydroxy-3-methyl-",
+                            "Diisopropyl.adipate" = "Diisopropyl adipate",
+                            "dl.Menthol" = "dl-Menthol",
+                            "Ethanone..1..4.ethylphenyl.." = "Ethanone, 1-(4-ethylphenyl)-",
+                            "Linalyl.acetate" = "Linalyl acetate",
+                            "o.Xylene" = "o-Xylene",
+                            "Octane..2.methyl." = "Octane, 2-methyl-",
+                            "Pentane..2.bromo." = "Pentane, 2-bromo-",
+                            "Propanoic.acid..2.methyl...3.hydroxy.2.2.4.trimethylpentyl.ester" = "Propanoic acid, 2-methyl-, 3-hydroxy-2,2,4-trimethylpentyl ester",
+                            "Salicylic.acid..tert..butyl.ester" = "Salicylic acid, tert.-butyl ester",
+                            "X1.3.Bis.cyclopentyl..1.cyclopentanone" = "1,3-Bis(cyclopentyl)-1-cyclopentanone",
+                            "X1.7.Nonadiene..4.8.dimethyl." = "1,7-Nonadiene, 4,8-dimethyl-",
+                            "X1.Hexanol..2.ethyl." = "1-Hexanol, 2-ethyl-",
+                            "X2.3.4.Trimethyl.1.pentanol" = "2,3,4-Trimethyl-1-pentanol",
+                            "X3.Heptanone..2.methyl." = "3-Heptanone, 2-methyl-",
+                            "X4.tert.Butylcyclohexyl.acetate" = "4-tert-Butylcyclohexyl acetate",
+                            "X5.Hepten.2.one..6.methyl." = "5-Hepten-2-one, 6-methyl-"))
+
 
 
 
