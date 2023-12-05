@@ -74,9 +74,9 @@ indval2 = multipatt(ab, voc_transpose$Treatment, duleg=T,
 summary(indval2)
 
 # same test, but this time allowing for max of 2 treatments to be grouped
-indval3 = multipatt(ab, voc_transpose$Treatment, max.order=2,
+indval3 = multipatt(ab, voc_transpose$Treatment, max.order=3,
                    control = how(nperm=999, blocks=voc_transpose$Rep)) 
-summary(indval3)
+summary(indval3, indvalcomp=T) # using this one #
 
 # is the association random? last column is p-value
 #prefsign = signassoc(ab, cluster=voc_transpose$Treatment, alternative = "two.sided", 
@@ -176,64 +176,74 @@ summary(m1)
 hist(resid(m1))
 shapiro.test(resid(m1))
 # comparisons
-emmeans(m1, list(pairwise ~ Treatment), adjust = "tukey")
-
-
-
-#### VOC Abundance - ANOVA ####
-# overall treatment differences
-anova1 <- aov(rowsums~Treatment, data = voc_transpose)
-summary(anova1)
-TukeyHSD(anova1)
-
+testing <- contrast(emmeans(m1, ~Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt")
+summary(testing)$p.value
 
 
 ### VOC abundance - specific compound differences ###
 # pulls out compounds that had their abundances significantly different between treatments (p<0.05)
+# first, removing compounds with all 0's because the model crashes
+voc_transpose_edit <- subset(voc_transpose, select = -c(Heptane..2.methyl.,
+                                                        Pyruvic.acid..butyl.ester,
+                                                        .alpha..Pinene,
+                                                        Furan..tetrahydro.2.5.dimethyl...trans.........,
+                                                        Octane..3.3.dimethyl.,
+                                                        Nonane..4.5.dimethyl.,
+                                                        Nonane..2.6.dimethyl.,
+                                                        X1.Octene..3.7.dimethyl.,
+                                                        Cyclohexanemethanol...alpha...alpha..4.trimethyl.,
+                                                        X1.Decene..2.4.dimethyl.,
+                                                        Acetic.acid..trifluoro...3.7.dimethyloctyl.ester,
+                                                        X1.Octanesulfonyl.chloride,
+                                                        Sulfurous.acid..isobutyl.pentyl.ester,
+                                                        Hexane..2.2.5.5.tetramethyl.,
+                                                        Undecane..5.7.dimethyl.,
+                                                        cis.3.Hexenyl..alpha..methylbutyrate,
+                                                        X2.12.Dimethylidenecyclododecan.1.one,
+                                                        Decane..2.3.7.trimethyl.))
 for (i in 2:429){
-  column <- names(voc_transpose[i])
-  anova <- broom::tidy(aov(voc_transpose[,i] ~ Treatment, data = voc_transpose))
+  column <- names(voc_transpose_edit[i])
+  test <- lmer(voc_transpose_edit[,i] ~ Treatment + (1|Rep), data = voc_transpose_edit)
+  pairwise <- contrast(emmeans(test, ~Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt")
   
-  # only want aov with P < 0.05 printed
-  if(anova$p.value[1] < 0.05) {
+  # only want contrasts with a P < 0.05 printed
+  if(any(summary(pairwise)$p.value < 0.05)) {
     
     print(column)
-    print(anova)
-  }
-}
-
-# pairwise comparisons
-for (i in 2:429){
-  column <- names(voc_transpose[i])
-  anova <- aov(voc_transpose[,i] ~ Treatment, data = voc_transpose)
-  tukey <- TukeyHSD(anova)
-  
-  # only want tukey with P < 0.05 printed
-  if(any(tukey$Treatment[, "p adj"] < 0.05)) {
-    
-    print(column)
-    print(setNames(tukey, column))
+    print(setNames(pairwise, column))
     
   }
 }
-
+# compounds returned
+Butane..1.ethoxy.
+X2.Hexene..2.5.dimethyl.
+Butanenitrile..2.hydroxy.3.methyl.
+o.Xylene
+X5.Hepten.2.one..6.methyl.
+.beta..Myrcene
+X4.Hexen.1.ol..acetate
+X1.Hexanol..2.ethyl.
+dl.Menthol
+Linalyl.acetate
+Cyclohexanol..4..1.1.dimethylethyl....acetate..cis.
+X4.tert.Butylcyclohexyl.acetate
+Propanoic.acid..2.methyl...3.hydroxy.2.2.4.trimethylpentyl.ester
+Diisopropyl.adipate
+X1.7.Nonadiene..4.8.dimethyl.
+Nonane..1.iodo.
+Pentane..2.bromo.
+Salicylic.acid..tert..butyl.ester
+X1.3.Bis.cyclopentyl..1.cyclopentanone
 
 
 ### VOC abundance - mixed models for compounds identified above ###
 # Beta Myrcene
-m2 <- lmer(.beta..Myrcene ~ Treatment + (1|Rep), data = voc_transpose, REML=FALSE)
+m2 <- lmer(Diisopropyl.adipate ~ Treatment + (1|Rep), data = voc_transpose, REML=FALSE)
 anova(m2)
 summary(m2)
 # pairwise comparisons
-voc_transpose <- within(voc_transpose, Treatment <- relevel(factor(Treatment), ref = "Ambient_Control"))
-voc_transpose <- within(voc_transpose, Treatment <- relevel(factor(Treatment), ref = "Drought"))
+contrast(emmeans(m2, ~Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt")
 
-# 4-Hexen-1-ol acetate
-m3 <- lmer(X4.Hexen.1.ol..acetate ~ Treatment + (1|Rep), data = voc_transpose, REML=FALSE)
-anova(m3)
-summary(m3)
-voc_transpose <- within(voc_transpose, Treatment <- relevel(factor(Treatment), ref = "Warmed"))
-voc_transpose <- within(voc_transpose, Treatment <- relevel(factor(Treatment), ref = "Drought"))
 
 
 
