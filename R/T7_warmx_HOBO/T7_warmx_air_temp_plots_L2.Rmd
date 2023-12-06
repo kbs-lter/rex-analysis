@@ -183,3 +183,38 @@ ggpubr::ggarrange(air_growing_season, soil_growing_season,
 dev.off()
 ```
 
+
+# for REX methods paper
+# TO DO: need to go back to the clean HOBO script to include 2023 temp data
+```{r}
+# create date, month, year, hour, and day columns
+airtemp2 <- airtemp
+airtemp2$date <- format(airtemp2$Date_Time,format="%Y-%m-%d")
+airtemp2$month <- format(airtemp2$Date_Time,format="%m")
+airtemp2$year <- format(airtemp2$Date_Time,format="%Y")
+airtemp2$hour <- format(airtemp2$Date_Time, format="%H")
+airtemp2$day <- format(airtemp2$Date_Time, format="%d")
+
+# take average per month by treatment
+avg_airtemp2 <- airtemp2 %>%
+  group_by(month, year, Treatment) %>%
+  summarise(avg_temp = mean(Temperature_C, na.rm = TRUE),
+            se_temp = std.error(Temperature_C, na.rm = TRUE))
+```
+
+```{r}
+# plot - monthly
+png("rex_airtemp_all_years.png", units="in", width=8, height=6, res=300)
+ggplot(avg_airtemp2, aes(x = month, y = avg_temp, group = Treatment, color = Treatment)) +
+        geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp),width=0.1,color="black",linetype="solid") +
+        geom_line(linewidth = 1) +
+        facet_wrap(~year)
+        scale_color_manual(name="Treatment", 
+                           values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E"), 
+                           labels=c("Ambient","Drought","Warmed", "Warmed Drought")) +
+        labs(y="Air Temperature (°C)", x="Month") +
+        theme_bw() +
+        theme(axis.title = element_text(size=15),
+        axis.text = element_text(size=15))
+dev.off()
+```
