@@ -521,7 +521,14 @@ voc_transpose_rm5$rowsums <- rowSums(voc_transpose_rm5[2:429])
 voc_transpose_sum2 <- voc_transpose %>%
   group_by(Treatment) %>%
   summarize(avg_abun = mean(rowsums),
-            se = std.error(rowsums))
+            se = std.error(rowsums),
+            count = n())
+voc_transpose_sum_CI <- voc_transpose_rm5 %>%
+  group_by(Treatment) %>%
+  summarize(avg_abun = mean(rowsums),
+            CI = mean(rowsums)-(qnorm(0.975)*sd(rowsums)/sqrt(length(rowsums))),
+            CI_total = avg_abun-CI,
+            count = n())
 voc_transpose_sum3 <- voc_transpose_rm5 %>%
   group_by(Treatment) %>%
   summarize(avg_abun = mean(rowsums),
@@ -540,7 +547,23 @@ ggplot(voc_transpose_sum2, aes(x = factor(Treatment, level = level_order2), y = 
         axis.title.x = element_text(size=15)) +
   scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
                             "Irrigated_Control" = "Irrigated",
-                            "Warmed_Drought" = "Warmed + \n Drought")) +
+                            "Warmed_Drought" = "Warmed\nDrought")) +
+  labs(x = "Treatment", y = "Average VOC Abundance \n (peak area/g/hr)")
+dev.off()
+
+# dot plot
+png("climate_ab_95.png", units="in", width=6, height=5, res=300)
+ggplot(voc_transpose_sum_CI,aes(x = factor(Treatment, level = level_order2), y = avg_abun)) +
+  geom_pointrange(aes(ymin=avg_abun-CI_total, ymax=avg_abun+CI_total), ,pch=21,size=1,position=position_dodge(0.3),fill="lightsteelblue3") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=13),
+        axis.text.y = element_text(size=13),
+        axis.title.y = element_text(size=15),
+        axis.title.x = element_text(size=15)) +
+  ylim(0.25,1.25) +
+  scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
+                            "Irrigated_Control" = "Irrigated",
+                            "Warmed_Drought" = "Warmed\nDrought")) +
   labs(x = "Treatment", y = "Average VOC Abundance \n (peak area/g/hr)")
 dev.off()
 

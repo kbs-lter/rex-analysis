@@ -96,10 +96,17 @@ hobo_sampling_avg <- hobo_sampling %>%
   group_by(Rep, Treatment) %>%
   summarize(average_temp = mean(Temperature_C, na.rm = TRUE))
 # averaging over each rep so n=4 for each treatment
-hobo_sampling_avg <- hobo_sampling_avg %>%
+hobo_sampling_avg2 <- hobo_sampling_avg %>%
   group_by(Treatment) %>%
   summarize(avg_temp = mean(average_temp, na.rm = TRUE),
             se = std.error(average_temp, na.rm = TRUE))
+# 95% CI
+hobo_sampling_avg_CI <- hobo_sampling_avg %>%
+  group_by(Treatment) %>%
+  summarize(avg_temp = mean(average_temp, na.rm = TRUE),
+            CI = mean(average_temp)-(qnorm(0.975)*sd(average_temp)/sqrt(length(average_temp))),
+            CI_total = avg_temp-CI,
+            count = n())
 
 # taking 2022 soil average for july 11 - july 15 (sampling period)
 soil_season$date <- paste0(soil_season$month,"",soil_season$day)
@@ -118,12 +125,22 @@ soil_sampling_avg <- soil_sampling %>%
   summarize(average_temp = mean(temperature, na.rm = TRUE),
             average_moist = mean(vwc, na.rm=T))
 # averaging over each rep, n varies between treatments
-soil_sampling_avg <- soil_sampling_avg %>%
+soil_sampling_avg2 <- soil_sampling_avg %>%
   group_by(Subplot_Descriptions) %>%
   summarize(avg_temp = mean(average_temp, na.rm = TRUE),
             se_temp = std.error(average_temp, na.rm = TRUE),
             avg_moist = mean(average_moist, na.rm=T),
             se_moist = std.error(average_moist, na.rm=T))
+# 95% CI
+soil_sampling_avg_CI <- soil_sampling_avg %>%
+  group_by(Subplot_Descriptions) %>%
+  summarize(avg_temp = mean(average_temp, na.rm = TRUE),
+            avg_moist = mean(average_moist, na.rm = TRUE),
+            CI_temp = mean(average_temp)-(qnorm(0.975)*sd(average_temp)/sqrt(length(average_temp))),
+            CI_temp_total = avg_temp-CI_temp,
+            CI_moist = mean(average_moist)-(qnorm(0.975)*sd(average_moist)/sqrt(length(average_moist))),
+            CI_moist_total = avg_moist-CI_moist,
+            count = n())
 
 
 # taking monthly average
@@ -224,8 +241,8 @@ dev.off()
 # plot - air temp, soil temp, and soil moisture during sampling period
 level_order1 <- c("Ambient", 'Warmed', 'Drought',"Warmed_Drought") 
 level_order2 <- c("irrigated_control","ambient", 'warmed', 'drought',"warmed_drought") 
-air_temp <- ggplot(hobo_sampling_avg, aes(x = factor(Treatment, level = level_order1), y = avg_temp)) +
-  geom_pointrange(aes(ymin=avg_temp-se, ymax=avg_temp+se), size=0.6) +
+air_temp <- ggplot(hobo_sampling_avg_CI, aes(x = factor(Treatment, level = level_order1), y = avg_temp)) +
+  geom_pointrange(aes(ymin=avg_temp-CI_total, ymax=avg_temp+CI_total),pch=21,size=1,fill="lightsteelblue3") +
   #geom_errorbar(aes(ymin=avg_temp-se, ymax=avg_temp+se),width=0.1,color="black",linetype="solid") +
   #geom_point(size = 2) +
   labs(y="Air temperature (°C)", x=NULL) +
@@ -238,8 +255,8 @@ air_temp <- ggplot(hobo_sampling_avg, aes(x = factor(Treatment, level = level_or
         axis.text = element_text(size=15),
         legend.title = element_text(size=17),
         legend.text = element_text(size=15))
-soil_temp <- ggplot(soil_sampling_avg, aes(x = factor(Subplot_Descriptions, level=level_order2), y = avg_temp)) +
-  geom_pointrange(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp), size=0.6) +
+soil_temp <- ggplot(soil_sampling_avg_CI, aes(x = factor(Subplot_Descriptions, level=level_order2), y = avg_temp)) +
+  geom_pointrange(aes(ymin=avg_temp-CI_temp_total, ymax=avg_temp+CI_temp_total), pch=21,size=1,fill="lightsteelblue3") +
   #geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp),width=0.1,color="black",linetype="solid") +
   #geom_point(size = 2) +
   labs(y="Soil temperature (°C)", x=NULL) +
@@ -247,21 +264,21 @@ soil_temp <- ggplot(soil_sampling_avg, aes(x = factor(Subplot_Descriptions, leve
                             "irrigated_control" = "I", "warmed" = "W",
                             "warmed_drought" = "WD")) +
   theme_bw() +
-  annotate("text", x = 0.7, y=21.5, label = "B", size=6) +
+  annotate("text", x = 0.7, y=21.7, label = "B", size=6) +
   theme(axis.title = element_text(size=17),
         axis.text = element_text(size=15),
         legend.title = element_text(size=17),
         legend.text = element_text(size=15))
-soil_moist <- ggplot(soil_sampling_avg, aes(x = factor(Subplot_Descriptions, level=level_order2), y = avg_moist)) +
-  geom_pointrange(aes(ymin=avg_moist-se_moist, ymax=avg_moist+se_moist),size=0.6) +
+soil_moist <- ggplot(soil_sampling_avg_CI, aes(x = factor(Subplot_Descriptions, level=level_order2), y = avg_moist)) +
+  geom_pointrange(aes(ymin=avg_moist-CI_moist_total, ymax=avg_moist+CI_moist_total),pch=21,size=1,fill="lightsteelblue3") +
   #geom_errorbar(aes(ymin=avg_moist-se_moist, ymax=avg_moist+se_moist),width=0.1,color="black",linetype="solid") +
   #geom_point(size = 2) +
-  labs(y="Soil moisture (m^3/m^3)", x=NULL) +
+  labs(y=bquote("Soil moisture " (m^3/m^3)), x=NULL) +
   scale_x_discrete(labels=c("ambient" = "A", "drought" = "D",
                             "irrigated_control" = "I", "warmed" = "W",
                             "warmed_drought" = "WD")) +
   theme_bw() +
-  annotate("text", x = 0.7, y=0.28, label = "C", size=6) +
+  annotate("text", x = 0.7, y=0.30, label = "C", size=6) +
   theme(axis.title = element_text(size=17),
         axis.text = element_text(size=15),
         legend.title = element_text(size=17),
