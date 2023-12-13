@@ -36,14 +36,18 @@ hobo_season$month <- format(hobo_season$Date_Time,format="%m")
 hobo_season$year <- format(hobo_season$Date_Time,format="%Y")
 hobo_season$hour <- format(hobo_season$Date_Time, format="%H")
 hobo_season$day <- format(hobo_season$Date_Time, format="%d")
+hobo_season$year_month_day <- format(hobo_season$Date_Time, format="%Y-%m-%d")
+hobo_season$date <- paste0(hobo_season$month,"",hobo_season$day)
+hobo_season$date <- as.numeric(hobo_season$date)
 hobo_season <- hobo_season %>%
   filter(hour > "06") %>%
   filter(hour < "20")
 hobo_season_sum <- hobo_season %>%
+  filter(year == 2022) %>%
   filter(hour > "06") %>%
   filter(hour < "20") %>%
-  filter(month > "05") %>%
-  filter(month < "09")
+  filter(date > "531") %>%
+  filter(date < "716")
 
 soil_season <- soil_data
 soil_season$month <- format(soil_season$Date_Time,format="%m")
@@ -81,9 +85,7 @@ hobo_monthly_avg <- hobo_monthly %>%
 
 
 # taking 2022 temp average for july 11 - july 15 (sampling period)
-hobo_season$date <- paste0(hobo_season$month,"",hobo_season$day)
-hobo_season$date <- as.numeric(hobo_season$date)
-# selecting 2022 and june 1 - july 15
+# selecting 2022 and july 11 - july 15
 hobo_sampling <- hobo_season %>%
   filter(year == 2022) %>%
   filter(date > "710") %>%
@@ -107,6 +109,34 @@ hobo_sampling_avg_CI <- hobo_sampling_avg %>%
             CI = mean(average_temp)-(qnorm(0.975)*sd(average_temp)/sqrt(length(average_temp))),
             CI_total = avg_temp-CI,
             count = n())
+
+
+# taking 2022 temp average for June 1 - July 15
+# selecting 2022 and june 1 - july 15
+hobo_sampling_early <- hobo_season %>%
+  filter(year == 2022) %>%
+  filter(date > "531") %>%
+  filter(date < "716")
+# limit to the reps I used
+hobo_sampling_early <- hobo_sampling_early %>%
+  filter(Rep == 2 | Rep == 3 | Rep == 4 | Rep == 5)
+# take average per day, per rep, per treatment
+hobo_sampling_avg_early <- hobo_sampling_early %>%
+  group_by(Rep, Treatment) %>%
+  summarize(average_temp = mean(Temperature_C, na.rm = TRUE))
+# averaging over each rep so n=4 for each treatment
+hobo_sampling_avg2_early <- hobo_sampling_avg_early %>%
+  group_by(Treatment) %>%
+  summarize(avg_temp = mean(average_temp, na.rm = TRUE),
+            se = std.error(average_temp, na.rm = TRUE))
+# 95% CI
+hobo_sampling_avg_CI_early <- hobo_sampling_avg_early %>%
+  group_by(Treatment) %>%
+  summarize(avg_temp = mean(average_temp, na.rm = TRUE),
+            CI = mean(average_temp)-(qnorm(0.975)*sd(average_temp)/sqrt(length(average_temp))),
+            CI_total = avg_temp-CI,
+            count = n())
+
 
 # taking 2022 soil average for july 11 - july 15 (sampling period)
 soil_season$date <- paste0(soil_season$month,"",soil_season$day)
@@ -159,18 +189,17 @@ hobo_monthly_avg_lux <- hobo_monthly_lux %>%
 # taking daily average for the drought period
 # create new dataframes for temperatures averaged for plotting
 hobo_daily_sum <- hobo_season_sum %>%
-  group_by(month,day, Rep, Treatment) %>%
+  filter(Rep == 2 | Rep == 3 | Rep == 4 | Rep == 5)
+hobo_daily_sum <- hobo_daily_sum %>%
+  group_by(date, year_month_day, Rep, Treatment) %>%
   summarize(average_temp = mean(Temperature_C, na.rm = TRUE),
             se = std.error(Temperature_C, na.rm = TRUE))
 # averaging over each rep, so n=6 for each data point (n=5 for D and WD)
 hobo_daily_avg <- hobo_daily_sum %>%
-  group_by(month, day,Treatment) %>%
+  group_by(date, year_month_day, Treatment) %>%
   summarize(avg_temp = mean(average_temp, na.rm = TRUE),
             se = std.error(average_temp, na.rm = TRUE))
-# merge month+day into one column
-hobo_daily_avg$date <- paste0(hobo_daily_avg$month,"_",hobo_daily_avg$day)
-# selecting only June 20th - August 10th (drought window)
-hobo_daily_avg <- hobo_daily_avg[97:284, ]
+
 
 
 # subtracting ambient from warmed and drought from warmed drought to get difference - monthly
@@ -304,18 +333,25 @@ ggplot(hobo_monthly_avg_lux, aes(x = month, y = avg_lux, group=Treatment, color 
   theme_classic()
 dev.off()
 
+
 # plot - daily in the summer
-png("rex_hobo.png", units="in", width=6, height=4, res=300)
-ggplot(hobo_daily_avg, aes(x = date, y = avg_temp, group=Treatment, color = Treatment)) +
+hobo_daily_avg$year_month_day <- as.Date(hobo_daily_avg$year_month_day)
+png("rex_hobo_daily.png", units="in", width=15, height=7, res=300)
+ggplot(hobo_daily_avg, aes(x = year_month_day, y = avg_temp, group=Treatment, color = Treatment)) +
   geom_errorbar(aes(ymin=avg_temp-se, ymax=avg_temp+se),width=0.1,color="black",linetype="solid") +
   geom_line(size = 1) +
   geom_point(size = 2) +
   scale_color_manual(name="Treatment",
                      values = c("#a6bddb", "#687689", "#fb6a4a", "#9D422E"),
                      labels=c("Ambient","Drought","Warmed", "Warmed Drought")) +
-  labs(y="Temperature (°C)", x="Month") +
-  theme_classic()
+  labs(y="Temperature (°C)", x="Date") +
+  theme_bw() +
+  theme(axis.title = element_text(size=20),
+        axis.text = element_text(size=18),
+        legend.title = element_text(size=20),
+        legend.text = element_text(size=18))
 dev.off()
+
 
 # difference plot
 png("rex_hobo_diff.png", units="in", width=6, height=4, res=300)
