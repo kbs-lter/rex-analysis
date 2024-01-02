@@ -36,7 +36,7 @@ library(tibble)
 library(ggpubr)
 library(lmerTest)
 library(fitdistrplus)
-library(sjPlot)dplyr::
+library(sjPlot)dplyr
 library(tidyverse)
 library(car)
 library(emmeans)
@@ -98,14 +98,14 @@ meta <- read.csv(file.path(dir, "/REX_warmx_metadata.csv"))
 meta1 <- meta %>% dplyr::select(Subplot_Descriptions, Unique_ID, Rep, Footprint_Location)
 
 #combine meta and sample df
-biologsamples <- merge(x=biologsamples,y=meta1, by.x=c('Plot_ID'), 
+biologsamples1 <- merge(x=biologsamples,y=meta1, by.x=c('Plot_ID'), 
       by.y=c('Unique_ID'))
 
 standardsamples <- merge(x=standardsamples,y=meta1, by.x=c('Plot_ID'), 
       by.y=c('Unique_ID'))
 
 #change column order
-biologsamples <- biologsamples %>% relocate(Subplot_Descriptions, .after = Biolog_column_ID)
+biologsamples2 <- biologsamples1 %>% relocate(Subplot_Descriptions, .after = Biolog_column_ID)
 
 ```
 
@@ -274,18 +274,23 @@ https://github.com/kbs-lter/rex-analysis/blob/main/R/T7_warmx_plant_traits/Soca_
 
 #Checking Distribution of all reads across all hours
 ```{r}
-#remove hour 0
-standardno0 <- standardsamples %>% filter(!Delta %in% c("0"))
 
-# checks what type of distribution your data matches
-descdist(standardno0$Delta, discrete = FALSE)
-# should be a bell curve if normal
-hist(standardno0$Delta) #zero reads throw off graph but appears normal with them
-# should be a straight diagonal line if normal
-qqnorm(standardno0$Delta) #skewed
-#sample size too big for Shapiro test
+#calculate shannon diversity for all reads
+ShannonAll <- diversity(biologsamples2[,c(7:37)], index = "shannon")
 
-#still very skewed even without zero reads
+#histogram of shannon index for each sample each hour all reads-skewed right
+hist(ShannonAll)
+
+#shapiro test p=9.89e-5 normal!
+shapiro.test(ShannonAll)
+
+#bind with rest of data
+biolog.shannon <- cbind(biologsamples2, ShannonAll)
+
+#look at final reads for lmer
+biologshannon168 <- filter(biolog.shannon, Hour == 168)
+
+
 ```
 
 
@@ -293,8 +298,21 @@ qqnorm(standardno0$Delta) #skewed
 #LMER 
 ```{r}
 # without checking assumptions - need to do this. Just laying out the mixed effects model
-m1 <- lmer(Richness168hr ~ Subplot_Descriptions + (1|Rep/Footprint_Location/Subplot), data = biologHr168diversity, REML=F)
-summary(m1)
+m2 <- lmer(ShannonAll ~ Subplot_Descriptions + (1|Rep/Footprint_Location), data = biologshannon168, REML=F)
+summary(m2) #looking at just hour 168 is singular
+plot(m2, main = ShannonAll)
+
+#levene test for homogeneity of variance
+leveneTest(residuals(m2) ~ biologshannon168$Subplot_Descriptions) 
+
+# Check for normal residuals
+qqPlot(resid(m2), main = "ShannonAll")
+hist(residuals(m2), main = "ShannonAll")
+shapiro.test(resid(m2)) #p=0.02
+
+#anova
+anova(m2)
+
 ```
 
 Preliminary Plots
