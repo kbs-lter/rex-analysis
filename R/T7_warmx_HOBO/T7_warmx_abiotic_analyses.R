@@ -52,8 +52,7 @@ soil_data$date <- as.numeric(soil_data$date)
 
 ###############################################################################
 # Below is for Kara's VOC sampling in 2022
-# taking 2022 temp average for july 11 - july 15 (VOC sampling period)
-# selecting 2022 and june 1 - july 15
+# taking 2022 temps for july 11 - july 15 (VOC sampling period)
 hobo_sampling_VOC <- hobo_data %>%
   filter(year == 2022) %>%
   filter(date > "710") %>%
@@ -63,8 +62,7 @@ hobo_sampling_VOC <- hobo_sampling_VOC %>%
   filter(Rep == 2 | Rep == 3 | Rep == 4 | Rep == 5)
 
 
-# taking 2022 soil average for july 11 - july 15 (VOC sampling period)
-# selecting 2022 and june 1 - july 15
+# taking 2022 soil for july 11 - july 15 (VOC sampling period)
 soil_sampling_VOC <- soil_data %>%
   filter(year == 2022) %>%
   filter(date > "710") %>%
@@ -82,12 +80,54 @@ shapiro.test(hobo_sampling_VOC$Temperature_C)
 # kinda right skewed, lets see once its in a model
 #hobo_sampling <- within(hobo_sampling, Treatment <- relevel(factor(Treatment), ref = "Warmed_Drought"))
 m.hobo.test <- lmer(Temperature_C ~ Treatment + (1|Rep), data = hobo_sampling_VOC, REML=FALSE)
-anova(m.hobo.test)
-summary(m.hobo.test)
+# check normality
 hist(resid(m.hobo.test))
 shapiro.test(resid(m.hobo.test)) # still not normal, but going with this model
 descdist(resid(m.hobo.test), discrete = FALSE)
-emmeans(m.hobo.test, list(pairwise ~ Treatment), adjust = "tukey")
+# results
+anova(m.hobo.test)
+summary(m.hobo.test)
+contrast(emmeans(m.hobo.test, ~Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt")
+
+
+# soil model exploration for soil temperature
+descdist(soil_sampling_VOC$temperature, discrete = FALSE)
+hist(soil_sampling_VOC$temperature)
+qqnorm(soil_sampling_VOC$temperature)
+shapiro.test(soil_sampling_VOC$temperature)
+# kinda right skewed, lets see once its in a model
+#soil_sampling <- within(soil_sampling, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "Warmed_Drought"))
+m.soil.test <- lmer(temperature ~ Subplot_Descriptions + (1|Rep), data = soil_sampling_VOC, REML=FALSE)
+# assumption checking
+hist(resid(m.soil.test))
+shapiro.test(resid(m.soil.test)) # still not normal, but going with this model
+descdist(resid(m.soil.test), discrete = FALSE)
+# results
+anova(m.soil.test)
+summary(m.soil.test)
+contrast(emmeans(m.soil.test, ~Subplot_Descriptions), "pairwise", simple = "each", combine = F, adjust = "mvt")
+
+
+# soil model exploration for soil moisture
+descdist(soil_sampling_VOC$vwc, discrete = FALSE)
+hist(soil_sampling_VOC$vwc)
+qqnorm(soil_sampling_VOC$vwc)
+shapiro.test(soil_sampling_VOC$vwc)
+# kinda right skewed, lets see once its in a model
+#soil_sampling <- within(soil_sampling, Subplot_Descriptions <- relevel(factor(Subplot_Descriptions), ref = "Warmed_Drought"))
+m.soil.moist.test <- lmer(vwc ~ Subplot_Descriptions + (1|Rep), data = soil_sampling_VOC, REML=FALSE)
+# assumption checking
+hist(resid(m.soil.moist.test))
+shapiro.test(resid(m.soil.moist.test)) # still not normal, but going with this model
+descdist(resid(m.soil.moist.test), discrete = FALSE)
+# results
+anova(m.soil.moist.test)
+summary(m.soil.moist.test)
+contrast(emmeans(m.soil.moist.test, ~Subplot_Descriptions), "pairwise", simple = "each", combine = F, adjust = "mvt")
+
+
+
+
 ################################################################################
 
 # select just for 2022 data

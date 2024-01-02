@@ -17,6 +17,8 @@ library(plotly)
 library(broom)
 library(Rtsne)
 library(gridExtra)
+library(paletteer)
+library(ggthemes)
 
 # Set working directory
 dir<-Sys.getenv("DATA_DIR")
@@ -86,7 +88,7 @@ levels(seg.data$group)
 # make figure
 png("climate_pcoa.png", units="in", width=6.5, height=5, res=300)
 ggplot() + 
-  stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.8, geom="polygon")+
+  stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.95, geom="polygon")+
   #geom_point(data=centroids, aes(x=PCoA1,y=PCoA2),size=4.7,color="black",shape=16) + 
   geom_point(data=seg.data, aes(x=v.PCoA1,y=v.PCoA2, color=group),alpha=0.7,size=3,shape=16) +
   geom_point(data=centroids, aes(x=PCoA1,y=PCoA2, fill=group),color="black",size=5,shape=21) + 
@@ -117,7 +119,7 @@ levels(seg.data$group)
 # make figure
 png("climate_pcoa_no_ir.png", units="in", width=6.5, height=5, res=300)
 ggplot() + 
-  stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.8, geom="polygon")+
+  stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.95, geom="polygon")+
   #geom_point(data=centroids, aes(x=PCoA1,y=PCoA2),size=4.7,color="black",shape=16) + 
   geom_point(data=seg.data, aes(x=v.PCoA1,y=v.PCoA2, color=group),alpha=0.7,size=3,shape=16) +
   geom_point(data=centroids, aes(x=PCoA1,y=PCoA2, fill=group),color="black",size=5,shape=21) + 
@@ -126,10 +128,10 @@ ggplot() +
   scale_fill_manual(labels=c("Ambient (A)", "Warmed (W)", "Drought (D)", "Warmed + Drought \n (WD)"),
                     values=c('#2c7bb6',"khaki1","#fdae61","#d7191c"))+
   labs(x="PCoA 1",y="PCoA 2", color="Treatment", fill="Treatment") +
-  annotate("text", x = -0.125, y=0.03, label = "A", size=5) +
-  annotate("text", x = -0.07, y=0.05, label = "A", size=5) +
-  annotate("text", x = 0.04, y=0.06, label = "B", size=5) +
-  annotate("text", x = 0.1, y=0.08, label = "B", size=5) +
+  annotate("text", x = -0.125, y=0.04, label = "A", size=5) +
+  annotate("text", x = -0.07, y=0.06, label = "A", size=5) +
+  annotate("text", x = 0.04, y=0.07, label = "B", size=5) +
+  annotate("text", x = 0.1, y=0.09, label = "B", size=5) +
   theme_classic()
 dev.off()
 
@@ -315,6 +317,197 @@ dev.off()
 
 
 
+
+#### stacked bar plot - composition #####
+# transforming from wide to long
+voc_long <- voc_transpose_rm5 %>%
+  pivot_longer(names_to = "compound", values_to = "avg_abun", cols = -c(Sample_ID,Unique_ID,Rep,Footprint,Subplot,Treatment,Notes))
+# adding in full compounds names
+voc_long$full_name <- NA
+voc_long$full_name[voc_long$compound == "Ethanone..1..4.ethylphenyl.."] <- "Ethanone, 1-(4-ethylphenyl)-"
+voc_long$full_name[voc_long$compound == "Salicylic.acid..tert..butyl.ester"] <- "Salicylic acid, tert.-butyl ester"
+voc_long$full_name[voc_long$compound == "Butanenitrile..2.hydroxy.3.methyl."] <- "Butanenitrile, 2-hydroxy-3-methyl-"
+voc_long$full_name[voc_long$compound == "X1.3.Bis.cyclopentyl..1.cyclopentanone"] <- "1,3-Bis(cyclopentyl)-1-cyclopentanone"
+voc_long$full_name[voc_long$compound == "Propanoic.acid..2.methyl...3.hydroxy.2.2.4.trimethylpentyl.ester"] <- "Propanoic acid, 2-methyl-, 3-hydroxy-2,2,4-trimethylpentyl ester"
+voc_long$full_name[voc_long$compound == "X1.7.Nonadiene..4.8.dimethyl."] <- "1,7-Nonadiene, 4,8-dimethyl-"
+voc_long$full_name[voc_long$compound == "X5.Hepten.2.one..6.methyl."] <- "5-Hepten-2-one, 6-methyl-"
+voc_long$full_name[voc_long$compound == "dl.Menthol"] <- "dl-Menthol"
+voc_long$full_name[voc_long$compound == "Pentane..2.bromo."] <- "Pentane, 2-bromo-"
+voc_long$full_name[voc_long$compound == "X3.Heptanone..2.methyl."] <- "3-Heptanone, 2-methyl-"
+voc_long$full_name[voc_long$compound == "Benzoic.acid..2.ethylhexyl.ester"] <- "Benzoic acid, 2-ethylhexyl ester"
+voc_long$full_name[voc_long$compound == "X3.Butenoic.acid..ethyl.ester"] <- "3-Butenoic acid, ethyl ester"
+voc_long$full_name[voc_long$compound == "Acetic.acid..1.1.dimethylethyl.ester"] <- "Acetic acid, 1,1-dimethylethyl ester"
+voc_long$full_name[voc_long$compound == "Decane..2.4.dimethyl."] <- "Decane, 2,4-dimethyl-"
+voc_long$full_name[voc_long$compound == "endo.Borneol"] <- "endo-Borneol"
+voc_long$full_name[voc_long$compound == "X.Z.Z...alpha..Farnesene"] <- "(Z,Z)-alpha-Farnesene"
+voc_long$full_name[voc_long$compound == "p.Cymene"] <- "p-Cymene"
+voc_long$full_name[voc_long$compound == "X.....beta..Bourbonene"] <- "(-)-beta-Bourbonene"
+voc_long$full_name[voc_long$compound == "X4.tert.Butylcyclohexyl.acetate"] <- "4-tert-Butylcyclohexyl acetate"
+voc_long$full_name[voc_long$compound == "X6.10.Dimethyl.3..1.methylethylidene..1.cyclodecene"] <- "6,10-Dimethyl-3-(1-methylethylidene)-1-cyclodecene"
+voc_long$full_name[voc_long$compound == "X2.Ethylhexyl.salicylate"] <- "2-Ethylhexyl salicylate"
+voc_long$full_name[voc_long$compound == "Diisopropyl.adipate"] <- "Diisopropyl adipate"
+voc_long$full_name[voc_long$compound == "X2.Cyclohexen.1.one"] <- "2-Cyclohexen-1-one"
+voc_long$full_name[voc_long$compound == "o.Xylene"] <- "o-Xylene"
+voc_long$full_name[voc_long$compound == "Styrene"] <- "Styrene"
+voc_long$full_name[voc_long$compound == ".alpha..Bourbonene"] <- "alpha-Bourbonene"
+voc_long$full_name[voc_long$compound == "X2.Hexene..2.5.dimethyl."] <- "2-Hexene, 2,5-dimethyl-"
+voc_long$full_name[voc_long$compound == "X3.Hexen.1.ol"] <- "3-Hexen-1-ol"
+voc_long$full_name[voc_long$compound == "Butane..1.ethoxy."] <- "Butane, 1-ethoxy-"
+# adding in climate association - from the multiplatt comparisons in the VOC analyses script
+voc_long$climate_group <- NA
+voc_long$climate_group[voc_long$compound == "Ethanone..1..4.ethylphenyl.."] <- "Ambient"
+voc_long$climate_group[voc_long$compound == "Salicylic.acid..tert..butyl.ester"] <- "Ambient"
+voc_long$climate_group[voc_long$compound == "Butanenitrile..2.hydroxy.3.methyl."] <- "Ambient"
+voc_long$climate_group[voc_long$compound == "X1.3.Bis.cyclopentyl..1.cyclopentanone"] <- "Warmed"
+voc_long$climate_group[voc_long$compound == "Propanoic.acid..2.methyl...3.hydroxy.2.2.4.trimethylpentyl.ester"] <- "Warmed Drought"
+voc_long$climate_group[voc_long$compound == "X1.7.Nonadiene..4.8.dimethyl."] <- "Warmed Drought"
+voc_long$climate_group[voc_long$compound == "X5.Hepten.2.one..6.methyl."] <- "Warmed Drought"
+voc_long$climate_group[voc_long$compound == "dl.Menthol"] <- "Warmed Drought"
+voc_long$climate_group[voc_long$compound == "Pentane..2.bromo."] <- "Warmed Drought"
+voc_long$climate_group[voc_long$compound == "X3.Heptanone..2.methyl."] <- "Warmed Drought"
+voc_long$climate_group[voc_long$compound == "Benzoic.acid..2.ethylhexyl.ester"] <- "Warmed Drought"
+voc_long$climate_group[voc_long$compound == "X3.Butenoic.acid..ethyl.ester"] <- "Warmed Drought"
+voc_long$climate_group[voc_long$compound == "Acetic.acid..1.1.dimethylethyl.ester"] <- "Warmed Drought"
+voc_long$climate_group[voc_long$compound == "Decane..2.4.dimethyl."] <- "Ambient & Drought"
+voc_long$climate_group[voc_long$compound == "endo.Borneol"] <- "Ambient & Warmed"
+voc_long$climate_group[voc_long$compound == "X.Z.Z...alpha..Farnesene"] <- "Ambient & Warmed"
+voc_long$climate_group[voc_long$compound == "p.Cymene"] <- "Ambient & Warmed"
+voc_long$climate_group[voc_long$compound == "X.....beta..Bourbonene"] <- "Ambient & Warmed"
+voc_long$climate_group[voc_long$compound == "X4.tert.Butylcyclohexyl.acetate"] <- "Drought & Warmed Drought"
+voc_long$climate_group[voc_long$compound == "X6.10.Dimethyl.3..1.methylethylidene..1.cyclodecene"] <- "Drought & Warmed Drought"
+voc_long$climate_group[voc_long$compound == "X2.Ethylhexyl.salicylate"] <- "Drought & Warmed Drought"
+voc_long$climate_group[voc_long$compound == "Diisopropyl.adipate"] <- "Drought & Warmed Drought"
+voc_long$climate_group[voc_long$compound == "X2.Cyclohexen.1.one"] <- "Drought & Warmed Drought"
+voc_long$climate_group[voc_long$compound == "o.Xylene"] <- "Warmed & Warmed Drought"
+voc_long$climate_group[voc_long$compound == "Styrene"] <- "Warmed & Warmed Drought"
+voc_long$climate_group[voc_long$compound == ".alpha..Bourbonene"] <- "Ambient & Drought & Warmed"
+voc_long$climate_group[voc_long$compound == "X2.Hexene..2.5.dimethyl."] <- "Drought & Warmed & Warmed Drought"
+voc_long$climate_group[voc_long$compound == "X3.Hexen.1.ol"] <- "Drought & Warmed & Warmed Drought"
+voc_long$climate_group[voc_long$compound == "Butane..1.ethoxy."] <- "Drought & Warmed & Warmed Drought"
+
+# selecting compounds that popped up in indicator species analysis
+# focusing on these compounds because including all of them would be too confusing on a fig
+# first, all compounds associated w/ 1 treatment (but still allowing grouping, just not included here)
+voc_long_cmpd <- voc_long %>%
+  filter(compound == "Ethanone..1..4.ethylphenyl.." |
+           compound == "Salicylic.acid..tert..butyl.ester" |
+           compound == "Butanenitrile..2.hydroxy.3.methyl." |
+           compound == "Butane..2.cyclopropyl." |
+           compound == "X1.3.Bis.cyclopentyl..1.cyclopentanone" |
+           compound == "X2.3.4.Trimethyl.1.pentanol" |
+           compound == "Propanoic.acid..2.methyl...3.hydroxy.2.2.4.trimethylpentyl.ester" |
+           compound == "X1.7.Nonadiene..4.8.dimethyl." |
+           compound == "X5.Hepten.2.one..6.methyl." |
+           compound == "dl.Menthol" |
+           compound == "Pentane..2.bromo." |
+           compound == "X3.Heptanone..2.methyl." |
+           compound == "Benzoic.acid..2.ethylhexyl.ester" |
+           compound == "X3.Butenoic.acid..ethyl.ester " |
+           compound == "Acetic.acid..1.1.dimethylethyl.ester") %>%
+  group_by(Treatment, compound) %>%
+  summarize(avg_abundance = mean(avg_abun*10000))
+# second, all compounds associated w/ 1 treatment (not allowing grouping)
+voc_long_cmpd2 <- voc_long %>%
+  filter(compound == "Ethanone..1..4.ethylphenyl.." |
+           compound == "Salicylic.acid..tert..butyl.ester" |
+           compound == "Butanenitrile..2.hydroxy.3.methyl." |
+           compound == "Bicyclo.3.2.0.hepta.2.6.diene" |
+           compound == "X1.3.Bis.cyclopentyl..1.cyclopentanone" |
+           compound == "X2.3.4.Trimethyl.1.pentanol" |
+           compound == "Acetyl.valeryl" |
+           compound == "Propanoic.acid..2.methyl...3.hydroxy.2.2.4.trimethylpentyl.ester" |
+           compound == "X4.tert.Butylcyclohexyl.acetate" |
+           compound == "X1.7.Nonadiene..4.8.dimethyl." |
+           compound == "Diisopropyl.adipate" |
+           compound == "X5.Hepten.2.one..6.methyl." |
+           compound == "X1.Hexanol..2.ethyl." |
+           compound == "o.Xylene" |
+           compound == "dl.Menthol" |
+           compound == "Pentane..2.bromo." |
+           compound == "Linalyl.acetate" |
+           compound == "X3.Heptanone..2.methyl." |
+           compound == "Benzoic.acid..2.ethylhexyl.ester" |
+           compound == "Octane..2.methyl." |
+           compound == "Acetic.acid..1.1.dimethylethyl.ester") %>%
+  group_by(Treatment, compound) %>%
+  summarize(avg_abundance = mean(avg_abun*10000))
+# third, all compounds associated with 1, 2, or 3 treatments (allowing grouping) * using this one *
+voc_long_cmpd3 <- voc_long %>%
+  drop_na(full_name) %>%
+  group_by(Treatment, full_name, climate_group) %>%
+  summarize(avg_abundance = mean(avg_abun*10000))
+# custom axis order
+voc_long_cmpd2$Treatment <- factor(voc_long_cmpd2$Treatment, levels=c("Ambient_Control","Warmed",
+                                                                      "Drought","Warmed_Drought"))
+voc_long_cmpd3$Treatment <- factor(voc_long_cmpd3$Treatment, levels=c("Ambient_Control","Warmed",
+                                                                      "Drought","Warmed_Drought"))
+
+# stacked bar plot
+# https://jkzorz.github.io/2019/06/05/stacked-bar-plots.html
+ggplot(voc_long_cmpd2, aes(x = Treatment, fill = compound, y = avg_abundance)) + 
+  geom_bar(stat = "identity", colour = "black") + 
+  theme(axis.text.x = element_text(angle = 90, size = 14, colour = "black", vjust = 0.5, hjust = 1, face= "bold"), 
+        axis.title.y = element_text(size = 16, face = "bold"), legend.title = element_text(size = 16, face = "bold"), 
+        legend.text = element_text(size = 12, face = "bold", colour = "black"), 
+        axis.text.y = element_text(colour = "black", size = 12, face = "bold")) + 
+  scale_y_continuous(expand = c(0,0)) + 
+  labs(x = "", y = "Average VOC Abundance \n (peak area*10,000/g/hr)", fill = "Compound")
+
+# bubble plot
+# https://jkzorz.github.io/2019/06/05/Bubble-plots.html
+colours = c( "#fe0000",  "#800001", "#fe6a00", "#803400","#ffd800","#806b00", "#00fe21", "#007f0e", "#0094fe",
+             "#00497e","#0026ff","#001280","#b100fe","#590080")
+colours2 = c("#771155", "#AA4488", "#CC99BB", "#114477", "#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC",
+             "#117744", "#44AA77", "#88CCAA", "#777711", "#AAAA44", "#DDDD77", "#774411", "#AA7744", "#DDAA77",
+             "#771122", "#AA4455", "#DD7788")
+colours3 = paletteer_c("ggthemes::Sunset-Sunrise Diverging", 30)
+# ordering compounds from highest abundance to lowest
+voc_long_cmpd2$compound = reorder(voc_long_cmpd2$compound, voc_long_cmpd2$avg_abundance, FUN = mean)
+voc_long_cmpd3$full_name = reorder(voc_long_cmpd3$full_name, voc_long_cmpd3$avg_abundance, FUN = mean)
+# plot
+png("bubble_vocs.png", units="in", width=13, height=7, res=300)
+ggplot(voc_long_cmpd3, aes(x = Treatment, y = full_name)) + 
+  geom_point(aes(size = avg_abundance, fill = full_name), alpha = 0.75, shape = 21) + 
+  #scale_size_continuous(limits = c(0.000001, 100), range = c(1,17), breaks = c(1,10,50,75)) + 
+  labs( x= "", y = "", size = "Average VOC Abundance \n (peak area*10,000/g/hr)", fill = "")  + 
+  theme(legend.key=element_blank(), 
+        axis.text.x = element_text(colour = "black", size = 12, face = "bold", angle = 90, vjust = 0.3, hjust = 1), 
+        axis.text.y = element_text(colour = "black", face = "bold", size = 11), 
+        legend.text = element_text(size = 10, face ="bold", colour ="black"), 
+        legend.title = element_text(size = 12, face = "bold"), 
+        panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2), 
+        legend.position = "right") +
+  scale_fill_manual(values = colours3, guide="none") +
+  scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
+                            "Warmed" = "Warmed",
+                            "Drought" = "Drought",
+                            "Warmed_Drought" = "Warmed\nDrought"))
+dev.off()
+  #scale_y_discrete(labels=c("Acetic.acid..1.1.dimethylethyl.ester" = "Acetic acid, 1,1-dimethylethyl ester",
+  #                          "Acetyl.valeryl" = "Acetyl valeryl",
+  #                          "Benzoic.acid..2.ethylhexyl.ester" = "Benzoic acid, 2-ethylhexyl ester",
+  #                          "Bicyclo.3.2.0.hepta.2.6.diene" = "Bicyclo[3.2.0]hepta-2,6-diene",
+  #                          "Butanenitrile..2.hydroxy.3.methyl." = "Butanenitrile, 2-hydroxy-3-methyl-",
+  #                          "Diisopropyl.adipate" = "Diisopropyl adipate",
+  #                          "dl.Menthol" = "dl-Menthol",
+  #                          "Ethanone..1..4.ethylphenyl.." = "Ethanone, 1-(4-ethylphenyl)-",
+  #                          "Linalyl.acetate" = "Linalyl acetate",
+  #                          "o.Xylene" = "o-Xylene",
+  #                          "Octane..2.methyl." = "Octane, 2-methyl-",
+  #                          "Pentane..2.bromo." = "Pentane, 2-bromo-",
+  #                          "Propanoic.acid..2.methyl...3.hydroxy.2.2.4.trimethylpentyl.ester" = "Propanoic acid, 2-methyl-, 3-hydroxy-2,2,4-trimethylpentyl ester",
+  #                          "Salicylic.acid..tert..butyl.ester" = "Salicylic acid, tert.-butyl ester",
+  #                          "X1.3.Bis.cyclopentyl..1.cyclopentanone" = "1,3-Bis(cyclopentyl)-1-cyclopentanone",
+  #                          "X1.7.Nonadiene..4.8.dimethyl." = "1,7-Nonadiene, 4,8-dimethyl-",
+  #                          "X1.Hexanol..2.ethyl." = "1-Hexanol, 2-ethyl-",
+  #                          "X2.3.4.Trimethyl.1.pentanol" = "2,3,4-Trimethyl-1-pentanol",
+  #                          "X3.Heptanone..2.methyl." = "3-Heptanone, 2-methyl-",
+  #                          "X4.tert.Butylcyclohexyl.acetate" = "4-tert-Butylcyclohexyl acetate",
+  #                          "X5.Hepten.2.one..6.methyl." = "5-Hepten-2-one, 6-methyl-"))
+
+
+
+
 #### ABUNDANCE ####
 # calculating total abundance for each sample
 voc_transpose$rowsums <- rowSums(voc_transpose[2:429])
@@ -328,15 +521,22 @@ voc_transpose_rm5$rowsums <- rowSums(voc_transpose_rm5[2:429])
 voc_transpose_sum2 <- voc_transpose %>%
   group_by(Treatment) %>%
   summarize(avg_abun = mean(rowsums),
-            se = std.error(rowsums))
+            se = std.error(rowsums),
+            count = n())
+voc_transpose_sum_CI <- voc_transpose_rm5 %>%
+  group_by(Treatment) %>%
+  summarize(avg_abun = mean(rowsums),
+            CI = mean(rowsums)-(qnorm(0.975)*sd(rowsums)/sqrt(length(rowsums))),
+            CI_total = avg_abun-CI,
+            count = n())
 voc_transpose_sum3 <- voc_transpose_rm5 %>%
   group_by(Treatment) %>%
   summarize(avg_abun = mean(rowsums),
             se = std.error(rowsums))
 # plot - abundance w/o considering biomass
-level_order2 <- c('Ambient_Control', 'Irrigated_Control', 'Drought', "Warmed", "Warmed_Drought")
+level_order2 <- c('Ambient_Control', 'Irrigated_Control', 'Warmed', "Drought", "Warmed_Drought")
 png("climate_ab_no_ir.png", units="in", width=6, height=5, res=300)
-ggplot(voc_transpose_sum3, aes(x = factor(Treatment, level = level_order2), y = avg_abun)) + 
+ggplot(voc_transpose_sum2, aes(x = factor(Treatment, level = level_order2), y = avg_abun)) + 
   geom_bar(position = "identity", stat = "identity", color = 'black', fill = "lightsteelblue3") +
   geom_errorbar(aes(ymin = avg_abun - se, ymax = avg_abun + se), width = 0.2,
                 position = "identity") +
@@ -347,7 +547,23 @@ ggplot(voc_transpose_sum3, aes(x = factor(Treatment, level = level_order2), y = 
         axis.title.x = element_text(size=15)) +
   scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
                             "Irrigated_Control" = "Irrigated",
-                            "Warmed_Drought" = "Warmed + \n Drought")) +
+                            "Warmed_Drought" = "Warmed\nDrought")) +
+  labs(x = "Treatment", y = "Average VOC Abundance \n (peak area/g/hr)")
+dev.off()
+
+# dot plot
+png("climate_ab_95.png", units="in", width=6, height=5, res=300)
+ggplot(voc_transpose_sum_CI,aes(x = factor(Treatment, level = level_order2), y = avg_abun)) +
+  geom_pointrange(aes(ymin=avg_abun-CI_total, ymax=avg_abun+CI_total), ,pch=21,size=1,position=position_dodge(0.3),fill="lightsteelblue3") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size=13),
+        axis.text.y = element_text(size=13),
+        axis.title.y = element_text(size=15),
+        axis.title.x = element_text(size=15)) +
+  ylim(0.25,1.25) +
+  scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
+                            "Irrigated_Control" = "Irrigated",
+                            "Warmed_Drought" = "Warmed\nDrought")) +
   labs(x = "Treatment", y = "Average VOC Abundance \n (peak area/g/hr)")
 dev.off()
 
@@ -358,7 +574,7 @@ level_order2 <- c('Ambient_Control', 'Irrigated_Control', 'Drought', "Warmed", "
 level_order3 <- c('Ambient_Control', 'Warmed','Drought', "Warmed_Drought")
 
 # o xylene
-voc_transpose_xylene <- voc_transpose_rm5 %>%
+voc_transpose_xylene <- voc_transpose %>%
   dplyr::select(Sample_ID, Treatment, Rep, o.Xylene)
 # taking average per treatment
 voc_transpose_xylene_a <- voc_transpose_xylene %>%
@@ -366,17 +582,17 @@ voc_transpose_xylene_a <- voc_transpose_xylene %>%
   summarize(abun = mean(o.Xylene),
             se = std.error(o.Xylene))
 
-# Hepten 2 one 6 methyl
-voc_transpose_hepten <- voc_transpose_rm5 %>%
-  dplyr::select(Sample_ID, Treatment, Rep, X5.Hepten.2.one..6.methyl.)
+# X.Z.Z...alpha..Farnesene
+voc_transpose_farn <- voc_transpose %>%
+  dplyr::select(Sample_ID, Treatment, Rep, X.Z.Z...alpha..Farnesene)
 # taking average per treatment
-voc_transpose_hepten_a <- voc_transpose_hepten %>%
+voc_transpose_farn_a <- voc_transpose_farn %>%
   group_by(Treatment) %>%
-  summarize(abun = mean(X5.Hepten.2.one..6.methyl.),
-            se = std.error(X5.Hepten.2.one..6.methyl.))
+  summarize(abun = mean(X.Z.Z...alpha..Farnesene),
+            se = std.error(X.Z.Z...alpha..Farnesene))
 
 # beta Myrcene
-voc_transpose_myrcene <- voc_transpose_rm5 %>%
+voc_transpose_myrcene <- voc_transpose %>%
   dplyr::select(Sample_ID, Treatment, Rep, .beta..Myrcene)
 # taking average per treatment
 voc_transpose_myrcene_a <- voc_transpose_myrcene %>%
@@ -384,18 +600,18 @@ voc_transpose_myrcene_a <- voc_transpose_myrcene %>%
   summarize(abun = mean(.beta..Myrcene),
             se = std.error(.beta..Myrcene))
 
-# Hexen 1 ol acetate
-voc_transpose_hexen <- voc_transpose_rm5 %>%
-  dplyr::select(Sample_ID, Treatment, Rep, X4.Hexen.1.ol..acetate)
+# Butanenitrile..2.hydroxy.3.methyl.
+voc_transpose_butane <- voc_transpose %>%
+  dplyr::select(Sample_ID, Treatment, Rep, Butanenitrile..2.hydroxy.3.methyl.)
 # taking average per treatment
-voc_transpose_hexen_a <- voc_transpose_hexen %>%
+voc_transpose_butane_a <- voc_transpose_butane %>%
   group_by(Treatment) %>%
-  summarize(abun = mean(X4.Hexen.1.ol..acetate),
-            se = std.error(X4.Hexen.1.ol..acetate))
+  summarize(abun = mean(Butanenitrile..2.hydroxy.3.methyl.),
+            se = std.error(Butanenitrile..2.hydroxy.3.methyl.))
 
 # plot
 png("climate_hexen.png", units="in", width=6, height=4, res=300)
-ggplot(voc_transpose_hexen_a, aes(x = factor(Treatment, level = level_order3), y = abun)) + 
+ggplot(voc_transpose_xylene_a, aes(x = factor(Treatment, level = level_order2), y = abun)) + 
   geom_bar(position = "identity", stat = "identity", color = 'black', fill = "lightsteelblue3") +
   geom_errorbar(aes(ymin = abun - se, ymax = abun + se), width = 0.2,
                 position = "identity") +
@@ -404,7 +620,6 @@ ggplot(voc_transpose_hexen_a, aes(x = factor(Treatment, level = level_order3), y
         axis.title.y = element_text(size=15),
         axis.title.x = element_text(size=15)) +
   scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
-                            "Irrigated_Control" = "Irrigated",
                             "Warmed_Drought" = "Warmed + \n Drought")) +
   labs(x = "Treatment", y = "Average VOC Abundance \n (peak area/g/h)")
 dev.off()

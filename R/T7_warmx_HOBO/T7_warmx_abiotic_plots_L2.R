@@ -36,14 +36,18 @@ hobo_season$month <- format(hobo_season$Date_Time,format="%m")
 hobo_season$year <- format(hobo_season$Date_Time,format="%Y")
 hobo_season$hour <- format(hobo_season$Date_Time, format="%H")
 hobo_season$day <- format(hobo_season$Date_Time, format="%d")
+hobo_season$year_month_day <- format(hobo_season$Date_Time, format="%Y-%m-%d")
+hobo_season$date <- paste0(hobo_season$month,"",hobo_season$day)
+hobo_season$date <- as.numeric(hobo_season$date)
 hobo_season <- hobo_season %>%
   filter(hour > "06") %>%
   filter(hour < "20")
 hobo_season_sum <- hobo_season %>%
+  filter(year == 2022) %>%
   filter(hour > "06") %>%
   filter(hour < "20") %>%
-  filter(month > "05") %>%
-  filter(month < "09")
+  filter(date > "531") %>%
+  filter(date < "716")
 
 soil_season <- soil_data
 soil_season$month <- format(soil_season$Date_Time,format="%m")
@@ -81,9 +85,7 @@ hobo_monthly_avg <- hobo_monthly %>%
 
 
 # taking 2022 temp average for july 11 - july 15 (sampling period)
-hobo_season$date <- paste0(hobo_season$month,"",hobo_season$day)
-hobo_season$date <- as.numeric(hobo_season$date)
-# selecting 2022 and june 1 - july 15
+# selecting 2022 and july 11 - july 15
 hobo_sampling <- hobo_season %>%
   filter(year == 2022) %>%
   filter(date > "710") %>%
@@ -96,10 +98,45 @@ hobo_sampling_avg <- hobo_sampling %>%
   group_by(Rep, Treatment) %>%
   summarize(average_temp = mean(Temperature_C, na.rm = TRUE))
 # averaging over each rep so n=4 for each treatment
-hobo_sampling_avg <- hobo_sampling_avg %>%
+hobo_sampling_avg2 <- hobo_sampling_avg %>%
   group_by(Treatment) %>%
   summarize(avg_temp = mean(average_temp, na.rm = TRUE),
             se = std.error(average_temp, na.rm = TRUE))
+# 95% CI
+hobo_sampling_avg_CI <- hobo_sampling_avg %>%
+  group_by(Treatment) %>%
+  summarize(avg_temp = mean(average_temp, na.rm = TRUE),
+            CI = mean(average_temp)-(qnorm(0.975)*sd(average_temp)/sqrt(length(average_temp))),
+            CI_total = avg_temp-CI,
+            count = n())
+
+
+# taking 2022 temp average for June 1 - July 15
+# selecting 2022 and june 1 - july 15
+hobo_sampling_early <- hobo_season %>%
+  filter(year == 2022) %>%
+  filter(date > "531") %>%
+  filter(date < "716")
+# limit to the reps I used
+hobo_sampling_early <- hobo_sampling_early %>%
+  filter(Rep == 2 | Rep == 3 | Rep == 4 | Rep == 5)
+# take average per day, per rep, per treatment
+hobo_sampling_avg_early <- hobo_sampling_early %>%
+  group_by(Rep, Treatment) %>%
+  summarize(average_temp = mean(Temperature_C, na.rm = TRUE))
+# averaging over each rep so n=4 for each treatment
+hobo_sampling_avg2_early <- hobo_sampling_avg_early %>%
+  group_by(Treatment) %>%
+  summarize(avg_temp = mean(average_temp, na.rm = TRUE),
+            se = std.error(average_temp, na.rm = TRUE))
+# 95% CI
+hobo_sampling_avg_CI_early <- hobo_sampling_avg_early %>%
+  group_by(Treatment) %>%
+  summarize(avg_temp = mean(average_temp, na.rm = TRUE),
+            CI = mean(average_temp)-(qnorm(0.975)*sd(average_temp)/sqrt(length(average_temp))),
+            CI_total = avg_temp-CI,
+            count = n())
+
 
 # taking 2022 soil average for july 11 - july 15 (sampling period)
 soil_season$date <- paste0(soil_season$month,"",soil_season$day)
@@ -118,12 +155,22 @@ soil_sampling_avg <- soil_sampling %>%
   summarize(average_temp = mean(temperature, na.rm = TRUE),
             average_moist = mean(vwc, na.rm=T))
 # averaging over each rep, n varies between treatments
-soil_sampling_avg <- soil_sampling_avg %>%
+soil_sampling_avg2 <- soil_sampling_avg %>%
   group_by(Subplot_Descriptions) %>%
   summarize(avg_temp = mean(average_temp, na.rm = TRUE),
             se_temp = std.error(average_temp, na.rm = TRUE),
             avg_moist = mean(average_moist, na.rm=T),
             se_moist = std.error(average_moist, na.rm=T))
+# 95% CI
+soil_sampling_avg_CI <- soil_sampling_avg %>%
+  group_by(Subplot_Descriptions) %>%
+  summarize(avg_temp = mean(average_temp, na.rm = TRUE),
+            avg_moist = mean(average_moist, na.rm = TRUE),
+            CI_temp = mean(average_temp)-(qnorm(0.975)*sd(average_temp)/sqrt(length(average_temp))),
+            CI_temp_total = avg_temp-CI_temp,
+            CI_moist = mean(average_moist)-(qnorm(0.975)*sd(average_moist)/sqrt(length(average_moist))),
+            CI_moist_total = avg_moist-CI_moist,
+            count = n())
 
 
 # taking monthly average
@@ -142,18 +189,17 @@ hobo_monthly_avg_lux <- hobo_monthly_lux %>%
 # taking daily average for the drought period
 # create new dataframes for temperatures averaged for plotting
 hobo_daily_sum <- hobo_season_sum %>%
-  group_by(month,day, Rep, Treatment) %>%
+  filter(Rep == 2 | Rep == 3 | Rep == 4 | Rep == 5)
+hobo_daily_sum <- hobo_daily_sum %>%
+  group_by(date, year_month_day, Rep, Treatment) %>%
   summarize(average_temp = mean(Temperature_C, na.rm = TRUE),
             se = std.error(Temperature_C, na.rm = TRUE))
 # averaging over each rep, so n=6 for each data point (n=5 for D and WD)
 hobo_daily_avg <- hobo_daily_sum %>%
-  group_by(month, day,Treatment) %>%
+  group_by(date, year_month_day, Treatment) %>%
   summarize(avg_temp = mean(average_temp, na.rm = TRUE),
             se = std.error(average_temp, na.rm = TRUE))
-# merge month+day into one column
-hobo_daily_avg$date <- paste0(hobo_daily_avg$month,"_",hobo_daily_avg$day)
-# selecting only June 20th - August 10th (drought window)
-hobo_daily_avg <- hobo_daily_avg[97:284, ]
+
 
 
 # subtracting ambient from warmed and drought from warmed drought to get difference - monthly
@@ -224,8 +270,8 @@ dev.off()
 # plot - air temp, soil temp, and soil moisture during sampling period
 level_order1 <- c("Ambient", 'Warmed', 'Drought',"Warmed_Drought") 
 level_order2 <- c("irrigated_control","ambient", 'warmed', 'drought',"warmed_drought") 
-air_temp <- ggplot(hobo_sampling_avg, aes(x = factor(Treatment, level = level_order1), y = avg_temp)) +
-  geom_pointrange(aes(ymin=avg_temp-se, ymax=avg_temp+se), size=0.6) +
+air_temp <- ggplot(hobo_sampling_avg_CI, aes(x = factor(Treatment, level = level_order1), y = avg_temp)) +
+  geom_pointrange(aes(ymin=avg_temp-CI_total, ymax=avg_temp+CI_total),pch=21,size=1,fill="lightsteelblue3") +
   #geom_errorbar(aes(ymin=avg_temp-se, ymax=avg_temp+se),width=0.1,color="black",linetype="solid") +
   #geom_point(size = 2) +
   labs(y="Air temperature (°C)", x=NULL) +
@@ -238,8 +284,8 @@ air_temp <- ggplot(hobo_sampling_avg, aes(x = factor(Treatment, level = level_or
         axis.text = element_text(size=15),
         legend.title = element_text(size=17),
         legend.text = element_text(size=15))
-soil_temp <- ggplot(soil_sampling_avg, aes(x = factor(Subplot_Descriptions, level=level_order2), y = avg_temp)) +
-  geom_pointrange(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp), size=0.6) +
+soil_temp <- ggplot(soil_sampling_avg_CI, aes(x = factor(Subplot_Descriptions, level=level_order2), y = avg_temp)) +
+  geom_pointrange(aes(ymin=avg_temp-CI_temp_total, ymax=avg_temp+CI_temp_total), pch=21,size=1,fill="lightsteelblue3") +
   #geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp),width=0.1,color="black",linetype="solid") +
   #geom_point(size = 2) +
   labs(y="Soil temperature (°C)", x=NULL) +
@@ -247,21 +293,21 @@ soil_temp <- ggplot(soil_sampling_avg, aes(x = factor(Subplot_Descriptions, leve
                             "irrigated_control" = "I", "warmed" = "W",
                             "warmed_drought" = "WD")) +
   theme_bw() +
-  annotate("text", x = 0.7, y=21.5, label = "B", size=6) +
+  annotate("text", x = 0.7, y=21.7, label = "B", size=6) +
   theme(axis.title = element_text(size=17),
         axis.text = element_text(size=15),
         legend.title = element_text(size=17),
         legend.text = element_text(size=15))
-soil_moist <- ggplot(soil_sampling_avg, aes(x = factor(Subplot_Descriptions, level=level_order2), y = avg_moist)) +
-  geom_pointrange(aes(ymin=avg_moist-se_moist, ymax=avg_moist+se_moist),size=0.6) +
+soil_moist <- ggplot(soil_sampling_avg_CI, aes(x = factor(Subplot_Descriptions, level=level_order2), y = avg_moist)) +
+  geom_pointrange(aes(ymin=avg_moist-CI_moist_total, ymax=avg_moist+CI_moist_total),pch=21,size=1,fill="lightsteelblue3") +
   #geom_errorbar(aes(ymin=avg_moist-se_moist, ymax=avg_moist+se_moist),width=0.1,color="black",linetype="solid") +
   #geom_point(size = 2) +
-  labs(y="Soil moisture (m^3/m^3)", x=NULL) +
+  labs(y=bquote("Soil moisture " (m^3/m^3)), x=NULL) +
   scale_x_discrete(labels=c("ambient" = "A", "drought" = "D",
                             "irrigated_control" = "I", "warmed" = "W",
                             "warmed_drought" = "WD")) +
   theme_bw() +
-  annotate("text", x = 0.7, y=0.28, label = "C", size=6) +
+  annotate("text", x = 0.7, y=0.30, label = "C", size=6) +
   theme(axis.title = element_text(size=17),
         axis.text = element_text(size=15),
         legend.title = element_text(size=17),
@@ -287,18 +333,25 @@ ggplot(hobo_monthly_avg_lux, aes(x = month, y = avg_lux, group=Treatment, color 
   theme_classic()
 dev.off()
 
+
 # plot - daily in the summer
-png("rex_hobo.png", units="in", width=6, height=4, res=300)
-ggplot(hobo_daily_avg, aes(x = date, y = avg_temp, group=Treatment, color = Treatment)) +
+hobo_daily_avg$year_month_day <- as.Date(hobo_daily_avg$year_month_day)
+png("rex_hobo_daily.png", units="in", width=15, height=7, res=300)
+ggplot(hobo_daily_avg, aes(x = year_month_day, y = avg_temp, group=Treatment, color = Treatment)) +
   geom_errorbar(aes(ymin=avg_temp-se, ymax=avg_temp+se),width=0.1,color="black",linetype="solid") +
   geom_line(size = 1) +
   geom_point(size = 2) +
   scale_color_manual(name="Treatment",
                      values = c("#a6bddb", "#687689", "#fb6a4a", "#9D422E"),
                      labels=c("Ambient","Drought","Warmed", "Warmed Drought")) +
-  labs(y="Temperature (°C)", x="Month") +
-  theme_classic()
+  labs(y="Temperature (°C)", x="Date") +
+  theme_bw() +
+  theme(axis.title = element_text(size=20),
+        axis.text = element_text(size=18),
+        legend.title = element_text(size=20),
+        legend.text = element_text(size=18))
 dev.off()
+
 
 # difference plot
 png("rex_hobo_diff.png", units="in", width=6, height=4, res=300)
