@@ -1,16 +1,20 @@
 ---
 title: "Biolog Analysis Script"
-author: "Adrian Noecker"
+author: "Adrian Noecker, Moriah Young"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: pdf_document
 editor_options: 
   chunk_output_type: console
 ---
-COLLABORATORS: Moriah Young, Phoebe Zarnetske, Mark Hammond, Taylor Ulbrich
-DATA INPUT:  csv from the shared Google drive  
-DATA OUTPUT: Code and Rmd are in the scripts folder in Github  
+COLLABORATORS: Phoebe Zarnetske, Mark Hammond, Taylor Ulbrich (using code from Taylor)
+DATA INPUT: L1 csv from the shared Google drive  
+DATA OUTPUT: L2 csv and Code and Rmd are in the scripts folder in Github  
 PROJECT: REX
 ---
+
+TO DO:
+- Make one data frame that includes all the diversity indices for all time points and upload to L2 folder
+- Data analysis for Richness and AWCD
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -36,7 +40,7 @@ library(tibble)
 library(ggpubr)
 library(lmerTest)
 library(fitdistrplus)
-library(sjPlot)dplyr
+library(sjPlot)
 library(tidyverse)
 library(car)
 library(emmeans)
@@ -57,28 +61,25 @@ biolognowater <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warm
 standardbiolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L1/Biolog_data_L1.csv"))
 ```
 
-Notes from Moriah:
-- Model structure is a little more complex in REX - need to have random effects as such: (1|Rep/Footprint/Subplot). This is a nested plot design. For lack of better explanation, it goes from largest "scale" (rep) to smallest "scale" (subplot) This means that you'll want to retain the rep and footprint numbers in the dataframe you ultimately create below and with the diversity metrics.
-
-
 #reformatting and checking absorbances
+# Moriah - this part is a little confusing. For example, the differentiation between the standard and biolog dataframes
 ```{r}
 #removing water from standard biolog
 standardnowater <- standardbiolog %>% filter(!Well_C_Source %in% c("Water"))
 
-
 #changing row name and reformatting, combine hour and ID to one column
-df <- biolognowater %>%
+biologdf <- biolognowater %>%
   unite(SampleID_Hour, Biolog_column_ID, Hour, sep ="_", remove = FALSE)
 
 standarddf <- standardnowater %>%
   unite(SampleID_Hour, Biolog_column_ID, Hour, sep ="_", remove = FALSE)
 
 #renaming new column
-df$rowname <- df$SampleID_Hour
+biologdf$rowname <- biologdf$SampleID_Hour
 
+# Note from Moriah: is there a reason why the first column is converted to the row names??
 #changing column to row
-biologmatrix<-column_to_rownames(df, "rowname")
+biologmatrix <- column_to_rownames(biologdf, "rowname")
 
 #Check control absorbances (all should == 0 if no contamination)
 biologcontrol <- biologmatrix %>% filter(Sample_ID=="BIOLOG CONTROL")
@@ -97,11 +98,12 @@ meta <- read.csv(file.path(dir, "/REX_warmx_metadata.csv"))
 #get rid of unneeded columns
 meta1 <- meta %>% dplyr::select(Subplot_Descriptions, Unique_ID, Rep, Footprint_Location)
 
+# Note from Moriah: when we merge these two together, we lose the matrix formatting - may need to run "column_to_rownames" function again on new dataframe to make SampleID_Hour row names
 #combine meta and sample df
-biologsamples1 <- merge(x=biologsamples,y=meta1, by.x=c('Plot_ID'), 
+biologsamples1 <- merge(x=biologsamples, y=meta1, by.x=c('Plot_ID'), 
       by.y=c('Unique_ID'))
 
-standardsamples <- merge(x=standardsamples,y=meta1, by.x=c('Plot_ID'), 
+standardsamples1 <- merge(x=standardsamples, y=meta1, by.x=c('Plot_ID'), 
       by.y=c('Unique_ID'))
 
 #change column order
@@ -109,25 +111,24 @@ biologsamples2 <- biologsamples1 %>% relocate(Subplot_Descriptions, .after = Bio
 
 ```
 
-#grouping by  hour
+#grouping by hour
 ```{r}
 # split data by Hour so we can calculate AWCD by each Hour 
-biologHr0 <- filter(biologsamples, Hour == 0)
-biologHr24 <- filter(biologsamples, Hour == 24)
-biologHr48 <- filter(biologsamples, Hour == 48)
-biologHr72 <- filter(biologsamples, Hour == 72)
-biologHr96 <- filter(biologsamples, Hour == 96)
-biologHr120 <- filter(biologsamples, Hour == 120)
-biologHr144 <- filter(biologsamples, Hour == 144)
-biologHr168 <- filter(biologsamples, Hour == 168)
-
+biologHr0 <- filter(biologsamples2, Hour == 0)
+biologHr24 <- filter(biologsamples2, Hour == 24)
+biologHr48 <- filter(biologsamples2, Hour == 48)
+biologHr72 <- filter(biologsamples2, Hour == 72)
+biologHr96 <- filter(biologsamples2, Hour == 96)
+biologHr120 <- filter(biologsamples2, Hour == 120)
+biologHr144 <- filter(biologsamples2, Hour == 144)
+biologHr168 <- filter(biologsamples2, Hour == 168)
 ```
 
 #Diversity Calculations seperated by hour
 ```{r}
 ###Hour 168
-# First, richness of subsrates used; add all indices as a column to the metadata file 
-Richness168hr<- rowSums(biologHr168[,-c(1:6)]>0)
+# First, richness of substrates used; add all indices as a column to the metadata file 
+Richness168hr <- rowSums(biologHr168[,-c(1:6)]>0)
 
 # Second, calculate shannon diversity 
 Shannon168hr <- diversity(biologHr168[,-c(1:6)], index = "shannon")
@@ -139,8 +140,8 @@ AWCD168hr <- apply(biologHr168[,-c(1:6)],1,mean)
 biologHr168diversity <- cbind(biologHr168[1:6], Richness168hr, Shannon168hr, AWCD168hr)
 
 ###Hour 144
-# First, richness of subsrates used; add all indices as a column to the metadata file 
-Richness144hr<- rowSums(biologHr144[,-c(1:6)]>0)
+# First, richness of substrates used; add all indices as a column to the metadata file 
+Richness144hr <- rowSums(biologHr144[,-c(1:6)]>0)
 
 # Second, calculate shannon diversity 
 Shannon144hr <- diversity(biologHr144[,-c(1:6)], index = "shannon")
@@ -152,8 +153,8 @@ AWCD144hr <- apply(biologHr144[,-c(1:6)],1,mean)
 biologHr144diversity <- cbind(biologHr144[1:6], Richness144hr, Shannon144hr, AWCD144hr)
 
 ###Hour 120
-# First, richness of subsrates used; add all indices as a column to the metadata file 
-Richness120hr<- rowSums(biologHr120[,-c(1:6)]>0)
+# First, richness of substrates used; add all indices as a column to the metadata file 
+Richness120hr <- rowSums(biologHr120[,-c(1:6)]>0)
 
 # Second, calculate shannon diversity 
 Shannon120hr <- diversity(biologHr120[,-c(1:6)], index = "shannon")
@@ -166,7 +167,7 @@ biologHr120diversity <- cbind(biologHr120[1:6], Richness120hr, Shannon120hr, AWC
 
 ###Hour 96
 # First, richness of substrates used; add all indices as a column to the metadata file 
-Richness96hr<- rowSums(biologHr96[,-c(1:6)]>0)
+Richness96hr <- rowSums(biologHr96[,-c(1:6)]>0)
 
 # Second, calculate shannon diversity 
 Shannon96hr <- diversity(biologHr96[,-c(1:6)], index = "shannon")
@@ -179,7 +180,7 @@ biologHr96diversity <- cbind(biologHr96[1:6], Richness96hr, Shannon96hr, AWCD96h
 
 ###Hour 72
 # First, richness of subsrates used; add all indices as a column to the metadata file 
-Richness72hr<- rowSums(biologHr72[,-c(1:6)]>0)
+Richness72hr <- rowSums(biologHr72[,-c(1:6)]>0)
 
 # Second, calculate shannon diversity 
 Shannon72hr <- diversity(biologHr72[,-c(1:6)], index = "shannon")
@@ -191,8 +192,8 @@ AWCD72hr <- apply(biologHr72[,-c(1:6)],1,mean)
 biologHr72diversity <- cbind(biologHr72[1:6], Richness72hr, Shannon72hr, AWCD72hr)
 
 ###Hour 48
-# First, richness of subsrates used; add all indices as a column to the metadata file 
-Richness48hr<- rowSums(biologHr48[,-c(1:6)]>0)
+# First, richness of substrates used; add all indices as a column to the metadata file 
+Richness48hr <- rowSums(biologHr48[,-c(1:6)]>0)
 
 # Second, calculate shannon diversity 
 Shannon48hr <- diversity(biologHr48[,-c(1:6)], index = "shannon")
@@ -204,8 +205,8 @@ AWCD48hr <- apply(biologHr48[,-c(1:6)],1,mean)
 biologHr48diversity <- cbind(biologHr48[1:6], Richness48hr, Shannon48hr, AWCD48hr)
 
 ###Hour 24
-# First, richness of subsrates used; add all indices as a column to the metadata file 
-Richness24hr<- rowSums(biologHr24[,-c(1:6)]>0)
+# First, richness of substrates used; add all indices as a column to the metadata file 
+Richness24hr <- rowSums(biologHr24[,-c(1:6)]>0)
 
 # Second, calculate shannon diversity 
 Shannon24hr <- diversity(biologHr24[,-c(1:6)], index = "shannon")
@@ -218,104 +219,68 @@ biologHr24diversity <- cbind(biologHr24[1:6], Richness24hr, Shannon24hr, AWCD24h
 
 ```
 
-#Looking at distribution of data
+# PLOTS
+
+# Diversity plots
+# Hour 168 - day 7
 ```{r}
-###Starting with final reading (hour=168) 
+# RICHNESS 
+ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = Richness168hr, fill = Subplot_Descriptions)) +
+        geom_boxplot() + 
+        labs(x = "Treatment", 
+             y = "Catabolic Richness", 
+             title = "Microbial Catabolic Richness, Day 7") + 
+        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
 
-# test for normal residuals and equal variances (ANOVA assumptions)
-# normal residuals?
-ggqqplot(biologHr168diversity$Richness168hr)
-hist(biologHr168diversity$Richness168hr) ##slightly skewed left
+# SHANNON DIVERSITY 
+ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = Shannon168hr, fill = Subplot_Descriptions)) +
+        geom_boxplot() + 
+        labs(x = "Treatment", 
+             y = "Catabolic Shannon Diversity", 
+             title = "Microbial Catabolic Shannon Diversity, Day 7") + 
+        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
 
-# Shapiro test - null hypothesis: residuals are normally distributed 
-require(lme4)
-require(lmerTest)
-model = lm(Richness168hr ~ Subplot_Descriptions, data = biologHr168diversity)
-res = model$residuals
-shapiro.test(res) 
-#p = 0.002237 so not normally distributed?
-
-# homogeneity of variances
-# Many statistical tests (like a one-way ANOVA) assume that variances are equal across samples. Bartlett’s test can be 
-# used to verify that assumption.
-# H0: The variance among each group is equal.
-# HA: At least one group has a variance that is not equal to the rest.
-
-bartlett.test(Richness168hr ~ Subplot_Descriptions, data = biologHr168diversity) 
-# 0.6396 = we fail to reject the null hypothesis, so all groups have the same variance. This is what we want.
-
-#ANOVA
-Anova(model, type = "III")
-
-#Response: Richness for hour 168
-#                     Sum Sq Df F value    Pr(>F)    
-#(Intercept)          3750.0  1 79.9290 2.009e-08 ***
-#Subplot_Descriptions   53.0  3  0.3766    0.7709    
-#Residuals             938.3 20   
-
-# confidence intervals for every pairwise comparison
-tukey <- TukeyHSD(aov(Richness168hr ~ Subplot_Descriptions, data = biologHr168diversity))
-tukey
-plot(tukey)
-
-#Subplot_Descriptions
-#                            diff        lwr       upr     p adj
-#drought-ambient        -0.500000 -11.568683 10.568683 0.9992524
-#warmed-ambient         -3.833333 -14.902016  7.235349 0.7680882
-#warmed_drought-ambient -1.000000 -12.068683 10.068683 0.9941408
-#warmed-drought         -3.333333 -14.402016  7.735349 0.8334310
-#warmed_drought-drought -0.500000 -11.568683 10.568683 0.9992524
-#warmed_drought-warmed   2.833333  -8.235349 13.902016 0.8893834
+# AWCD
+ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = AWCD168hr, fill = Subplot_Descriptions)) +
+        geom_boxplot() + 
+        labs(x = "Treatment", 
+             y = "Catabolic AWCD", 
+             title = "Microbial Catabolic AWCD, Day 7") + 
+        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
 
 ```
 
-Example script from other REX data on data analysis with steps for checking for assumption
-https://github.com/kbs-lter/rex-analysis/blob/main/R/T7_warmx_plant_traits/Soca_plant_height_analyses_L2.R
-
-#Checking Distribution of all reads across all hours
-```{r}
-
-#calculate shannon diversity for all reads
-ShannonAll <- diversity(biologsamples2[,c(7:37)], index = "shannon")
-
-#histogram of shannon index for each sample each hour all reads-skewed right
-hist(ShannonAll)
-
-#shapiro test p=9.89e-5 normal!
-shapiro.test(ShannonAll)
-
-#bind with rest of data
-biolog.shannon <- cbind(biologsamples2, ShannonAll)
-
-#look at final reads for lmer
-biologshannon168 <- filter(biolog.shannon, Hour == 168)
-
-
-```
-
-
-
-#LMER 
-```{r}
-# without checking assumptions - need to do this. Just laying out the mixed effects model
-m2 <- lmer(ShannonAll ~ Subplot_Descriptions + (1|Rep/Footprint_Location), data = biologshannon168, REML=F)
-summary(m2) #looking at just hour 168 is singular
-plot(m2, main = ShannonAll)
-
-#levene test for homogeneity of variance
-leveneTest(residuals(m2) ~ biologshannon168$Subplot_Descriptions) 
-
-# Check for normal residuals
-qqPlot(resid(m2), main = "ShannonAll")
-hist(residuals(m2), main = "ShannonAll")
-shapiro.test(resid(m2)) #p=0.02
-
-#anova
-anova(m2)
-
-```
-
-Preliminary Plots
+Plots - looking at individual carbon sources and plotting absorbance levels across time (from time 0 - hr 168)
 ```{r}
 #group by hour and sample for average
 biolog2<- biologsamples[,!(names(biologsamples) %in% c("Plot_ID", "SampleID_Hour", "Sample_ID", "Biolog_column_ID"))]
@@ -397,3 +362,141 @@ dev.off()
 
 ```
 
+# DATA ANALYSIS
+
+Notes from Moriah:
+- Model structure is a little more complex in REX - need to have random effects as such: (1|Rep/Footprint/Subplot). This is a nested plot design. For lack of better explanation, it goes from largest "scale" (rep) to smallest "scale" (subplot) This means that you'll want to retain the rep and footprint numbers in the dataframe you ultimately create below and with the diversity metrics.
+
+#Looking at distribution of data
+```{r}
+###Starting with final reading (hour=168) 
+
+# test for normal residuals and equal variances (ANOVA assumptions)
+# normal residuals?
+ggqqplot(biologHr168diversity$Richness168hr)
+hist(biologHr168diversity$Richness168hr) ##slightly skewed left
+
+# Shapiro test - null hypothesis: residuals are normally distributed 
+require(lme4)
+require(lmerTest)
+model = lm(Richness168hr ~ Subplot_Descriptions, data = biologHr168diversity)
+res = model$residuals
+shapiro.test(res) 
+#p = 0.002237 so not normally distributed?
+
+# homogeneity of variances
+# Many statistical tests (like a one-way ANOVA) assume that variances are equal across samples. Bartlett’s test can be 
+# used to verify that assumption.
+# H0: The variance among each group is equal.
+# HA: At least one group has a variance that is not equal to the rest.
+
+bartlett.test(Richness168hr ~ Subplot_Descriptions, data = biologHr168diversity) 
+# 0.6396 = we fail to reject the null hypothesis, so all groups have the same variance. This is what we want.
+
+#ANOVA
+Anova(model, type = "III")
+
+#Response: Richness for hour 168
+#                     Sum Sq Df F value    Pr(>F)    
+#(Intercept)          3750.0  1 79.9290 2.009e-08 ***
+#Subplot_Descriptions   53.0  3  0.3766    0.7709    
+#Residuals             938.3 20   
+
+# confidence intervals for every pairwise comparison
+tukey <- TukeyHSD(aov(Richness168hr ~ Subplot_Descriptions, data = biologHr168diversity))
+tukey
+plot(tukey)
+
+#Subplot_Descriptions
+#                            diff        lwr       upr     p adj
+#drought-ambient        -0.500000 -11.568683 10.568683 0.9992524
+#warmed-ambient         -3.833333 -14.902016  7.235349 0.7680882
+#warmed_drought-ambient -1.000000 -12.068683 10.068683 0.9941408
+#warmed-drought         -3.333333 -14.402016  7.735349 0.8334310
+#warmed_drought-drought -0.500000 -11.568683 10.568683 0.9992524
+#warmed_drought-warmed   2.833333  -8.235349 13.902016 0.8893834
+
+```
+
+Example script from other REX data on data analysis with steps for checking for assumption
+https://github.com/kbs-lter/rex-analysis/blob/main/R/T7_warmx_plant_traits/Soca_plant_height_analyses_L2.R
+
+# Checking Distribution of all reads across all hours
+```{r}
+#calculate shannon diversity for all reads
+ShannonAll <- diversity(biologsamples2[,c(7:37)], index = "shannon")
+
+#histogram of shannon index for each sample each hour all reads-skewed right
+hist(ShannonAll)
+
+#shapiro test
+# normal: p > 0.05
+# p=9.89e-5 - not normal
+shapiro.test(ShannonAll)
+
+#bind with rest of data
+biolog.shannon <- cbind(biologsamples2, ShannonAll)
+
+#look at final reads for lmer
+biologshannon168 <- filter(biolog.shannon, Hour == 168)
+
+```
+
+# LMER 
+```{r}
+# without checking assumptions - need to do this. Just laying out the mixed effects model
+m2 <- lmer(ShannonAll ~ Subplot_Descriptions + (1|Rep/Footprint_Location), data = biologshannon168, REML=F)
+summary(m2) #looking at just hour 168 is singular
+plot(m2, main = ShannonAll)
+
+#levene test for homogeneity of variance
+leveneTest(residuals(m2) ~ biologshannon168$Subplot_Descriptions) 
+
+# Check for normal residuals
+qqPlot(resid(m2), main = "ShannonAll")
+hist(residuals(m2), main = "ShannonAll")
+shapiro.test(resid(m2)) #p=0.02 - not normal but close
+
+#anova
+anova(m2)
+
+```
+
+## WORK IN PROGRESS!!
+# Need to go back to when the matrices were made for each our and make sure the "subplot_descriptions" are included
+## PCA with arrows
+```{r}
+# select only for hour 168
+biolog.samples.Hr168 <- filter(biologsamples2, Hour == "168")
+
+# make sample names the rownames so we keep them during ordination 
+biolog.matrix.Hr168 <- column_to_rownames(biolog.samples.Hr168, "Plot_ID")
+
+
+############ Multivariate analysis ##################
+map<-biolog.matrix.Hr168[,1:5] #Converting  data to two matrices: Mapping and substrate (Comm)
+comm<-biolog.matrix.Hr168[,6:35]
+comm<-comm/rowSums(comm) #Relative abundance
+
+# distance of rel. abund. matrix
+dist<-vegdist(comm, method='bray', na.rm=TRUE)
+
+#Principal component analysis
+apcoa<-cmdscale(dist, k=2, eig=FALSE, add=FALSE, x.ret=FALSE)
+plot<-ordiplot(apcoa, type="n")
+vecpcoa<-envfit(apcoa,comm)
+plot(vecpcoa)# add vectors
+vecpcoa$vectors
+
+# Set the colors by treatment 
+
+points(plot, "sites", pch = 20, col = "green4", map$treatment=="SL_0") 
+points(plot, "sites", pch = 20, col = "chartreuse",map$treatment=="SL_SL") 
+points(plot, "sites", pch = 20, col = "blue1",map$treatment=="SL_BBS") 
+points(plot, "sites", pch = 20, col = "darkmagenta",map$treatment=="SL_JG")
+points(plot, "sites", pch = 20, col = "gold",map$treatment=="SL_S") 
+
+
+plot + theme(legend.text = element_text(size = 16))
+
+```
