@@ -185,7 +185,7 @@ dev.off()
 
 
 # for REX methods paper
-# TO DO: need to go back to the clean HOBO script to include 2023 temp data
+# First, plotting all the HOBO air temp data
 ```{r}
 # create date, month, year, hour, and day columns
 airtemp <- na.omit(airtemp)
@@ -206,8 +206,8 @@ avg_airtemp2 <- airtemp2 %>%
 
 ```{r}
 # plot - monthly
-png("rex_airtemp_all_years.png", units="in", width=8, height=6, res=300)
-ggplot(avg_airtemp2, aes(x = month_year, y = avg_temp, group = Treatment, color = Treatment)) +
+png("rex_airtemp_all_years.png", units="in", width=10, height=6, res=300)
+ggplot(avg_airtemp2, aes(x = month, y = avg_temp, group = Treatment, color = Treatment)) +
         geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp),width=0.1,color="black",linetype="solid") +
         geom_line(linewidth = 1) +
         facet_grid(~year) +
@@ -215,6 +215,75 @@ ggplot(avg_airtemp2, aes(x = month_year, y = avg_temp, group = Treatment, color 
                            values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E"), 
                            labels=c("Ambient","Drought","Warmed", "Warmed Drought")) +
         labs(y="Air Temperature (°C)", x="Month") +
+        theme_bw() +
+        theme(axis.title = element_text(size=12),
+        axis.text = element_text(size=12),
+        axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+dev.off()
+```
+
+# Next, select for the dates where the shelters were on
+# Need to double check these dates
+2021: July 12th - August 27th
+2022: June 27th - August 5th
+2023: July 10th - August 18th
+```{r}
+# 2021
+airtemp21_drought <- airtemp
+airtemp21_drought$month <- format(airtemp21_drought$Date_Time,format="%m")
+airtemp21_drought$year <- format(airtemp21_drought$Date_Time,format="%Y")
+airtemp21_drought$hour <- format(airtemp21_drought$Date_Time, format="%H")
+airtemp21_drought$day <- format(airtemp21_drought$Date_Time, format="%d")
+airtemp21_drought$month_year <- format(airtemp21_drought$Date_Time, format="%m-%Y")
+airtemp21_drought$date <- format(airtemp21_drought$Date_Time, format="%Y-%m-%d")
+airtemp21_drought1 <- airtemp21_drought %>%
+  filter(date >= "2021-07-12" & date <= "2021-08-27")
+
+# 2022
+airtemp22_drought <- airtemp
+airtemp22_drought$month <- format(airtemp22_drought$Date_Time,format="%m")
+airtemp22_drought$year <- format(airtemp22_drought$Date_Time,format="%Y")
+airtemp22_drought$hour <- format(airtemp22_drought$Date_Time, format="%H")
+airtemp22_drought$day <- format(airtemp22_drought$Date_Time, format="%d")
+airtemp22_drought$month_year <- format(airtemp22_drought$Date_Time, format="%m-%Y")
+airtemp22_drought$date <- format(airtemp22_drought$Date_Time, format="%Y-%m-%d")
+airtemp22_drought1 <- airtemp22_drought %>%
+  filter(date >= "2022-06-27" & date <= "2022-08-05")
+
+# 2023
+airtemp23_drought <- airtemp
+airtemp23_drought$month <- format(airtemp23_drought$Date_Time,format="%m")
+airtemp23_drought$year <- format(airtemp23_drought$Date_Time,format="%Y")
+airtemp23_drought$hour <- format(airtemp23_drought$Date_Time, format="%H")
+airtemp23_drought$day <- format(airtemp23_drought$Date_Time, format="%d")
+airtemp23_drought$month_year <- format(airtemp23_drought$Date_Time, format="%m-%Y")
+airtemp23_drought$date <- format(airtemp23_drought$Date_Time, format="%Y-%m-%d")
+airtemp23_drought1 <- airtemp23_drought %>%
+  filter(date >= "2023-07-10" & date <= "2023-08-18")
+
+# merge data sets together
+peakdrought <- full_join(airtemp22_drought1, airtemp23_drought1)
+
+# take average per month by treatment
+avg_peakdrought <- peakdrought %>%
+  group_by(year, Treatment) %>%
+  summarise(avg_temp = mean(Temperature_C, na.rm = TRUE),
+            se_temp = std.error(Temperature_C, na.rm = TRUE))
+```
+
+# work in progress
+# might work better as a box plot? Should temps be average over the 6 weeks, or do we want to show by month, date, etc?
+# Peak Drought Air Temp Plot
+```{r}
+png("rex_airtemp_peakdrought_allyears.png", units="in", width=6, height=6, res=300)
+ggplot(avg_peakdrought, aes(x = year, y = avg_temp, fill = Treatment)) +
+        geom_pointrange(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp), pch = 21,size = 1.2,
+                        position=position_dodge(0.5)) +
+        #facet_grid(~year) +
+        scale_fill_manual(name="Treatment", 
+                           values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E"), 
+                           labels=c("Ambient","Drought","Warmed", "Warmed Drought")) +
+        labs(y="Air Temperature (°C)", x="Year") +
         theme_bw() +
         theme(axis.title = element_text(size=15),
         axis.text = element_text(size=15),
