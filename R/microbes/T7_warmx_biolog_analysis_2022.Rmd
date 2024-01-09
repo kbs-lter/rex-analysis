@@ -1,7 +1,7 @@
 ---
 title: "Biolog Analysis Script"
 author: "Adrian Noecker, Moriah Young"
-date: "`r format(Sys.time(), '%B %d, %Y')`"
+date: "September 2023, updated January 2024"
 output: pdf_document
 editor_options: 
   chunk_output_type: console
