@@ -36,15 +36,18 @@ soil_data$Date_Time <- as.POSIXct(soil_data$sample_datetime, format = "%Y-%m-%d 
 
 
 # adding month, day, year, and hour columns
+# air
 hobo_data$month <- format(hobo_data$Date_Time,format="%m")
 hobo_data$year <- format(hobo_data$Date_Time,format="%Y")
 hobo_data$hour <- format(hobo_data$Date_Time, format="%H")
 hobo_data$day <- format(hobo_data$Date_Time, format="%d")
+# soil
 soil_data$month <- format(soil_data$Date_Time,format="%m")
 soil_data$year <- format(soil_data$Date_Time,format="%Y")
 soil_data$hour <- format(soil_data$Date_Time, format="%H")
 soil_data$day <- format(soil_data$Date_Time, format="%d")
 
+# create date column that combines month and day together, i.e. 09 (month) and 28 (day) = 928 (sept 28th)
 hobo_data$date <- paste0(hobo_data$month,"",hobo_data$day)
 hobo_data$date <- as.numeric(hobo_data$date)
 soil_data$date <- paste0(soil_data$month,"",soil_data$day)
@@ -126,8 +129,6 @@ summary(m.soil.moist.test)
 contrast(emmeans(m.soil.moist.test, ~Subplot_Descriptions), "pairwise", simple = "each", combine = F, adjust = "mvt")
 
 
-
-
 ################################################################################
 
 # select just for 2022 data
@@ -149,4 +150,27 @@ shapiro.test(resid(m.hobo.test))
 descdist(resid(m.hobo.test), discrete = FALSE)
 emmeans(m.hobo.test, list(pairwise ~ Treatment), adjust = "tukey")
 
+################################################################################
 
+# HOBO model exploration for air temperature across all year (all HOBO data available)
+descdist(hobo_data$Temperature_C, discrete = FALSE) # this doesn't work, error
+hist(hobo_data$Temperature_C)
+qqnorm(hobo_data$Temperature_C)
+shapiro.test(hobo_data$Temperature_C)
+m.hobo.test.all <- lmer(Temperature_C ~ Treatment + year + (1|Rep), data = hobo_data, REML=FALSE)
+anova(m.hobo.test.all)
+summary(m.hobo.test.all)
+hist(resid(m.hobo.test.all))
+shapiro.test(resid(m.hobo.test.all))
+descdist(resid(m.hobo.test.all), discrete = FALSE)
+emmeans(m.hobo.test.all, list(pairwise ~ Treatment), adjust = "tukey")
+#$`pairwise differences of Treatment`
+#1                        estimate     SE  df z.ratio p.value
+#Ambient - Drought          -0.054 0.0569 Inf  -0.948  0.7789
+#Ambient - Warmed           -1.338 0.0561 Inf -23.825  <.0001
+#Ambient - Warmed_Drought   -0.996 0.0570 Inf -17.481  <.0001
+#Drought - Warmed           -1.284 0.0576 Inf -22.301  <.0001
+#Drought - Warmed_Drought   -0.942 0.0577 Inf -16.317  <.0001
+#Warmed - Warmed_Drought     0.342 0.0576 Inf   5.935  <.0001
+
+emmeans(m.hobo.test.all, list(pairwise ~ year), adjust = "tukey")
