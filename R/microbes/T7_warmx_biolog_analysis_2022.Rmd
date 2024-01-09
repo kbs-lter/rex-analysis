@@ -12,10 +12,6 @@ DATA OUTPUT: L2 csv and Code and Rmd are in the scripts folder in Github
 PROJECT: REX
 ---
 
-TO DO:
-- Make one data frame that includes all the diversity indices for all time points and upload to L2 folder
-- Data analysis for Richness and AWCD
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -62,7 +58,7 @@ standardbiolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_war
 ```
 
 #reformatting and checking absorbances
-# Moriah - this part is a little confusing. For example, the differentiation between the standard and biolog dataframes
+# Note: the "biolog" dataframe is in wide format, and is the format that the data is output from the plate reader. The "standard" data frame is in narrow format.
 ```{r}
 #removing water from standard biolog
 standardnowater <- standardbiolog %>% filter(!Well_C_Source %in% c("Water"))
