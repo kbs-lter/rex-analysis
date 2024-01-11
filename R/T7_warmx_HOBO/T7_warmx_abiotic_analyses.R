@@ -30,6 +30,18 @@ hobo_data <- read.csv(file.path(dir, "sensors/OTC Footprints/L1/T7_warmx_HOBO_L1
 soil_data <- read.csv(file.path(dir, "sensors/OTC Footprints/L1/T7_warmx_soil_sensors_L1.csv"))
 str(hobo_data)
 str(soil_data)
+
+# Check if cells already have complete timestamp
+hobo_data$Date_Time <- as.character(hobo_data$Date_Time)
+complete_timestamp <- grepl("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}", hobo_data$Date_Time)
+
+# Add time information only to cells that don't have it
+hobo_data$Date_Time <- ifelse(!complete_timestamp,
+                            paste(hobo_data$Date_Time, "00:00:00"),
+                            hobo_data$Date_Time)
+
+hobo_data$Date_Time <- format(as.POSIXct(hobo_data$Date_Time, format="%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+
 # re-making the data column a date
 hobo_data$Date_Time <- as.POSIXct(hobo_data$Date_Time, format = "%Y-%m-%d %H:%M:%S")
 soil_data$Date_Time <- as.POSIXct(soil_data$sample_datetime, format = "%Y-%m-%d %H:%M:%S")
@@ -152,7 +164,7 @@ emmeans(m.hobo.test, list(pairwise ~ Treatment), adjust = "tukey")
 
 ################################################################################
 
-# HOBO model exploration for air temperature across all year (all HOBO data available)
+# HOBO model exploration for air temperature across all years (all HOBO data available)
 descdist(hobo_data$Temperature_C, discrete = FALSE) # this doesn't work, error
 hist(hobo_data$Temperature_C)
 qqnorm(hobo_data$Temperature_C)
@@ -166,11 +178,11 @@ descdist(resid(m.hobo.test.all), discrete = FALSE)
 emmeans(m.hobo.test.all, list(pairwise ~ Treatment), adjust = "tukey")
 #$`pairwise differences of Treatment`
 #1                        estimate     SE  df z.ratio p.value
-#Ambient - Drought          -0.054 0.0569 Inf  -0.948  0.7789
-#Ambient - Warmed           -1.338 0.0561 Inf -23.825  <.0001
-#Ambient - Warmed_Drought   -0.996 0.0570 Inf -17.481  <.0001
-#Drought - Warmed           -1.284 0.0576 Inf -22.301  <.0001
-#Drought - Warmed_Drought   -0.942 0.0577 Inf -16.317  <.0001
-#Warmed - Warmed_Drought     0.342 0.0576 Inf   5.935  <.0001
+#Ambient - Drought           1.499 0.0552 Inf  27.150  <.0001
+#Ambient - Warmed           -1.443 0.0519 Inf -27.796  <.0001
+#Ambient - Warmed_Drought    0.578 0.0552 Inf  10.466  <.0001
+#Drought - Warmed           -2.942 0.0557 Inf -52.825  <.0001
+#Drought - Warmed_Drought   -0.921 0.0577 Inf -15.962  <.0001
+#Warmed - Warmed_Drought     2.021 0.0557 Inf  36.281  <.0001
 
 emmeans(m.hobo.test.all, list(pairwise ~ year), adjust = "tukey")

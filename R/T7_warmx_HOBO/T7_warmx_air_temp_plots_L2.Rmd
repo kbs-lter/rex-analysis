@@ -34,12 +34,32 @@ list.files(dir)
 #read in data
 airtemp <- read.csv(file.path(dir, "sensors/OTC Footprints/L1/T7_warmx_HOBO_L1.csv")) 
 
+## Identify cells with only date information
+#missing_time <- grepl("\\d{4}-\\d{2}-\\d{2}$", airtemp$Date_Time)
+#
+## Add time information only to cells that are missing it
+#airtemp$Date_Time[missing_time] <- paste(airtemp$Date_Time[missing_time], "00:00:00")
+#
+## Format the date column to ensure consistent formatting
+#airtemp$Date_Time <- format(as.POSIXct(airtemp$Date_Time, format="%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+
+# Check if cells already have complete timestamp
+complete_timestamp <- grepl("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}", airtemp$Date_Time)
+
+# Add time information only to cells that don't have it
+airtemp$Date_Time <- ifelse(!complete_timestamp,
+                         paste(airtemp$Date_Time, "00:00:00"),
+                         airtemp$Date_Time)
+
+airtemp$Date_Time <- format(as.POSIXct(airtemp$Date_Time, format="%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+
 # re-making the data column a date
 airtemp$Date_Time <- as.POSIXct(airtemp$Date_Time, format = "%Y-%m-%d %H:%M:%S")
 str(airtemp)
 
 ```
 
+# 2022 Data
 ```{r}
 # create new dataframe with only data from 7 AM - 7 PM 
 day_airtemp <- airtemp
@@ -183,12 +203,12 @@ ggpubr::ggarrange(air_growing_season, soil_growing_season,
 dev.off()
 ```
 
-
+# All years
 # for REX methods paper
 # First, plotting all the HOBO air temp data
 ```{r}
 # create date, month, year, hour, and day columns
-airtemp <- na.omit(airtemp)
+#airtemp <- na.omit(airtemp)
 airtemp2 <- airtemp
 airtemp2$date <- format(airtemp2$Date_Time,format="%Y-%m-%d")
 airtemp2$month <- format(airtemp2$Date_Time,format="%m")
@@ -274,9 +294,9 @@ avg_peakdrought <- peakdrought %>%
 
 # work in progress
 # might work better as a box plot? Should temps be average over the 6 weeks, or do we want to show by month, date, etc?
-# Peak Drought Air Temp Plot
+# Air temp averaged across the 6 week drought period each year
 ```{r}
-png("rex_airtemp_peakdrought_allyears.png", units="in", width=6, height=6, res=300)
+png("rex_airtemp_drought_allyears.png", units="in", width=6, height=6, res=300)
 ggplot(avg_peakdrought, aes(x = year, y = avg_temp, fill = Treatment)) +
         geom_pointrange(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp), pch = 21,size = 1.2,
                         position=position_dodge(0.5)) +
