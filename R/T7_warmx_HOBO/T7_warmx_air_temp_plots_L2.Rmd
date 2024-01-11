@@ -263,6 +263,7 @@ airtemp23_drought1 <- airtemp23_drought %>%
 
 # merge data sets together
 peakdrought <- full_join(airtemp22_drought1, airtemp23_drought1)
+peakdrought <- full_join(peakdrought, airtemp21_drought1)
 
 # take average per month by treatment
 avg_peakdrought <- peakdrought %>%
