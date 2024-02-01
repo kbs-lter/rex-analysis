@@ -1,0 +1,117 @@
+---
+title: "REX: Soca Biomass Analysis"
+author: "Moriah Young"
+date: "February 2024"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+COLLABORATORS: Emily Parker, Kara Dobson, Phoebe Zarnetske, Mark Hammond
+DATA INPUT: L1 csv from the shared Google drive  
+DATA OUTPUT: L2 csv and Code and Rmd are in the scripts folder in Github  
+PROJECT: REX - goldenrod gall project
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(lme4)
+library(fitdistrplus)
+library(sjPlot)
+library(tidyverse)
+library(car)
+library(emmeans)
+library(bbmle)
+library(multcomp)
+
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+## Read in data
+biomass <- read.csv(file.path(dir, "/T7_warmx_plant_traits/L1/T7_warmx_soca_biomass_L1.csv"))
+biomass$Year <- as.factor(biomass$Year)
+```
+
+Data Exploration
+```{r}
+# The first thing we do is check the distribution of the raw data
+# We're checking for a normal distribution; the distribution of the raw data
+# doesn't matter as much as the distribution of a model's residuals (which we'll also check),
+# but its a good way to get a glimpse of how the data look
+descdist(biomass$Biomass, discrete = FALSE) # checks what type of distribution your data matches
+hist(biomass$Biomass) # should be a bell curve if normal
+qqnorm(biomass$Biomass) # should be a straight diagonal line if normal
+shapiro.test(biomass$Biomass) # p > 0.05 if normal
+# making a model to test distribution of model residuals
+raw.data.test <- lm(Biomass ~ Climate_Treatment * Galling_Status, data=biomass) # testing model
+hist(resid(raw.data.test)) # checking model residuals
+shapiro.test(resid(raw.data.test))
+# looks pretty good, going to try some transformations but might not need them
+
+# log normal transformation
+biomass$log_biomass <- log(biomass$Biomass)
+descdist(biomass$log_biomass, discrete = FALSE)
+hist(biomass$log_biomass)
+qqnorm(biomass$log_biomass)
+shapiro.test(biomass$log_biomass) # looks good
+# making a model to test distribution of model residuals w/ log transformation
+raw.data.test.log <- lm(log_biomass ~ Climate_Treatment * Galling_Status, data=biomass) # testing model
+hist(resid(raw.data.test.log)) # checking model residuals
+shapiro.test(resid(raw.data.test.log))
+# better - going with log transformation
+
+# square root transformation
+biomass$sqrt_biomass <- sqrt(biomass$Biomass)
+descdist(biomass$sqrt_biomass, discrete = FALSE)
+hist(biomass$sqrt_biomass)
+qqnorm(biomass$sqrt_biomass)
+shapiro.test(biomass$sqrt_biomass) # looks good
+# making a model to test distribution of model residuals w/ sqrt transformation
+raw.data.test.sqrt <- lm(sqrt_biomass ~ Climate_Treatment * Galling_Status, data=biomass) # testing model
+hist(resid(raw.data.test.sqrt)) # checking model residuals
+shapiro.test(resid(raw.data.test.sqrt))
+
+# going wiht log transformation
+```
+
+Assumption checking
+```{r}
+# in the assumption checking, we're making sure that our full model meets the assumptions of the model.
+# the model below is the model structure we can use for all response variables; its testing to see
+# if there is 1. an effect of climate treatment on height, 2. an effect of galling status on height, and 3. does the
+# effect of climate on height depend on galling status. Subplot nested within footprint nested within rep is used as our # random effect to account for variation between plots. Year is also included as a random effect to account for variation # between years.
+m1 <- lmer(log_biomass ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = biomass, REML=F)
+# Check Assumptions:
+# (1) Linearity: if covariates are not categorical
+# (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
+plot(m1, main = "Soca Biomass")
+# Homogeneity of variance looks a bit off (increasing variance in resids does increase with fitted values)
+# Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
+leveneTest(residuals(m1) ~ biomass$Climate_Treatment) # met
+leveneTest(residuals(m1) ~ biomass$Galling_Status) # met
+# (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
+# Check for normal residuals
+qqPlot(resid(m1), main = "Soca biomass")
+hist(residuals(m1), main = "Soca biomass")
+shapiro.test(resid(m1))
+outlierTest(m1) # checking for outliers - none
+```
+
+Checking model results
+```{r}
+summary(m1)
+anova(m1)
+# this outcome shows us that the interaction term (Climate_Treatment:Galling_Status) is significant
+# therefore, we need to check the pairwise comparisons of all treatments with a post-hoc test
+contrast(emmeans(m1, ~Climate_Treatment*Galling_Status), "pairwise", simple = "each", combine = F, adjust = "mvt")
+emmip(m1, Climate_Treatment~Galling_Status)
+```
+
