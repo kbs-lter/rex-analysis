@@ -37,6 +37,9 @@ seed <- seed %>%
 # first checking basic histogram
 hist(seed$Seeds_Mass) # very right-skewed
 
+# how much of the data is zeros?
+100*sum(seed$Seeds_Mass == 0)/nrow(seed) # 35.8%
+
 ### determining distribution ###
 descdist(seed$Seeds_Mass, discrete = FALSE)
 # log transform?
@@ -60,35 +63,16 @@ shapiro.test(seed$seed_sqrt)
 # gamma distribution?
 fit.gamma <- fitdist(seed$Seeds_Mass, distr = "gamma", method = "mme")
 plot(fit.gamma)
-
-# how much of the data is zeros?
-100*sum(seed$Seeds_Mass == 0)/nrow(seed) # 35.8%
-
-# checking mean and variance of non-zero counts
-seed %>%
-  dplyr::filter(Seeds_Mass != "0") %>%
-  dplyr::summarize(mean_seed = mean(Seeds_Mass, na.rm=T), var_seed = var(Seeds_Mass, na.rm=T))
-# mean is > than variance. poisson distributions assume mean = variance.
-# negative binomial might fit better
-
-# comparing poisson vs. neg bin
-pois <- glm(Seeds_Mass ~ Climate_Treatment + Galling_Status, family = poisson(), data = seed)
-nb <- glm.nb(Seeds_Mass ~ Climate_Treatment + Galling_Status, data = seed)
-lrtest(pois,nb) # negative binomial outperforms poisson
-
-
-# checking zero-inflation
-m.test <- glm(Seeds_Mass ~ Climate_Treatment + Galling_Status, family = poisson, data = seed)
-check_zeroinflation(m.test)
+# gamma seems to fit well - we can do a zero-inflated gamma model using glmmTMB
 
 
 
 ##### full model #####
-full.model <- glmmTMB(Seeds_Mass ~ Climate_Treatment * Galling_Status + (1|Year/Treatment/Rep/Footprint/Subplot/plant_num),
+full.model <- glmmTMB(Seeds_Mass ~ Climate_Treatment + Galling_Status + (1|Year/Treatment/Rep/Footprint/Subplot/plant_num),
                       data=seed,
                       family=ziGamma(link="log"),
                       zi=~.)
-summary(full.model) # * used in paper * #
+summary(full.model)
 
 
 
