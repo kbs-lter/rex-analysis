@@ -25,9 +25,11 @@ theme_update(axis.text.x = element_text(size = 12),
 
 # Set working directory
 dir <- setwd("/Users/emilyparker/Documents/R/Goldenrod Project 2022")
+dir<-Sys.getenv("DATA_DIR") # Kara
 
 # Read in data
 mass <- read.csv(file.path(dir, "L1/T7_warmx_soca_infl_mass_L1.csv"))
+mass <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_soca_seeds_mass_L1.csv")) # Kara
 
 
 # Take averages
@@ -96,3 +98,41 @@ ggplot(seeds_avg3, aes(x = Climate_Treatment, y = avg_mass, fill=Galling_Status)
                             "Warm Drought" = "Warmed & \n Drought")) +
   theme(legend.position = "right")
 dev.off()
+
+
+
+####### probability of having seed + weight of seed #######
+# making binary response for if it had a seed or not
+mass_binom <- mass %>%
+  mutate_at(vars(contains('Seeds_Mass')), ~1 * (. != 0))
+mass_binom$Seeds_Mass[mass_binom$Seeds_Mass == 1] <- "Seed"
+mass_binom$Seeds_Mass[mass_binom$Seeds_Mass == 0] <- "No Seed"
+mass_binom_sum <- mass_binom %>%
+  group_by(Treatment,Rep,Footprint,Subplot,Climate_Treatment,Galling_Status,Seeds_Mass) %>%
+  count(Climate_Treatment,Galling_Status,Seeds_Mass) %>%
+  group_by(Treatment,Rep,Footprint,Subplot,Climate_Treatment,Galling_Status) %>%
+  mutate(n = n/sum(n)) %>%
+  group_by(Climate_Treatment,Galling_Status,Seeds_Mass) %>%
+  summarize(mean_n = mean(n),
+            se = std.error(n))
+mass_binom_seed <- mass_binom_sum %>%
+  filter(Seeds_Mass == "Seed")
+# plot
+ggplot(mass_binom_seed, aes(x = Climate_Treatment, y = mean_n, fill=Galling_Status)) +
+  geom_pointrange(aes(ymin = mean_n - se, ymax = mean_n + se), ,pch=21,size=1,position=position_dodge(0.2)) +
+  labs(x = NULL, y = "Probability of having a seed") +
+  scale_x_discrete(labels=c("Ambient" = "Ambient", "Warm" = "Warmed",
+                            "Ambient Drought" = "Drought", "Irrigated Control" = "Irrigated\nControl",
+                            "Warm Drought" = "Warmed\nDrought")) +
+  scale_fill_manual(name="Treatment",
+                    values = c("olivedrab4", "darkseagreen2")) +
+  theme_bw() +
+  theme(plot.title = element_text(size = 20),
+        axis.text.y = element_text(size=17),
+        axis.text.x = element_text(size=17),
+        axis.title.y=element_text(size=17),
+        legend.title=element_text(size=17), 
+        legend.text=element_text(size=17))
+
+
+
