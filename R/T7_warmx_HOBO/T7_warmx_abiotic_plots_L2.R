@@ -314,7 +314,7 @@ soil_moist <- ggplot(soil_sampling_avg_CI, aes(x = factor(Subplot_Descriptions, 
         legend.text = element_text(size=15))
 # combine plots
 abiotic_comb <- ggpubr::ggarrange(air_temp,soil_temp,soil_moist,
-                  ncol = 3)
+                  ncol = 3,widths = c(0.9,0.9,1))
 png("rex_abiotic.png", units="in", width=12, height=5, res=300)
 annotate_figure(abiotic_comb,
                 bottom = text_grob("Treatment", color = "black", size=17))
