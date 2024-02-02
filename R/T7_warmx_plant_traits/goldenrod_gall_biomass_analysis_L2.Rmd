@@ -109,7 +109,6 @@ Checking model results
 ```{r}
 summary(m1)
 anova(m1)
-# this outcome shows us that the interaction term (Climate_Treatment:Galling_Status) is significant
 # therefore, we need to check the pairwise comparisons of all treatments with a post-hoc test
 contrast(emmeans(m1, ~Climate_Treatment*Galling_Status), "pairwise", simple = "each", combine = F, adjust = "mvt")
 emmip(m1, Climate_Treatment~Galling_Status)
