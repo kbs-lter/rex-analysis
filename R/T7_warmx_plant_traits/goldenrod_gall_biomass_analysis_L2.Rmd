@@ -21,7 +21,7 @@ knitr::opts_chunk$set(echo = TRUE)
 rm(list=ls())
 
 # Load packages
-library(lme4)
+library(lmerTest)
 library(fitdistrplus)
 library(sjPlot)
 library(tidyverse)
@@ -29,7 +29,7 @@ library(car)
 library(emmeans)
 library(bbmle)
 library(multcomp)
-
+library(knitr)
 
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
@@ -109,8 +109,18 @@ Checking model results
 ```{r}
 summary(m1)
 anova(m1)
-# therefore, we need to check the pairwise comparisons of all treatments with a post-hoc test
+
+contrast(emmeans(m1, ~Climate_Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt")
+contrast(emmeans(m1, ~Galling_Status), "pairwise", simple = "each", combine = F, adjust = "mvt")
 contrast(emmeans(m1, ~Climate_Treatment*Galling_Status), "pairwise", simple = "each", combine = F, adjust = "mvt")
 emmip(m1, Climate_Treatment~Galling_Status)
+
+# calculating effect size of galling status - accounting for log transformation
+exp((1.38186) + (-0.08147)*0) # 3.982302
+exp((1.38186) + (-0.08147)*1) # 3.670728
+# effect:
+3.670728 - 3.982302 # -0.311574 grams
+
+kable(anova(m1)) %>% kableExtra::kable_styling()
 ```
 
