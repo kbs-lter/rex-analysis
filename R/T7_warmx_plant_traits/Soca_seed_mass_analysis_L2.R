@@ -18,6 +18,7 @@ library(fitdistrplus)
 library(MASS)
 library(lmtest)
 library(glmmTMB)
+library(emmeans)
 
 # get data
 dir<-Sys.getenv("DATA_DIR")
@@ -68,14 +69,22 @@ plot(fit.gamma)
 
 
 ##### full model #####
+seed <- within(seed, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Ambient Drought"))
+seed <- within(seed, Galling_Status <- relevel(factor(Galling_Status), ref = "Non-Galled"))
 full.model <- glmmTMB(Seeds_Mass ~ Climate_Treatment + Galling_Status + (1|Year/Treatment/Rep/Footprint/Subplot/plant_num),
                       data=seed,
                       family=ziGamma(link="log"),
                       zi=~.)
 summary(full.model)
+car::Anova(full.model) # slight significance of interaction term, going to check all pairwise comparisons
+# pairwise comparisons #
+# note: in zero-inflated model, we're testing the probability of being zero
+# negative estimate (<0) means fewer 0's, positive estimate (>0) means more 0's
+# positive estimate means it is more likely to be zero (or, there is a reduced probability of of having a seed)
+# negative estimates means it is less likely to be zero (or, there is an increased probability of having a seed)
+emmeans(full.model, ~Climate_Treatment*Galling_Status, type = "response")
+emmeans(full.model, ~Climate_Treatment*Galling_Status, component = "zi", type = "response")
 
-
-
-
-
+contrast(emmeans(full.model, ~Climate_Treatment*Galling_Status), "pairwise", simple="each", combine = F, adjust="mvt")
+contrast(emmeans(full.model, ~Climate_Treatment*Galling_Status, component = "zi",), "pairwise", simple="each", combine = F, adjust="mvt")
 
