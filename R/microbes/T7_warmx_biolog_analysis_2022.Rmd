@@ -222,7 +222,7 @@ biolog_list <- list(biologHr24diversity, biologHr48diversity, biologHr72diversit
 biolog_diversity <- biolog_list %>% reduce(full_join)
 
 # upload new data frame to L2 folder in warmx 
-write.csv(biolog_diversity, file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L2/biolog_diversity_L2.csv"), row.names = FALSE)
+#write.csv(biolog_diversity, file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L2/biolog_diversity_L2.csv"), row.names = FALSE)
 ```
 
 # PLOTS
@@ -293,7 +293,6 @@ dev.off()
 
 Plots - looking at individual carbon sources and plotting absorbance levels across time (from time 0 - hr 168)
 ```{r}
-# this doesn't run anymore - need to look into, need to add column to line #293
 #group by hour and sample for average
 biolog2<- biologsamples2[,!(names(biologsamples2) %in% c("Plot_ID", "SampleID_Hour", "Sample_ID", "Biolog_column_ID"))]
 
@@ -454,7 +453,7 @@ biologshannon168 <- filter(biolog.shannon, Hour == 168)
 
 ```
 
-# LMER 
+# LMER for final reads
 ```{r}
 # without checking assumptions - need to do this. Just laying out the mixed effects model
 m2 <- lmer(Shannon ~ Subplot_Descriptions + (1|Rep/Footprint_Location), data = biologshannon168, REML=F)
@@ -479,10 +478,54 @@ meta2 <- meta1 %>% dplyr::select(Unique_ID, Rep, Footprint_Location)
 biologdiversity1 <- merge(x=biolog_diversity, y=meta2, by.x=c('Plot_ID'), 
       by.y=c('Unique_ID'))
 
-#LMER with random effects
+# Shannon LMER with random effects
 m3 <- lmer(Shannon ~ Subplot_Descriptions + Hour + (1|Rep/Footprint_Location), data = biologdiversity1, REML=F)
 summary(m3)
 plot(m3, main = Shannon)
+
+#levene test for homogeneity of variance
+leveneTest(residuals(m3) ~ biologdiversity1$Subplot_Descriptions) 
+
+# Check for normal residuals
+qqPlot(resid(m3), main = "Shannon")
+hist(residuals(m3), main = "Shannon")
+shapiro.test(resid(m3)) #p=0.3091
+
+#anova
+anova(m3)
+
+# Richness LMER with random effects
+m4 <- lmer(Richness ~ Subplot_Descriptions + Hour + (1|Rep/Footprint_Location), data = biologdiversity1, REML=F)
+summary(m4)
+plot(m4, main = Richness)
+
+#levene test for homogeneity of variance
+leveneTest(residuals(m4) ~ biologdiversity1$Subplot_Descriptions) 
+
+# Check for normal residuals
+qqPlot(resid(m4), main = "Richness")
+hist(residuals(m4), main = "Richness")
+shapiro.test(resid(m4)) #p=0.2442
+
+#anova
+anova(m4)
+
+# AWCD LMER with random effects
+m5 <- lmer(AWCD ~ Subplot_Descriptions + Hour + (1|Rep/Footprint_Location), data = biologdiversity1, REML=F)
+summary(m5)
+plot(m5, main = AWCD)
+
+#levene test for homogeneity of variance
+leveneTest(residuals(m5) ~ biologdiversity1$Subplot_Descriptions) 
+
+# Check for normal residuals
+qqPlot(resid(m5), main = "AWCD")
+hist(residuals(m5), main = "AWCD")
+shapiro.test(resid(m5)) #p=0.2366
+
+#anova
+anova(m5)
+
 ```
 
 # this is an example:
