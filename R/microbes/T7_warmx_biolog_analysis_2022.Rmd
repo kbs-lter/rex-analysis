@@ -41,6 +41,7 @@ library(car)
 library(emmeans)
 library(bbmle)
 library(multcomp)
+library(vegan)
 
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
@@ -231,7 +232,7 @@ write.csv(biolog_diversity, file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_wa
 ```{r}
 # RICHNESS 
 png("richness168hr.png", units="in", width=7, height=6, res=300)
-ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = Richness168hr, fill = Subplot_Descriptions)) +
+ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = Richness, fill = Subplot_Descriptions)) +
         geom_boxplot() + 
         labs(x = "Treatment", 
              y = "Catabolic Richness", 
@@ -251,7 +252,7 @@ dev.off()
 
 # SHANNON DIVERSITY 
 png("shannon168hr.png", units="in", width=7, height=6, res=300)
-ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = Shannon168hr, fill = Subplot_Descriptions)) +
+ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = Shannon, fill = Subplot_Descriptions)) +
         geom_boxplot() + 
         labs(x = "Treatment", 
              y = "Catabolic Shannon Diversity", 
@@ -271,7 +272,7 @@ dev.off()
 
 # AWCD
 png("AWCD168hr.png", units="in", width=7, height=6, res=300)
-ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = AWCD168hr, fill = Subplot_Descriptions)) +
+ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = AWCD, fill = Subplot_Descriptions)) +
         geom_boxplot() + 
         labs(x = "Treatment", 
              y = "Catabolic AWCD", 
@@ -288,14 +289,13 @@ ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = AWCD168hr, fill =
               axis.title.x = element_text(size = 20),
               axis.text.x = element_text(size = 15))
 dev.off()
-
 ```
 
 Plots - looking at individual carbon sources and plotting absorbance levels across time (from time 0 - hr 168)
 ```{r}
 # this doesn't run anymore - need to look into, need to add column to line #293
 #group by hour and sample for average
-biolog2<- biologsamples[,!(names(biologsamples) %in% c("Plot_ID", "SampleID_Hour", "Sample_ID", "Biolog_column_ID"))]
+biolog2<- biologsamples2[,!(names(biologsamples2) %in% c("Plot_ID", "SampleID_Hour", "Sample_ID", "Biolog_column_ID"))]
 
 ##X2.Hydroxybenzoic Acid
 #take average of each treatment per hour 
@@ -385,13 +385,13 @@ Notes from Moriah:
 
 # test for normal residuals and equal variances (ANOVA assumptions)
 # normal residuals?
-ggqqplot(biologHr168diversity$Richness168hr)
-hist(biologHr168diversity$Richness168hr) ##slightly skewed left
+ggqqplot(biologHr168diversity$Richness)
+hist(biologHr168diversity$Richness) ##slightly skewed left
 
 # Shapiro test - null hypothesis: residuals are normally distributed 
 require(lme4)
 require(lmerTest)
-model = lm(Richness168hr ~ Subplot_Descriptions, data = biologHr168diversity)
+model = lm(Richness ~ Subplot_Descriptions, data = biologHr168diversity)
 res = model$residuals
 shapiro.test(res) 
 #p = 0.002237 so not normally distributed?
@@ -402,7 +402,7 @@ shapiro.test(res)
 # H0: The variance among each group is equal.
 # HA: At least one group has a variance that is not equal to the rest.
 
-bartlett.test(Richness168hr ~ Subplot_Descriptions, data = biologHr168diversity) 
+bartlett.test(Richness ~ Subplot_Descriptions, data = biologHr168diversity) 
 # 0.6396 = we fail to reject the null hypothesis, so all groups have the same variance. This is what we want.
 
 #ANOVA
@@ -415,7 +415,7 @@ Anova(model, type = "III")
 #Residuals             938.3 20   
 
 # confidence intervals for every pairwise comparison
-tukey <- TukeyHSD(aov(Richness168hr ~ Subplot_Descriptions, data = biologHr168diversity))
+tukey <- TukeyHSD(aov(Richness ~ Subplot_Descriptions, data = biologHr168diversity))
 tukey
 plot(tukey)
 
@@ -472,6 +472,17 @@ shapiro.test(resid(m2)) #p=0.02 - not normal but close
 #anova
 anova(m2)
 
+#get rid of unneeded columns
+meta2 <- meta1 %>% dplyr::select(Unique_ID, Rep, Footprint_Location)
+
+#merge with meta for lmer
+biologdiversity1 <- merge(x=biolog_diversity, y=meta2, by.x=c('Plot_ID'), 
+      by.y=c('Unique_ID'))
+
+#LMER with random effects
+m3 <- lmer(Shannon ~ Subplot_Descriptions + Hour + (1|Rep/Footprint_Location), data = biologdiversity1, REML=F)
+summary(m3)
+plot(m3, main = Shannon)
 ```
 
 # this is an example:
