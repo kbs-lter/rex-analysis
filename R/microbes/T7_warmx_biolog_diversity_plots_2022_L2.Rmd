@@ -51,9 +51,11 @@ diversity <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L2
 Diversity plots
 ```{r}
 # Hour 168 - day 7
+biologHr168diversity <- diversity %>% filter(diversity$Hour == "168")
+
 # RICHNESS 
 png("richness168hr.png", units="in", width=7, height=6, res=300)
-ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = Richness, fill = Subplot_Descriptions)) +
+ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = H0, fill = Subplot_Descriptions)) +
         geom_boxplot() + 
         labs(x = "Treatment", 
              y = "Catabolic Richness", 
@@ -73,7 +75,7 @@ dev.off()
 
 # SHANNON DIVERSITY 
 png("shannon168hr.png", units="in", width=7, height=6, res=300)
-ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = Shannon, fill = Subplot_Descriptions)) +
+ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = H1, fill = Subplot_Descriptions)) +
         geom_boxplot() + 
         labs(x = "Treatment", 
              y = "Catabolic Shannon Diversity", 
@@ -93,7 +95,7 @@ dev.off()
 
 # AWCD
 png("AWCD168hr.png", units="in", width=7, height=6, res=300)
-ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = AWCD, fill = Subplot_Descriptions)) +
+ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = avg_AWCD, fill = Subplot_Descriptions)) +
         geom_boxplot() + 
         labs(x = "Treatment", 
              y = "Catabolic AWCD", 
