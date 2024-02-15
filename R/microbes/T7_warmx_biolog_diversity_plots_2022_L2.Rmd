@@ -1,0 +1,196 @@
+---
+title: "Biolog 2022 Plots"
+author: "Adrian Noecker, Moriah Young"
+date: "September 2023, updated February 2024"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+COLLABORATORS: Phoebe Zarnetske, Mark Hammond, Taylor Ulbrich (using code from Taylor)
+DATA INPUT: L1 csv from the shared Google drive  
+DATA OUTPUT: L2 csv and Code and Rmd are in the scripts folder in Github  
+PROJECT: REX
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+#load packages
+library(car)
+library(tidyr)
+library(dplyr)
+library(tibble)
+library(plyr)
+library(readr)
+library(tidyverse)
+library(ggplot2)
+library(tibble)
+library(ggpubr)
+library(fitdistrplus)
+library(sjPlot)
+library(tidyverse)
+library(multcomp)
+library(vegan)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+setwd(dir)
+
+## Read in data
+diversity <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/biolog_hill_diversity_L2.csv"))
+# Moriah's below (for some reason above wont work for me - not same file path)
+diversity <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L2/biolog_hill_diversity_L2.csv"))
+```
+
+Diversity plots
+```{r}
+# Hour 168 - day 7
+# RICHNESS 
+png("richness168hr.png", units="in", width=7, height=6, res=300)
+ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = Richness, fill = Subplot_Descriptions)) +
+        geom_boxplot() + 
+        labs(x = "Treatment", 
+             y = "Catabolic Richness", 
+             title = "Microbial Catabolic Richness, Day 7") + 
+        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
+dev.off()
+
+# SHANNON DIVERSITY 
+png("shannon168hr.png", units="in", width=7, height=6, res=300)
+ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = Shannon, fill = Subplot_Descriptions)) +
+        geom_boxplot() + 
+        labs(x = "Treatment", 
+             y = "Catabolic Shannon Diversity", 
+             title = "Microbial Catabolic Shannon Diversity, Day 7") + 
+        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
+dev.off()
+
+# AWCD
+png("AWCD168hr.png", units="in", width=7, height=6, res=300)
+ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = AWCD, fill = Subplot_Descriptions)) +
+        geom_boxplot() + 
+        labs(x = "Treatment", 
+             y = "Catabolic AWCD", 
+             title = "Microbial Catabolic AWCD, Day 7") + 
+        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
+dev.off()
+```
+
+Plots - looking at individual carbon sources and plotting absorbance levels across time (from time 0 - hr 168)
+```{r}
+#group by hour and sample for average
+biolog2<- biologsamples2[,!(names(biologsamples2) %in% c("Plot_ID", "SampleID_Hour", "Sample_ID", "Biolog_column_ID"))]
+
+##X2.Hydroxybenzoic Acid
+#take average of each treatment per hour 
+X2HydroxyBen_mean <- aggregate(biolog2$X2.Hydroxy_Benzoic_Acid, by=list(biolog2$Hour,biolog2$Subplot_Descriptions), FUN=mean)
+
+#Plotting avg absorbance of each treatment across time
+png("X2HydroxyBen_mean_L2.png", units="in", width=7, height=6, res=300)
+ggplot(X2HydroxyBen_mean, aes(x = Group.1, y = x, group = Group.2, color = Group.2)) +
+  geom_line(linewidth = 1) +
+  geom_point(position=position_dodge(0.1)) + # "position = position_dodge()" is the code used to dodge overlapping points
+  labs(y="X2.Hydroxybenzoic Acid", x="Hour") +
+  theme_bw() +
+  theme(axis.title = element_text(size=17),
+        axis.text = element_text(size=15))
+dev.off()
+
+##X4.Hydroxybenzoic Acid
+#take average of each treatment per hour 
+X4HydroxyBen_mean <- aggregate(biolog2$X4.Hydroxy_Benzoic_Acid, by=list(biolog2$Hour,biolog2$Subplot_Descriptions), FUN=mean)
+
+#Plotting avg absorbance of each treatment across time
+png("X4HydroxyBen_mean_L2.png", units="in", width=7, height=6, res=300)
+ggplot(X4HydroxyBen_mean, aes(x = Group.1, y = x, group = Group.2, color = Group.2)) +
+  geom_line(linewidth = 1) +
+  geom_point(position=position_dodge(0.1)) + # "position = position_dodge()" is the code used to dodge overlapping points
+  labs(y="X4.Hydroxybenzoic Acid", x="Hour") +
+  theme_bw() +
+  theme(axis.title = element_text(size=17),
+        axis.text = element_text(size=15))
+dev.off()
+
+##D.Cellobiose 
+#take average of each treatment per hour 
+DCell_mean <- aggregate(biolog2$D.Cellobiose, by=list(biolog2$Hour,biolog2$Subplot_Descriptions), FUN=mean)
+
+#Plotting avg absorbance of each treatment across time
+png("DCell_mean_L2.png", units="in", width=7, height=6, res=300)
+ggplot(DCell_mean, aes(x = Group.1, y = x, group = Group.2, color = Group.2)) +
+  geom_line(linewidth = 1) +
+  geom_point(position=position_dodge(0.1)) + # "position = position_dodge()" is the code used to dodge overlapping points
+  labs(y="D.Cellobiose", x="Hour") +
+  theme_bw() +
+  theme(axis.title = element_text(size=17),
+        axis.text = element_text(size=15))
+dev.off()
+
+##D.Galactonic Acid Y Lactone
+#take average of each treatment per hour 
+DGalactonic_mean <- aggregate(biolog2$D.Galactonic_Acid_γ.Lactone, by=list(biolog2$Hour,biolog2$Subplot_Descriptions), FUN=mean)
+
+#Plotting avg absorbance of each treatment across time
+png("DGalactonic_mean_L2.png", units="in", width=7, height=6, res=300)
+ggplot(DGalactonic_mean, aes(x = Group.1, y = x, group = Group.2, color = Group.2)) +
+  geom_line(linewidth = 1) +
+  geom_point(position=position_dodge(0.1)) + # "position = position_dodge()" is the code used to dodge overlapping points
+  labs(y="D.Galactonic Acid Y Lactone", x="Hour") +
+  theme_bw() +
+  theme(axis.title = element_text(size=17),
+        axis.text = element_text(size=15))
+dev.off()
+
+##D.Galacturonic Acid
+#take average of each treatment per hour 
+DGalacturonic_mean <- aggregate(biolog2$D.Galacturonic_Acid, by=list(biolog2$Hour,biolog2$Subplot_Descriptions), FUN=mean)
+
+#Plotting avg absorbance of each treatment across time
+png("DGalacturonic_mean_L2.png", units="in", width=7, height=6, res=300)
+ggplot(DGalacturonic_mean, aes(x = Group.1, y = x, group = Group.2, color = Group.2)) +
+  geom_line(linewidth = 1) +
+  geom_point(position=position_dodge(0.1)) + # "position = position_dodge()" is the code used to dodge overlapping points
+  labs(y="D.Galacturonic Acid", x="Hour") +
+  theme_bw() +
+  theme(axis.title = element_text(size=17),
+        axis.text = element_text(size=15))
+dev.off()
+
+```
+

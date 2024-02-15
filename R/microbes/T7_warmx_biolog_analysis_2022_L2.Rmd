@@ -90,7 +90,8 @@ standardsamples <- standarddf %>% filter(!Sample_ID %in% c("BIOLOG CONTROL"))
 
 #import meta data to get treatment type
 meta <- read.csv(file.path(dir, "/REX_warmx_metadata.csv"))
-                 
+
+# Moriah note - I think here, we will want to preserve all of these columns, so maybe don't remove                 
 #get rid of unneeded columns
 meta1 <- meta %>% dplyr::select(Subplot_Descriptions, Unique_ID, Rep, Footprint_Location)
 
