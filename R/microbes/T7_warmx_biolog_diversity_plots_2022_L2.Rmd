@@ -40,12 +40,21 @@ library(vegan)
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
-setwd(dir)
 
 ## Read in data
 diversity <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/biolog_hill_diversity_L2.csv"))
 # Moriah's below (for some reason above wont work for me - not same file path)
 diversity <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L2/biolog_hill_diversity_L2.csv"))
+```
+
+Grouping carbon sources by 
+```{r}
+amino_acids = "β-HydroxyGlycyl-L-Glutamic_Acid", "L-Threonine", "L-Serine, L-Asparagine", "L-Phenylalanine", "L-Arginine"
+amines = "Putrescine", "Phenylethylamine"
+carbohydrates = "D-Galacturonic_Acid", "D,L-α-Glycerol_Phosphate", "Glucose1-Phosphate", "D-Galactonic_Acid_γ-Lactone", "N-Acetyl-D-Glucosamine", "D-Mannitol", "i-Erythritol", "D-Xylose", "D-Cellobiose", "α-D-Lactose", "β-MethylD-Glucoside", "D-Glucosaminic_Acid"
+carboxylic_acids = "D-Malic_Acid", "α-Keto_Butyric_Acid", "Itaconic_Acid", "Pyruvic_Acid_Methyl_Ester"
+phenolic_acids = "4-Hydroxy_Benzoic_Acid", "2-Hydroxy_Benzoic_Acid"
+polymers = "Glycogen, Tween_40", "Tween_80, α-Cyclodextrin"
 ```
 
 Diversity plots
