@@ -114,7 +114,7 @@ ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = avg_AWCD, fill = 
 dev.off()
 ```
 
-Plots - looking at individual carbon sources and plotting absorbance levels across time (from time 0 - hr 168)
+Plots - looking at individual carbon sources and plotting absorbency levels across time (from time 0 - hr 168)
 ```{r}
 #group by hour and sample for average
 biolog2<- biologsamples2[,!(names(biologsamples2) %in% c("Plot_ID", "SampleID_Hour", "Sample_ID", "Biolog_column_ID"))]
