@@ -43,12 +43,10 @@ list.files(dir)
 setwd(dir)
 
 ## Read in data
-biolognowater <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/Biolog_data_NOWater_L1.csv")) # data in wide format, water not included
-standardbiolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/Biolog_data_L1.csv")) # data in long format, water included
+biolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/biolog_clean_wide_format_L1.csv"))
 
 # Moriah's below (for some reason above wont work for me - not same file path)
-biolognowater <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L1/Biolog_data_NOWater_L1.csv"))
-standardbiolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L1/Biolog_data_L1.csv"))
+biolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L1/biolog_clean_wide_format_L1.csv"))
 ```
 
 Rarefaction
@@ -57,28 +55,28 @@ to presence absence?
 **come back to this
 ```{r}
 # calculate total number of trees per sample
-biolog.rowsums <- apply(biologsamples2[,-c(1:8)],1,sum)
+biolog.rowsums <- apply(biolog[,-c(1:8)],1,sum)
 # whats the value of smallest row sum?
-min(biolog.rowsums) # 2.062 - I'll use this when I rarefy
+min(biolog.rowsums) # 0.015 - I'll use this when I rarefy
 
 ###Individual based rarefaction
 # Using the rarefaction formula to find expected species richness
-rarecurve(biologsamples2[,-c(1:8)])
+rarecurve(biolog[,-c(1:8)])
 # You can choose a minimum sample size to rarefy all samples to using the command below
-rarefy(biologsamples2[,-c(1:8)],sample=2)
+rarefy(biolog[,-c(1:8)],sample=2)
 ```
 
 #grouping by hour
 ```{r}
 # split data by Hour so we can calculate shannon diversity, richness, and AWCD by each Hour 
-biologHr0 <- filter(biologsamples2, Hour == 0)
-biologHr24 <- filter(biologsamples2, Hour == 24)
-biologHr48 <- filter(biologsamples2, Hour == 48)
-biologHr72 <- filter(biologsamples2, Hour == 72)
-biologHr96 <- filter(biologsamples2, Hour == 96)
-biologHr120 <- filter(biologsamples2, Hour == 120)
-biologHr144 <- filter(biologsamples2, Hour == 144)
-biologHr168 <- filter(biologsamples2, Hour == 168)
+biologHr0 <- filter(biolog, Hour == 0)
+biologHr24 <- filter(biolog, Hour == 24)
+biologHr48 <- filter(biolog, Hour == 48)
+biologHr72 <- filter(biolog, Hour == 72)
+biologHr96 <- filter(biolog, Hour == 96)
+biologHr120 <- filter(biolog, Hour == 120)
+biologHr144 <- filter(biolog, Hour == 144)
+biologHr168 <- filter(biolog, Hour == 168)
 ```
 
 # Calculate Hill numbers and avg AWCD

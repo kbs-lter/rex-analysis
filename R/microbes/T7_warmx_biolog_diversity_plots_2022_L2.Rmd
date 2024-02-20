@@ -23,6 +23,7 @@ rm(list=ls())
 #load packages
 library(car)
 library(tidyr)
+library(plotrix)
 library(dplyr)
 library(tibble)
 library(plyr)
@@ -42,20 +43,99 @@ dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
 
 ## Read in data
+biolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/biolog_clean_wide_format_L1.csv"))
 diversity <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/biolog_hill_diversity_L2.csv"))
+
 # Moriah's below (for some reason above wont work for me - not same file path)
+biolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L1/biolog_clean_wide_format_L1.csv"))
+biolog2 <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L1/biolog_clean_L1.csv"))
 diversity <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L2/biolog_hill_diversity_L2.csv"))
 ```
 
-Grouping carbon sources by 
+Maybe move this to cleaning script
+Grouping carbon sources
 ```{r}
-amino_acids = "β-HydroxyGlycyl-L-Glutamic_Acid", "L-Threonine", "L-Serine, L-Asparagine", "L-Phenylalanine", "L-Arginine"
-amines = "Putrescine", "Phenylethylamine"
-carbohydrates = "D-Galacturonic_Acid", "D,L-α-Glycerol_Phosphate", "Glucose1-Phosphate", "D-Galactonic_Acid_γ-Lactone", "N-Acetyl-D-Glucosamine", "D-Mannitol", "i-Erythritol", "D-Xylose", "D-Cellobiose", "α-D-Lactose", "β-MethylD-Glucoside", "D-Glucosaminic_Acid"
-carboxylic_acids = "D-Malic_Acid", "α-Keto_Butyric_Acid", "Itaconic_Acid", "Pyruvic_Acid_Methyl_Ester"
-phenolic_acids = "4-Hydroxy_Benzoic_Acid", "2-Hydroxy_Benzoic_Acid"
-polymers = "Glycogen, Tween_40", "Tween_80, α-Cyclodextrin"
+carbon_groups <- list(
+        "amino_acids" = c("β-HydroxyGlycyl-L-Glutamic_Acid", "L-Threonine", "L-Serine", "L-Asparagine", "L-Phenylalanine", "L-Arginine", "γ-Amino_Butyric_Acid"),
+        "amines" = c("Putrescine", "Phenylethylamine"),
+        "carbohydrates" = c("D-Galacturonic_Acid", "D,L-α-Glycerol_Phosphate", "Glucose1-Phosphate", "D-Galactonic_Acid_γ-Lactone", "N-Acetyl-D-Glucosamine", "D-Mannitol", "i-Erythritol", "D-Xylose", "D-Cellobiose", "α-D-Lactose", "β-MethylD-Glucoside", "D-Glucosaminic_Acid"),
+        "carboxylic_acids" = c("D-Malic_Acid", "α-Keto_Butyric_Acid", "Itaconic_Acid", "Pyruvic_Acid_Methyl_Ester"),
+        "phenolic_acids" = c("4-Hydroxy_Benzoic_Acid", "2-Hydroxy_Benzoic_Acid"),
+        "polymers" = c("Glycogen", "Tween_40", "Tween_80", "α-Cyclodextrin")
+        )
+
+# Create the new column with broader group names based on the mapping
+biolog2$carbon_group <- unlist(sapply(biolog2$Well_C_Source, function(cs) {
+  group <- names(carbon_groups)[sapply(carbon_groups, function(x) cs %in% x)]
+  if (length(group) == 0) group <- "Unknown"
+  group
+}))
+
+# calculate average absorbence of each carbon group by subplot description and hour
+# this doesn't work for me
+biolog_avg <- biolog2 %>% 
+        group_by(Subplot_Descriptions, carbon_group, Hour) %>% 
+        summarize(avg_absorbence = mean(Absorbence, na.rm = TRUE),
+                  se = std.error(Absorbence, na.rm = TRUE))
+
+# Calculate mean and se for absorbence by subplot descriptions, carbon group, and hour
+# Define a custom function to calculate mean and standard error
+calculate_mean_se <- function(x) {
+  mean_val <- mean(x, na.rm = TRUE)
+  se_val <- sd(x, na.rm = TRUE) / sqrt(length(x))
+  return(c(mean_val, se_val))
+}
+
+# Apply the custom function with aggregate for mean
+mean_result <- aggregate(Absorbence ~ Subplot_Descriptions + carbon_group + Hour, data = biolog2, FUN = function(x) mean(x, na.rm = TRUE))
+
+# Apply the custom function with aggregate for standard error
+se_result <- aggregate(Absorbence ~ Subplot_Descriptions + carbon_group + Hour, data = biolog2, FUN = function(x) sd(x, na.rm = TRUE) / sqrt(length(x)))
+
+# Merge the results based on the grouping variables
+result <- merge(mean_result, se_result, by = c("Subplot_Descriptions", "carbon_group", "Hour"))
+
+# Rename the columns
+colnames(result)[4:5] <- c("avg_absorbence", "se")
+
+# Apply the custom function with aggregate
+#avg_biolog <- aggregate(Absorbence ~ Subplot_Descriptions + carbon_group + Hour, data = biolog2, FUN = mean)
 ```
+
+# carbon group plots
+```{r}
+carbon_groups1 <- c("amines" = "Amines",
+                    "amino_acids" = "Amino Acids",
+                    "carbohydrates" = "Carbohydrates",
+                    "carboxylic_acids" = "Carboxylic Acids",
+                    "phenolic_acids" = "Phenolic Acids",
+                    "polymers" = "Polymers")
+
+# Hour 168 - day 7
+biologHr168 <- result %>% filter(result$Hour == "168")
+
+ggplot(biologHr168, aes(x = Subplot_Descriptions, y = avg_absorbence, fill = Subplot_Descriptions)) +
+        geom_pointrange(aes(ymin=avg_absorbence-se, ymax=avg_absorbence+se), 
+                        pch=21,
+                        size=1,
+                        position=position_dodge(0.3)) + 
+        facet_wrap(~carbon_group, labeller = as_labeller(carbon_groups1)) +
+        labs(x = "Treatment", 
+             y = "Average AWCD", 
+             title = "Average AWCD, Day 7") + 
+        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
+```
+
 
 Diversity plots
 ```{r}
@@ -102,6 +182,26 @@ ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = H1, fill = Subplo
               axis.text.x = element_text(size = 15))
 dev.off()
 
+# SIMPSON DIVERSITY 
+png("shannon168hr.png", units="in", width=7, height=6, res=300)
+ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = H2, fill = Subplot_Descriptions)) +
+        geom_boxplot() + 
+        labs(x = "Treatment", 
+             y = "Catabolic Simpson Diversity", 
+             title = "Microbial Catabolic Shannon Diversity, Day 7") + 
+        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
+dev.off()
+
 # AWCD
 png("AWCD168hr.png", units="in", width=7, height=6, res=300)
 ggplot(biologHr168diversity, aes(x = Subplot_Descriptions, y = avg_AWCD, fill = Subplot_Descriptions)) +
@@ -126,7 +226,7 @@ dev.off()
 Plots - looking at individual carbon sources and plotting absorbency levels across time (from time 0 - hr 168)
 ```{r}
 #group by hour and sample for average
-biolog2<- biologsamples2[,!(names(biologsamples2) %in% c("Plot_ID", "SampleID_Hour", "Sample_ID", "Biolog_column_ID"))]
+biolog2 <- biolog[,!(names(biolog) %in% c("Plot_ID", "SampleID_Hour", "Sample_ID", "Biolog_column_ID"))]
 
 ##X2.Hydroxybenzoic Acid
 #take average of each treatment per hour 
