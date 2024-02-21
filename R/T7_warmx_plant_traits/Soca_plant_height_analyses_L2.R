@@ -23,7 +23,7 @@ library(multcomp)
 dir<-Sys.getenv("DATA_DIR")
 
 # Read in data
-height <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_soca_height_L1.csv"))
+height <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_soca_height_harvest_L1.csv"))
 
 
 ###### Data exploration #######
@@ -41,21 +41,17 @@ hist(resid(raw.data.test)) # checking model residuals
 shapiro.test(resid(raw.data.test))
 # looks pretty good, going to try some transformations but might not need them
 
-# square root transformation
-height$sqrt_height <- sqrt(height$Height_cm)
-descdist(height$sqrt_height, discrete = FALSE)
-hist(height$sqrt_height)
-qqnorm(height$sqrt_height)
-shapiro.test(height$sqrt_height) # looks good
-# making a model to test distribution of model residuals w/ sqrt transformation
-raw.data.test.sqrt <- lm(sqrt_height ~ Climate_Treatment * Galling_Status, data=height) # testing model
-hist(resid(raw.data.test.sqrt)) # checking model residuals
-shapiro.test(resid(raw.data.test.sqrt))
-# better - going with sqrt transformation
-
-# Other transformations you could try include log transformation, reciprocal transformation, 
-# cubed root transformation, etc. These are all ways to transform the data to fit a normal distrib.
-# If transformations don't work, you may need to run a model for a non-normal distribution of data
+# log transformation
+height$log_height <- log(height$Height_cm)
+descdist(height$log_height, discrete = FALSE)
+hist(height$log_height)
+qqnorm(height$log_height)
+shapiro.test(height$log_height) # looks good
+# making a model to test distribution of model residuals w/ log transformation
+raw.data.test.log <- lm(log_height ~ Climate_Treatment * Galling_Status, data=height) # testing model
+hist(resid(raw.data.test.log)) # checking model residuals
+shapiro.test(resid(raw.data.test.log))
+# better - going with log transformation
 
 
 
@@ -65,7 +61,7 @@ shapiro.test(resid(raw.data.test.sqrt))
 # if there is 1. an effect of climate treatment on height, 2. an effect of galling status on height, and 3. does the effect
 # of climate on height depend on galling status. Subplot nested within footprint nested within rep is used as our random effect
 # to account for variation between plots. Year is also included as a random effect to account for variation between years.
-m1 <- lmer(sqrt_height ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = height, REML=F)
+m1 <- lmer(log_height ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = height, REML=F)
 # Check Assumptions:
 # (1) Linearity: if covariates are not categorical
 # (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
@@ -81,30 +77,39 @@ hist(residuals(m1), main = "Plant height")
 shapiro.test(resid(m1))
 outlierTest(m1) # checking for outliers - there are some in the data. Removing these might help the model
 
-# removing outliers and re-testing assumptions
-height2 <- height[-c(437,225,422,449),]
-m2 <- lmer(sqrt_height ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = height2, REML=F)
+# removing outliers and re-testing assumptions - from old analyses w/ all plant height data (not just harvest time point)
+#height2 <- height[-c(437,225,422,449),]
+#m2 <- lmer(sqrt_height ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = height2, REML=F)
 # Check Assumptions:
 # (1) Linearity: if covariates are not categorical
 # (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
-plot(m2, main = "Plant height")
+#plot(m2, main = "Plant height")
 # Homogeneity of variance looks better here (increasing variance in resids does not increase with fitted values)
 # Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
-leveneTest(residuals(m2) ~ height2$Climate_Treatment) # not met
-leveneTest(residuals(m2) ~ height2$Galling_Status) # not met
+#leveneTest(residuals(m2) ~ height2$Climate_Treatment) # not met
+#leveneTest(residuals(m2) ~ height2$Galling_Status) # not met
 # this homogeneity looks better than the above model, so going with it
 # (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
 # Check for normal residuals
-qqPlot(resid(m2), main = "Plant height")
-hist(residuals(m2), main = "Plant height")
-shapiro.test(resid(m2)) # better
-outlierTest(m2) # leaving this for now
+#qqPlot(resid(m2), main = "Plant height")
+#hist(residuals(m2), main = "Plant height")
+#shapiro.test(resid(m2)) # better
+#outlierTest(m2) # leaving this for now
 
 
 ###### Checking model results ########
-anova(m2)
-# this outcome shows us that the interaction term (Climate_Treatment:Galling_Status) is significant
-# therefore, we need to check the pairwise comparisons of all treatments with a post-hoc test
-contrast(emmeans(m1, ~Climate_Treatment*Galling_Status), "pairwise", simple = "each", combine = F, adjust = "mvt")
+m1 <- lmer(log_height ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = height, REML=F)
+anova(m1)
 emmip(m2, Climate_Treatment~Galling_Status)
-
+# this outcome shows us that climate has an effect but not galling. there is also no interaction btwn climate and galling
+# model w/o interaction term, since it was not significant
+height <- within(height, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Warm Drought"))
+m2 <- lmer(log(Height_cm) ~ Climate_Treatment + Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = height, REML=F)
+anova(m2)
+summary(m2)
+exp(4.43673)-exp(4.43673-0.22449) # warmed plants 17 cm taller than ambient
+exp(4.43673)-exp(4.43673-0.19599) # warmed plants 15 cm taller than irrigated
+exp(4.42690)-exp(4.42690-0.21466) # warmed drought plants 16 cm taller than ambient
+exp(4.42690)-exp(4.42690-0.18240) # warmed drought plants 14 cm taller than drought
+contrast(emmeans(m2, ~Climate_Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt", type="response")
+(0.799 - 1) * 100 # 20% decrease from ambient to warmed
