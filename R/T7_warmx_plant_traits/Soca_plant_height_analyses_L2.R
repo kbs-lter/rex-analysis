@@ -68,14 +68,14 @@ m1 <- lmer(log_height ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Su
 plot(m1, main = "Plant height")
 # Homogeneity of variance looks a bit off (increasing variance in resids does increase with fitted values)
 # Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
-leveneTest(residuals(m1) ~ height$Climate_Treatment) # not met
-leveneTest(residuals(m1) ~ height$Galling_Status) # not met
+leveneTest(residuals(m1) ~ height$Climate_Treatment) # met
+leveneTest(residuals(m1) ~ height$Galling_Status) # not met, but pretty close
 # (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
 # Check for normal residuals
 qqPlot(resid(m1), main = "Plant height")
 hist(residuals(m1), main = "Plant height")
 shapiro.test(resid(m1))
-outlierTest(m1) # checking for outliers - there are some in the data. Removing these might help the model
+outlierTest(m1) # checking for outliers - none
 
 # removing outliers and re-testing assumptions - from old analyses w/ all plant height data (not just harvest time point)
 #height2 <- height[-c(437,225,422,449),]
@@ -103,7 +103,7 @@ anova(m1)
 emmip(m2, Climate_Treatment~Galling_Status)
 # this outcome shows us that climate has an effect but not galling. there is also no interaction btwn climate and galling
 # model w/o interaction term, since it was not significant
-height <- within(height, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Warm Drought"))
+height <- within(height, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Warm Drought")) # re-set the reference level for diff. comparisons
 m2 <- lmer(log(Height_cm) ~ Climate_Treatment + Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = height, REML=F)
 anova(m2)
 summary(m2)
