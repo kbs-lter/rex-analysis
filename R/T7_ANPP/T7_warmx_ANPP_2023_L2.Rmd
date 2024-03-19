@@ -1,0 +1,205 @@
+---
+title: "REX: 2023 ANPP"
+author: "Moriah Young"
+date: "March 2024"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+COLLABORATORS: Emily Parker, Kara Dobson, Phoebe Zarnetske, Mark Hammond
+DATA INPUT: L1 csv from the shared Google drive  
+DATA OUTPUT: L2 csv and Code and Rmd are in the scripts folder in Github  
+PROJECT: REX
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear all existing data
+rm(list=ls())
+
+# Load packages
+library(lmerTest)
+library(fitdistrplus)
+library(sjPlot)
+library(tidyverse)
+library(car)
+library(emmeans)
+library(bbmle)
+library(multcomp)
+library(knitr)
+library(see)
+library(performance)
+library(vegan)
+library(plotrix)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+
+## Read in data
+anpp <- read.csv(file.path(dir, "/T7_ANPP/L1/T7_anpp_L1.csv"))
+meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
+
+# do a little bit of cleaning up of the data
+anpp$Year <- as.factor(anpp$Year)
+anpp23 <- anpp %>% filter(Year == 2023)
+names(anpp23)[names(anpp23)=="Plot_ID"] <- "Unique_ID"
+anpp23 <- anpp23 %>% filter(Footprint == c("OC", "OR"))
+
+anpp23 <- full_join(anpp23, meta, by = c("Unique_ID", "Subplot", "Treatment", "Replicate", "Footprint"))
+anpp23 <- anpp23 %>% filter(Footprint != "IR")
+
+# remove unwanted columns
+anpp23 = subset(anpp23, select = -c(Scale_meter_square,
+                                    Group_Code,
+                                    Subplot_ID,
+                                    Experimental_Unit_ID,
+                                    Footprint_Treatment_full,
+                                    Subplot,
+                                    Footprint,
+                                    Unique_Field_Location_Code,
+                                    FP_location,
+                                    Subplot_location,
+                                    Replicate))
+```
+
+```{r}
+# calculate sum of 0.2 and 0.8 scales together per species and plot
+anpp23_sum <- anpp23 %>%
+        group_by(Unique_ID, Species_Code) %>%
+        mutate(plant_biomass_gm2 = sum(plant_biomass_gm2)) %>%
+        distinct(Unique_ID, .keep_all = TRUE)
+
+anpp23_wide <- pivot_wider(anpp23_sum, 
+                       id_cols = c(Unique_ID, Subplot_Descriptions, Rep, Footprint_Location, Subplot_Location), #Columns that uniquely identify each row
+                       names_from = Species_Code,  # Column containing variable names
+                       values_from = plant_biomass_gm2)  # Column containing values
+
+# turn NAs into zeros
+anpp23_wide[is.na(anpp23_wide)] <- 0
+
+anpp23.dat <- anpp23_wide
+
+# Loops through each cell in the dataframe, excluding the first column, and for every cell that has a value >0, then it's replaced with a 1 - this gives us count data rather than abundance data
+for (i in 1:nrow(anpp23_wide)) {
+  for (j in 6:ncol(anpp23_wide)) {
+    # Replace values greater than 0 with 1
+    if (anpp23_wide[i, j] > 0) {
+      anpp23_wide[i, j] <- 1
+    }
+  }
+}
+
+```
+
+Alpha Diversity
+```{r}
+dim(anpp23_wide)
+# calculate total number of trees per sample
+anpp.rowsums <- apply(anpp23_wide[,6:42],1,sum)
+anpp.rowsums1 <- apply(anpp23.dat[,6:42],1,sum)
+# whats the value of smallest row sum?
+min(anpp.rowsums)
+min(anpp.rowsums1)
+max(anpp.rowsums)
+max(anpp.rowsums1)
+
+###Individual based rarefaction
+# Using the rarefaction formula to find expected species richness
+rarecurve(anpp23_wide[,2:38])
+rarecurve(anpp23.dat[,2:38])
+# You can choose a minimum sample size to rarefy all samples to using the command below
+rarefy(anpp23_wide[,2:38],sample=6)
+
+```
+
+Calculating Hill Numbers
+```{r}
+anpp.hill <- renyi(anpp23.dat[,-c(1:5)], scales=c(0,1,2,Inf), hill=TRUE)
+anpp.hill <- cbind(anpp23.dat[1:5], anpp.hill)
+
+names(anpp.hill)[names(anpp.hill)=="0"] <- "H0"
+names(anpp.hill)[names(anpp.hill)=="1"] <- "H1"
+names(anpp.hill)[names(anpp.hill)=="2"] <- "H2"
+names(anpp.hill)[names(anpp.hill)=="Inf"] <- "HInf"
+
+anpp.hill.mean <- anpp.hill %>%
+        group_by(Subplot_Descriptions) %>% 
+        summarise(H0.mean = mean(H0, na.rm = TRUE),
+                  H1.mean= mean(H1, na.rm = TRUE),
+                  H2.mean= mean(H2, na.rm = TRUE),
+                  Hinf.mean= mean(HInf, na.rm = TRUE),
+                  H0.se = std.error(H0, na.rm = TRUE),
+                  H1.se = std.error(H1, na.rm = TRUE),
+                  H2.se = std.error(H2, na.rm = TRUE),
+                  HInf.se = std.error(HInf, na.rm = TRUE))
+
+level_order  <- c("ambient", "drought", "warmed", "insecticide", "drought_insecticide", 'warmed_insecticide', "warmed_drought", "warmed_drought_insecticide")
+
+anpp.hill0.plot <- ggplot(anpp.hill.mean, aes(x=Subplot_Descriptions, y = H0.mean, fill=Subplot_Descriptions)) +
+        geom_bar(stat="identity", position=position_dodge()) +
+        geom_errorbar(aes(ymin=H0.mean-H0.se, ymax=H0.mean+H0.se), width=.2, 
+                      position=position_dodge(.9)) + 
+        scale_fill_brewer(palette="Paired") + 
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "insecticide" = "Insecticide",
+                                  "warmed_drought" = "Warmed \n Drought",
+                                  "drought_insecticide" = "Drought \n Insecticide",
+                                  'warmed_insecticide' = "Warmed \n Insecticide",
+                                  'warmed_drought_insecticide' = "Warmed \n Drought \n Insecticide"),
+                         limits = level_order) +
+        labs(title="Mean Hill 0", x ="Treatment", y = "Mean # of Species", 
+             fill ="Treatment") +
+        theme(legend.position = "none")
+anpp.hill0.plot
+
+anpp.hill1.plot <- ggplot(anpp.hill.mean, aes(x=Subplot_Descriptions, y = H1.mean, fill=Subplot_Descriptions)) +
+        geom_bar(stat="identity", position=position_dodge()) +
+        geom_errorbar(aes(ymin=H1.mean-H1.se, ymax=H1.mean+H1.se), width=.2, 
+                      position=position_dodge(.9)) + 
+        scale_fill_brewer(palette="Paired") + 
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "insecticide" = "Insecticide",
+                                  "warmed_drought" = "Warmed \n Drought",
+                                  "drought_insecticide" = "Drought \n Insecticide",
+                                  'warmed_insecticide' = "Warmed \n Insecticide",
+                                  'warmed_drought_insecticide' = "Warmed \n Drought \n Insecticide"),
+                         limits = level_order) +
+        labs(title="Mean Hill 1", x ="Treatment", y = "Mean # of Species", 
+             fill ="Treatment") +
+        theme(legend.position = "none")
+anpp.hill1.plot
+
+anpp.hill2.plot <- ggplot(anpp.hill.mean, aes(x=Subplot_Descriptions, y = H2.mean, fill=Subplot_Descriptions)) +
+        geom_bar(stat="identity", position=position_dodge()) +
+        geom_errorbar(aes(ymin=H2.mean-H2.se, ymax=H2.mean+H2.se), width=.2, 
+                      position=position_dodge(.9)) + 
+        scale_fill_brewer(palette="Paired") + 
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "insecticide" = "Insecticide",
+                                  "warmed_drought" = "Warmed \n Drought",
+                                  "drought_insecticide" = "Drought \n Insecticide",
+                                  'warmed_insecticide' = "Warmed \n Insecticide",
+                                  'warmed_drought_insecticide' = "Warmed \n Drought \n Insecticide"),
+                         limits = level_order) +
+        labs(title="Mean Hill 2", x ="Treatment", y = "Mean # of Species", 
+             fill ="Treatment") +
+        theme(legend.position = "none")
+anpp.hill2.plot
+```
+
+Beta Diversity
+```{r}
+
+```
+
+
