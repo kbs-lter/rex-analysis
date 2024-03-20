@@ -53,17 +53,13 @@ hobo_data$month <- format(hobo_data$Date_Time,format="%m")
 hobo_data$year <- format(hobo_data$Date_Time,format="%Y")
 hobo_data$hour <- format(hobo_data$Date_Time, format="%H")
 hobo_data$day <- format(hobo_data$Date_Time, format="%d")
+hobo_data$date <- format(hobo_data$Date_Time, format="%m%d")
 # soil
 soil_data$month <- format(soil_data$Date_Time,format="%m")
 soil_data$year <- format(soil_data$Date_Time,format="%Y")
 soil_data$hour <- format(soil_data$Date_Time, format="%H")
 soil_data$day <- format(soil_data$Date_Time, format="%d")
-
-# create date column that combines month and day together, i.e. 09 (month) and 28 (day) = 928 (sept 28th)
-hobo_data$date <- paste0(hobo_data$month,"",hobo_data$day)
-hobo_data$date <- as.numeric(hobo_data$date)
-soil_data$date <- paste0(soil_data$month,"",soil_data$day)
-soil_data$date <- as.numeric(soil_data$date)
+soil_data$date <- format(soil_data$Date_Time, format="%m%d")
 
 ###############################################################################
 # Below is for Kara's VOC sampling in 2022
@@ -163,13 +159,27 @@ descdist(resid(m.hobo.test), discrete = FALSE)
 emmeans(m.hobo.test, list(pairwise ~ Treatment), adjust = "tukey")
 
 ################################################################################
+# FOR REX METHODS PAPER
+# create new dataframe with only data during daytime hours 7 AM - 7 PM and during the growing season April - August (this is what we reported
+# on for the warmx paper)
+day.airtemp <- hobo_data
+day.airtemp$date <- format(day.airtemp$Date_Time,format="%Y-%m-%d")
+day.airtemp$month <- format(day.airtemp$Date_Time,format="%m")
+day.airtemp$year <- format(day.airtemp$Date_Time,format="%Y")
+day.airtemp$hour <- format(day.airtemp$Date_Time, format="%H")
+day.airtemp$day <- format(day.airtemp$Date_Time, format="%d")
+day.airtemp.gs <- day.airtemp %>%
+        filter(hour > "06") %>%
+        filter(hour < "20") %>%
+        filter(month > "03") %>% 
+        filter(month < "09")
 
 # HOBO model exploration for air temperature across all years (all HOBO data available)
-descdist(hobo_data$Temperature_C, discrete = FALSE) # this doesn't work, error
-hist(hobo_data$Temperature_C)
-qqnorm(hobo_data$Temperature_C)
-shapiro.test(hobo_data$Temperature_C)
-m.hobo.test.all <- lmer(Temperature_C ~ Treatment + year + (1|Rep), data = hobo_data, REML=FALSE)
+descdist(day.airtemp.gs$Temperature_C, discrete = FALSE) # this doesn't work, error
+hist(day.airtemp.gs$Temperature_C)
+qqnorm(day.airtemp.gs$Temperature_C)
+shapiro.test(day.airtemp.gs$Temperature_C)
+m.hobo.test.all <- lmer(Temperature_C ~ Treatment + year + (1|Rep), data = day.airtemp.gs, REML=FALSE)
 anova(m.hobo.test.all)
 summary(m.hobo.test.all)
 hist(resid(m.hobo.test.all))
@@ -178,11 +188,11 @@ descdist(resid(m.hobo.test.all), discrete = FALSE)
 emmeans(m.hobo.test.all, list(pairwise ~ Treatment), adjust = "tukey")
 #$`pairwise differences of Treatment`
 #1                        estimate     SE  df z.ratio p.value
-#Ambient - Drought           1.499 0.0552 Inf  27.150  <.0001
-#Ambient - Warmed           -1.443 0.0519 Inf -27.796  <.0001
-#Ambient - Warmed_Drought    0.578 0.0552 Inf  10.466  <.0001
-#Drought - Warmed           -2.942 0.0557 Inf -52.825  <.0001
-#Drought - Warmed_Drought   -0.921 0.0577 Inf -15.962  <.0001
-#Warmed - Warmed_Drought     2.021 0.0557 Inf  36.281  <.0001
+#Ambient - Drought           0.288 0.0781 Inf   3.693  0.0013
+#Ambient - Warmed           -2.197 0.0684 Inf -32.132  <.0001
+#Ambient - Warmed_Drought   -2.048 0.0781 Inf -26.231  <.0001
+#Drought - Warmed           -2.485 0.0787 Inf -31.596  <.0001
+#Drought - Warmed_Drought   -2.336 0.0819 Inf -28.512  <.0001
+#Warmed - Warmed_Drought     0.149 0.0786 Inf   1.892  0.2316
 
 emmeans(m.hobo.test.all, list(pairwise ~ year), adjust = "tukey")

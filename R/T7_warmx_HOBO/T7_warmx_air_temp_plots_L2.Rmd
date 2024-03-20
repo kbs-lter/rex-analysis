@@ -59,7 +59,7 @@ str(airtemp)
 
 ```
 
-# 2022 Data
+# 2022 Data during day time hours
 ```{r}
 # create new dataframe with only data from 7 AM - 7 PM 
 day_airtemp <- airtemp
@@ -74,18 +74,13 @@ day_airtemp_22 <- day_airtemp %>%
   filter(year == 2022) %>%
   filter(hour > "06") %>%
   filter(hour < "20")
-```
 
-```{r}
 # take average per month by treatment
 avg_airtemp_22 <- day_airtemp_22 %>%
   group_by(month, Treatment) %>%
   summarise(avg_temp = mean(Temperature_C, na.rm = TRUE),
             se_temp = std.error(Temperature_C, na.rm = TRUE))
-           
-```
 
-```{r}
 # plot - monthly
 png("rex_airtemp_22.png", units="in", width=8, height=6, res=300)
 ggplot(avg_airtemp_22, aes(x = month, y = avg_temp, group = Treatment, color = Treatment)) +
@@ -101,7 +96,7 @@ ggplot(avg_airtemp_22, aes(x = month, y = avg_temp, group = Treatment, color = T
 dev.off()
 ```
 
-Making plot that only includes growing season
+Making plot that only includes growing season and during day time hours for just 2022
 ```{r}
 # making new data frame that only includes data during day (7am-7pm) from April to August
 day_airtemp$month <- format(day_airtemp$Date_Time,format="%m")
@@ -114,18 +109,13 @@ day_airtemp_22 <- day_airtemp %>%
   filter(hour < "20") %>%
   filter(month > "03") %>% 
   filter(month < "09")
-```
 
-```{r}
 # take average per month, per rep, per treatment
 air_temp_grow <- day_airtemp_22 %>%
   dplyr::group_by(month, Treatment) %>%
   summarize(avg_temp = mean(Temperature_C, na.rm = TRUE),
             se_temp = std.error(Temperature_C, na.rm = TRUE))
-```
 
-Average monthly air temperature plot from April - August during daytime
-```{r}
 # plot - monthly
 png("rex_airtemp_growing_season_22.png", units="in", width=6, height=6, res=300)
 air_growing_season <- 
@@ -144,7 +134,7 @@ air_growing_season
 ```
 
 ######################
-Adding soil temp below but separate script already exists
+Adding soil temp below so that we can combine air and soil temp but separate script already exists for soil temp
 ```{r}
 # Read in data
 soiltemp <- read.csv(file.path(dir, "sensors/OTC Footprints/L1/T7_warmx_soil_sensors_L1.csv")) 
@@ -203,12 +193,11 @@ ggpubr::ggarrange(air_growing_season, soil_growing_season,
 dev.off()
 ```
 
-# All years
+# All years of HOBO data
 # for REX methods paper
 # First, plotting all the HOBO air temp data
 ```{r}
 # create date, month, year, hour, and day columns
-#airtemp <- na.omit(airtemp)
 airtemp2 <- airtemp
 airtemp2$date <- format(airtemp2$Date_Time,format="%Y-%m-%d")
 airtemp2$month <- format(airtemp2$Date_Time,format="%m")
@@ -222,9 +211,7 @@ avg_airtemp2 <- airtemp2 %>%
   group_by(month, year, month_year, Treatment) %>%
   summarise(avg_temp = mean(Temperature_C, na.rm = TRUE),
             se_temp = std.error(Temperature_C, na.rm = TRUE))
-```
 
-```{r}
 # plot - monthly
 png("rex_airtemp_all_years.png", units="in", width=10, height=6, res=300)
 ggplot(avg_airtemp2, aes(x = month, y = avg_temp, group = Treatment, color = Treatment)) +
@@ -239,6 +226,45 @@ ggplot(avg_airtemp2, aes(x = month, y = avg_temp, group = Treatment, color = Tre
         theme(axis.title = element_text(size=12),
         axis.text = element_text(size=12),
         axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+dev.off()
+```
+
+Plotting daytime hours (7 AM - 7 PM) and growing season (April-August)
+```{r}
+day.airtemp.all <- airtemp
+day.airtemp.all$date <- format(day.airtemp.all$Date_Time,format="%Y-%m-%d")
+day.airtemp.all$month <- format(day.airtemp.all$Date_Time,format="%m")
+day.airtemp.all$year <- format(day.airtemp.all$Date_Time,format="%Y")
+day.airtemp.all$hour <- format(day.airtemp.all$Date_Time, format="%H")
+day.airtemp.all$day <- format(day.airtemp.all$Date_Time, format="%d")
+day.airtemp.all <- day.airtemp.all %>%
+        filter(year != 2021) %>% 
+        filter(hour > "06") %>%
+        filter(hour < "20") %>%
+        filter(month > "03") %>% 
+        filter(month < "09")
+
+# take average per month and year by treatment
+avg.day.airtemp.all <- day.airtemp.all %>%
+  group_by(year, Treatment, month) %>%
+  summarise(avg_temp = mean(Temperature_C, na.rm = TRUE),
+            se_temp = std.error(Temperature_C, na.rm = TRUE))
+
+avg.day.airtemp.all.plot <- 
+        ggplot(avg.day.airtemp.all, aes(x = month, y = avg_temp, group = Treatment, color = Treatment)) +
+        geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp),width=0.1,color="black",linetype="solid") +
+        geom_line(linewidth = 1) +
+        facet_grid(~year) +
+        scale_color_manual(name="Treatment", 
+                           values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E"), 
+                           labels=c("Ambient","Drought","Warmed", "Warmed + Drought")) +
+        labs(y="Air Temperature (°C)", x="Month") +
+        theme_bw() +
+        theme(axis.title = element_text(size=12),
+        axis.text = element_text(size=12))
+
+png("rex_airtemp_all.png", units="in", width=8, height=6, res=300)
+avg.day.airtemp.all.plot
 dev.off()
 ```
 
@@ -313,7 +339,7 @@ dev.off()
 ```
 
 For Emily's goldenrod gall poster 4/2024
-Wants growing season day time average air temps for 2021 and 2022
+Wants months from April to October bc data collected into fall + day time average air temps for 2022
 ```{r}
 # create new dataframe with only data from 7 AM - 7 PM 
 day.airtemp <- airtemp
@@ -322,56 +348,33 @@ day.airtemp$month <- format(day.airtemp$Date_Time,format="%m")
 day.airtemp$year <- format(day.airtemp$Date_Time,format="%Y")
 day.airtemp$hour <- format(day.airtemp$Date_Time, format="%H")
 day.airtemp$day <- format(day.airtemp$Date_Time, format="%d")
-day.airtemp.2122 <- day.airtemp %>%
-        filter(year == c(2021, 2022)) %>%
+day.airtemp.22 <- day.airtemp %>%
+        filter(year == 2022) %>%
         filter(hour > "06") %>%
         filter(hour < "20") %>%
         filter(month > "03") %>% 
-        filter(month < "09")
+        filter(month < "11")
 
 # take average per month and year by treatment
-avg.day.airtemp.2122 <- day.airtemp.2122 %>%
+avg.day.airtemp.22 <- day.airtemp.22 %>%
   group_by(year, Treatment, month) %>%
   summarise(avg_temp = mean(Temperature_C, na.rm = TRUE),
             se_temp = std.error(Temperature_C, na.rm = TRUE))
 
-avg.day.airtemp.2122.plot <- 
-        ggplot(avg.day.airtemp.2122, aes(x = month, y = avg_temp, group = Treatment, color = Treatment)) +
+avg.day.airtemp.22.plot <- 
+        ggplot(avg.day.airtemp.22, aes(x = month, y = avg_temp, group = Treatment, color = Treatment)) +
         geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp),width=0.1,color="black",linetype="solid") +
         geom_line(linewidth = 1) +
-        facet_grid(~year) +
         scale_color_manual(name="Treatment", 
                            values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E"), 
                            labels=c("Ambient","Drought","Warmed", "Warmed Drought")) +
         labs(y="Air Temperature (°C)", x="Month") +
         theme_bw() +
         theme(axis.title = element_text(size=12),
-        axis.text = element_text(size=12),
-        axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+        axis.text = element_text(size=12))
 
 png("rex_airtemp_2021_2022.png", units="in", width=8, height=6, res=300)
-avg.day.airtemp.2122.plot
+avg.day.airtemp.22.plot
 dev.off()
-
-day.airtemp.22 <- day.airtemp.2122 %>% filter(year == 2022)
-
-# take average per year by treatment
-avg.day.airtemp.22 <- day.airtemp.22 %>%
-  group_by(year, Treatment) %>%
-  summarise(avg_temp = mean(Temperature_C, na.rm = TRUE),
-            se_temp = std.error(Temperature_C, na.rm = TRUE))
-
-ggplot(avg.day.airtemp.22, aes(x = year, y = avg_temp, fill = Treatment)) +
-        geom_pointrange(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp), pch = 21,size = 1.2,
-                        position=position_dodge(0.5)) +
-        #facet_grid(~year) +
-        scale_fill_manual(name="Treatment", 
-                           values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E"), 
-                           labels=c("Ambient","Drought","Warmed", "Warmed Drought")) +
-        labs(y="Air Temperature (°C)", x="Year") +
-        theme_bw() +
-        theme(axis.title = element_text(size=15),
-        axis.text = element_text(size=15),
-        axis.text.x = element_text(angle=45, vjust=1, hjust=1))
 ```
 

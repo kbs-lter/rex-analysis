@@ -21,12 +21,8 @@ knitr::opts_chunk$set(echo = TRUE)
 rm(list=ls())
 
 # Load packages
-library(bbmle)
-library(lmerTest)
-library(fitdistrplus)
 library(sjPlot)
 library(car)
-library(emmeans)
 library(tidyverse)
 library(ggpubr)
 library(jtools) #summ 
@@ -114,10 +110,10 @@ ggplot(soil_moisture_avg_noinsect, aes(x = factor(Subplot_Description, levels = 
                                   "warmed" = "Warmed",
                                   "warmed_drought" = "Warmed +\n Drought",
                                   "Control" = "Irrigated \n Control")) +
-        scale_fill_manual(values = c("ambient" = "darkblue",
-                                  "drought" = "gray58",
-                                  "warmed" = "red2",
-                                  "warmed_drought" = "darkred",
+        scale_fill_manual(values = c("ambient" = "#a6bddb",
+                                  "drought" = "#2F4F4f",
+                                  "warmed" = "#8B6914",
+                                  "warmed_drought" = "#9D422E",
                                   "Control" = "deepskyblue")) +
         xlab("Treatment") +
         ylab("Average Gravimetric Soil Water Content") +
@@ -128,6 +124,36 @@ ggplot(soil_moisture_avg_noinsect, aes(x = factor(Subplot_Description, levels = 
               axis.text.y=element_text(size=15),
               axis.title.y = element_text(size=15),
               axis.title.x = element_blank())
+dev.off()
+
+soil_moisture_avg_noinsect$time_of_sampling <- as.factor(soil_moisture_avg_noinsect$time_of_sampling)
+
+png("T7_warmx_avg_soil_moisture_noinsect_2022_point.png", units="in", width=12, height=8, res=300)
+ggplot(soil_moisture_avg_noinsect, aes(x = factor(Subplot_Description, levels = level_order), y = avg_soil_moisture, color = Subplot_Description, shape = time_of_sampling)) +
+        geom_pointrange(aes(ymin=avg_soil_moisture - se, ymax=avg_soil_moisture + se), size = 1.5) +
+         scale_shape_manual(values = c("Peak Drought" = 16, "Post Drought" = 17)) +
+         scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought",
+                                  "Control" = "Irrigated \n Control")) +
+        scale_color_manual(values = c("ambient" = "#a6bddb",
+                                  "drought" = "#2F4F4f",
+                                  "warmed" = "#8B6914",
+                                  "warmed_drought" = "#9D422E",
+                                  "Control" = "deepskyblue"),
+                           labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed + Drought",
+                                  "Control" = "Irrigated Control")) +
+        labs(y="Average Gravimetric Soil Water Content", 
+             x="Treatment", 
+             color = "Treatment",
+             shape = "Time of Sampling") +
+                theme_bw() +
+        theme(axis.title = element_text(size=15),
+              axis.text = element_text(size=15))
 dev.off()
 ```
 
