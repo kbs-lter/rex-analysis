@@ -32,14 +32,14 @@ library(microbiome)
 library(multcomp)
 library(nlme)
 library(phyloseq)
-library(phylosmith)
+library(phylosmith) ##
 library(qiime2R)
 library(tidyverse)
 library(vegan)
 library(zCompositions)
-library(microViz)
-library(DESeq2)
-library(ANCOMBC)
+library(microViz) ##
+library(DESeq2) ##
+library(ANCOMBC) ##
 library(permute)
 library(pheatmap)
 library(plotrix)
@@ -95,8 +95,9 @@ physeq_tree
 # upload these to REX google shared drive
 
 taxonomy <- read.csv("/Users/moriahyoung/Desktop/physeq_object/16S-taxonomy-filtered.csv")
+otu <- read.csv("/Users/moriahyoung/Desktop/physeq_object/16S-merged-table-filtered.csv")
 
-# Create phyloseq objects of filtered data (16S and ITS)
+# Create phyloseq objects of filtered data (16S)
 data_16S_filtered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/physeq_object/16S-merged-table-filtered.csv",
                                        taxonomy.file = "/Users/moriahyoung/Desktop/physeq_object/16S-taxonomy-filtered.csv",
                                        metadata.file = "/Users/moriahyoung/Desktop/physeq_object/16S_2021_metadata.csv")
@@ -782,6 +783,10 @@ summarize_phyloseq(data_16S_filtered_noinsect_peakdrought)
 data_16S_filtered_nopredrought <- subset_samples(data_16S_filtered_noinsect, Drought%in%c("Peak-Drought", "Post-Drought", "Recovery"))
 summarize_phyloseq(data_16S_filtered_nopredrought)
 
+# removing irrigated control
+data_16S_filtered_noIRC <- subset_samples(data_16S_filtered, Subplot_Descriptions%in%c("ambient", "warmed_drought", "drought", "warmed"))
+summarize_phyloseq(data_16S_filtered_noIRC)
+
 
 ```
 
@@ -837,6 +842,13 @@ pairwise.wilcox.test(richness$Shannon, sample_data(ps.rarefied)$Drought, p.adj =
 ```
 
 #Beta Diversity
+
+```{r}
+otu.test<-ps.rarefied@otu_table@.Data
+
+```
+
+
 PCoA
 ```{r}
 # Weighted-Unifrac takes into account the relative abundance of species/taxa shared between samples, whereas 
@@ -860,8 +872,8 @@ plot_ordination(ps.rarefied, ordination, color="Subplot_Descriptions", shape = "
 #dev.off()
 
 # PCoA plot using WEIGHTED UniFrac as distance
-weighted_unifrac_dist = phyloseq::distance(ps.rarefied, method="unifrac", weighted=T)
-ordination = ordinate(ps.rarefied, method="PCoA", distance=weighted_unifrac_dist)
+weighted_unifrac_dist <- phyloseq::distance(ps.rarefied, method="unifrac", weighted=T)
+ordination <- ordinate(ps.rarefied, method="PCoA", distance=weighted_unifrac_dist)
 
 #png("T7_warmx_16S_pcoa_weighted_unifrac_no_insects.png", units="in", width=10, height=6, res=300)
 plot_ordination(ps.rarefied, ordination, color="Subplot_Descriptions", shape = "Drought") + 
@@ -895,18 +907,45 @@ adonis2(weighted_unifrac_dist ~ sample_data(ps.rarefied)$Subplot_Descriptions + 
 
 #adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Footprint*sample_data(ps.rarefied)$Subplot, by = #"margin”, permutations = #perm1) 
 #If the interaction is not significant, you should rerun the model without the interaction. For this code, if the interaction is not significant, it won’t show you if the main effects are significant. 
+
+perm1 <- with(sample_data(ps.rarefied), how(blocks = Replicate, plots = Plots(strata=Footprint, type="free"), within=Within(type="free"), nperm = 9999))
+
+adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Footprint * sample_data(ps.rarefied)$Subplot, by = "margin", permutations = perm1)
+
 ```
 
-PCoA excluding pre drought data
+
+RDA
 ```{r}
-ps.rarefied_nopredrought = rarefy_even_depth(data_16S_filtered_nopredrought, rngseed=1, sample.size = 0.9*min(sample_sums(data_16S_filtered_nopredrought)), replace=F)
+# RDA plot using WEIGHTED UniFrac as distance
+RDA_ps.rarefied = ordinate(ps.rarefied, method="RDA")
+
+plot_ordination(ps.rarefied, RDA_ps.rarefied, color="Subplot_Descriptions", shape = "Drought") + 
+        geom_point(aes(color = Subplot_Descriptions, shape = Drought), size=4, alpha=0.75) +
+        #stat_ellipse() +
+        scale_colour_manual(name = "Subplot Descriptions", 
+                          breaks = c("irrigated_control", "ambient", "warmed", "drought", "warmed_drought"),
+                          labels = c("Irrigated Control", "Ambient", "Warmed", "Drought", "Warmed + Drought"),
+                          values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" = "deepskyblue",
+                                     "warmed" = "red2", "warmed_drought" = "darkred")) +
+        
+        #labs(x="Axis 1",
+        #     y="Axis 2") +
+        theme(aspect.ratio=1)
+
+
+```
+
+PCoA excluding irrigated control
+```{r}
+ps.rarefied_noIRC = rarefy_even_depth(data_16S_filtered_noIRC, rngseed=1, sample.size = 0.9*min(sample_sums(data_16S_filtered_nopredrought)), replace=F)
 
 # PCoA plot using WEIGHTED UniFrac as distance
-weighted_unifrac_dist = phyloseq::distance(ps.rarefied_nopredrought, method="unifrac", weighted=T)
+weighted_unifrac_dist = phyloseq::distance(ps.rarefied_noIRC, method="unifrac", weighted=T)
 ordination = ordinate(ps.rarefied_nopredrought, method="PCoA", distance=weighted_unifrac_dist)
 
 #png("T7_warmx_16S_pcoa_weighted_unifrac_no_insects.png", units="in", width=10, height=6, res=300)
-plot_ordination(ps.rarefied_nopredrought, ordination, color="Subplot_Descriptions", shape = "Drought") + 
+plot_ordination(ps.rarefied_noIRC, ordination, color="Subplot_Descriptions", shape = "Drought") + 
         geom_point(aes(color = Subplot_Descriptions, shape = Drought), size=4, alpha=0.75) +
         #stat_ellipse() +
         scale_colour_manual(name = "Subplot Descriptions", 
@@ -919,11 +958,46 @@ plot_ordination(ps.rarefied_nopredrought, ordination, color="Subplot_Description
         theme(aspect.ratio=1)
 #dev.off()
 
-# Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
+# Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using PERMANOVA:
 set.seed(22)
-adonis2(weighted_unifrac_dist ~ sample_data(ps.rarefied_nopredrought)$Subplot_Descriptions + sample_data(ps.rarefied_nopredrought)$Drought)
+adonis2(weighted_unifrac_dist ~ sample_data(ps.rarefied_noIRC)$Subplot_Descriptions + sample_data(ps.rarefied_noIRC)$Drought)
+
+perm1 <- with(sample_data(ps.rarefied_noIRC), how(blocks = Replicate, plots = Plots(strata=Footprint, type="free"), nperm = 9999))
+
+adonis2(wunifrac_dist ~ sample_data(ps.rarefied_noIRC)$Footprint * sample_data(ps.rarefied_noIRC)$Subplot, by = "margin", permutations = perm1)
 ```
 
+
+PCoA excluding irrigated control
+```{r}
+ps.rarefied_noIRC = rarefy_even_depth(data_16S_filtered_noIRC, rngseed=1, sample.size = 0.9*min(sample_sums(data_16S_filtered_nopredrought)), replace=F)
+
+# PCoA plot using WEIGHTED UniFrac as distance
+weighted_unifrac_dist = phyloseq::distance(ps.rarefied_noIRC, method="unifrac", weighted=T)
+ordination = ordinate(ps.rarefied_nopredrought, method="PCoA", distance=weighted_unifrac_dist)
+
+#png("T7_warmx_16S_pcoa_weighted_unifrac_no_insects.png", units="in", width=10, height=6, res=300)
+plot_ordination(ps.rarefied_noIRC, ordination, color="Subplot_Descriptions", shape = "Drought") + 
+        geom_point(aes(color = Subplot_Descriptions, shape = Drought), size=4, alpha=0.75) +
+        #stat_ellipse() +
+        scale_colour_manual(name = "Subplot Descriptions", 
+                          breaks = c("irrigated_control", "ambient", "warmed", "drought", "warmed_drought"),
+                          labels = c("Irrigated Control", "Ambient", "Warmed", "Drought", "Warmed + Drought"),
+                          values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        
+        #labs(x="Axis 1",
+        #     y="Axis 2") +
+        theme(aspect.ratio=1)
+#dev.off()
+
+# Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using PERMANOVA:
+set.seed(22)
+adonis2(weighted_unifrac_dist ~ sample_data(ps.rarefied_noIRC)$Subplot_Descriptions + sample_data(ps.rarefied_noIRC)$Drought)
+
+perm1 <- with(sample_data(ps.rarefied_noIRC), how(blocks = Replicate, plots = Plots(strata=Footprint, type="free"), nperm = 9999))
+
+adonis2(wunifrac_dist ~ sample_data(ps.rarefied_noIRC)$Footprint * sample_data(ps.rarefied_noIRC)$Subplot, by = "margin", permutations = perm1)
+```
 
 # NMDS - Ordination using Phyloseq package - excluding pre drought
 ```{r}

@@ -64,6 +64,9 @@ anpp23 = subset(anpp23, select = -c(Scale_meter_square,
                                     FP_location,
                                     Subplot_location,
                                     Replicate))
+
+anpp23_noinsect <- anpp23 %>% 
+  filter(Subplot_Descriptions %in% c("drought", "ambient", "warmed", "warmed_drought"))
 ```
 
 ```{r}
@@ -98,7 +101,11 @@ for (i in 1:nrow(anpp23_wide)) {
 Alpha Diversity
 ```{r}
 dim(anpp23_wide)
-# calculate total number of trees per sample
+
+# Turning character variables into factors
+anpp23_wide[,1:5] <- data.frame(lapply(anpp23_wide[,1:5], factor))
+
+# calculate total number of plants per sample
 anpp.rowsums <- apply(anpp23_wide[,6:42],1,sum)
 anpp.rowsums1 <- apply(anpp23.dat[,6:42],1,sum)
 # whats the value of smallest row sum?
@@ -107,13 +114,17 @@ min(anpp.rowsums1)
 max(anpp.rowsums)
 max(anpp.rowsums1)
 
-###Individual based rarefaction
-# Using the rarefaction formula to find expected species richness
-rarecurve(anpp23_wide[,2:38])
-rarecurve(anpp23.dat[,2:38])
-# You can choose a minimum sample size to rarefy all samples to using the command below
-rarefy(anpp23_wide[,2:38],sample=6)
+# create a matrix for species abundance columns only and calculate totals per sample
+anpp_dat <- anpp23_wide[,6:42]
+anpp.rowsums <- apply(anpp_dat,1,sum)
+anpp.rowsums
 
+min <- min(anpp.rowsums)
+anpp.rare <- rrarefy(anpp_dat, sample=min)
+anpp.rare.hel <- cbind(anpp23_wide[,1:5], decostand(anpp.rare,method="hellinger"))
+
+# Turning character variables into factors
+anpp.rare.hel[,2] <- data.frame(lapply(anpp.rare.hel[,2], factor))
 ```
 
 Calculating Hill Numbers
@@ -199,7 +210,31 @@ anpp.hill2.plot
 
 Beta Diversity
 ```{r}
+# Hellinger distance using the square-root relative abundance transform implemented in decostand
+# You HAVE to transfrom the data first for hellinger before you use vegdist
+anpp.hel <- decostand(anpp23_wide[,6:42],method="hellinger")
+anpp.dist.hel <- vegdist(anpp.hel,method="euclidean")
+View(anpp.dist.hel)
 
+# edit code below
+#colors <- ifelse(fish.lakes$Type=="LC",2,ifelse(fish.lakes$Type=="HC",3,ifelse(fish.lakes$Type=="LP",4,5)))
+
+# Hellinger-based PCoA
+anpp.dist.hel <- vegdist(anpp.hel,method="euclidean")
+anpp.hel.pcoa <- wcmdscale(anpp.dist.hel,eig=TRUE)
+eigenvals(anpp.hel.pcoa)/sum(eigenvals(anpp.hel.pcoa))
+anpp.hel.pcoa.scores <- scores(anpp.hel.pcoa)
+plot(anpp.hel.pcoa,type="none",xlab="Axis 1 (14.1%)",ylab="Axis 2 (8.6%)")
+text(anpp.hel.pcoa.scores[,1:2],labels=anpp23_wide$Subplot_Descriptions)
 ```
 
-
+RDA
+```{r}
+### The following model only tests main effects
+# make sure your explanatory variables are factors, not characters when loaded into R
+rda.form.main <- rda(anpp.rare.hel[,6:42] ~ anpp.rare.hel$Subplot_Descriptions)
+# 'Global' test across all main effects, anova.cca()
+anova(rda.form.main)
+# Test each RDA axis
+anova(rda.form.main, by='axis')
+```
