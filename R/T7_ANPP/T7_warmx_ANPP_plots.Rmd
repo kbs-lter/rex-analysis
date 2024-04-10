@@ -92,7 +92,7 @@ anpp_avg <- anpp %>%
 
 
 # removing insecticide treatments
-anpp_noinsect <- anpp_avg %>%
+anpp_avg_noinsect <- anpp_avg %>%
   filter(!(Subplot_Descriptions=='drought_insecticide' |
              Subplot_Descriptions=='insecticide' |
              Subplot_Descriptions=='warmed_drought_insecticide' |
@@ -131,7 +131,7 @@ ggplot(anpp_avg1, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_
 
 # Removing insecticide treatments
 ```{r}
-anpp_avg2 <- anpp_noinsect %>%
+anpp_avg2 <- anpp_avg_noinsect %>%
         filter(!(Year=='2019')) %>%
         filter(Scale_meter_square==0.2)
 
@@ -177,6 +177,23 @@ Boxplot
 anpp1 <- anpp %>%
         filter(!(Year=='2019')) %>%
         filter(Scale_meter_square==0.2)
+
+ggplot(anpp_avg2, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
+        geom_bar(stat = "identity") +
+        geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
+                         position = "identity") +
+        facet_wrap(~Year) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment") +
+        ylab(bquote("Average Biomass " ('g/0.20m'^2))) +
+        scale_x_discrete(limits = level_order_1, labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none")
+
 # boxplot
 ggplot(anpp1, aes(x = Subplot_Descriptions, y = plant_biomass_gm2, fill = Subplot_Descriptions)) +
         geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
@@ -195,5 +212,46 @@ ggplot(anpp1, aes(x = Subplot_Descriptions, y = plant_biomass_gm2, fill = Subplo
         theme(legend.position = "none")
 ```
 
+2023 1m2 data
+```{r}
+anpp_avg3 <- anpp_avg %>%
+        filter(Year==2023) %>%
+        filter(Scale_meter_square==1)
 
+# barplot
+ggplot(anpp_avg3, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
+        geom_bar(stat = "identity") +
+        geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
+                         position = "identity") +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment") +
+        ylab(bquote("Average Biomass " ('g/1m'^2))) +
+        scale_x_discrete(limits = level_order_1, labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none")
+
+anpp23 <- anpp %>%
+        filter(Year=='2023') %>%
+        filter(Scale_meter_square==1)
+
+# boxplot - this must be off because the averages are a lot bigger than what the graph is showing us but maybe bc of outliers?
+ggplot(anpp23, aes(x = Subplot_Descriptions, y = plant_biomass_gm2, fill = Subplot_Descriptions)) +
+        #geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
+        geom_boxplot(color = "black") +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment") +
+        ylab(bquote("Average Biomass " ('g/1m'^2))) +
+        scale_x_discrete(limits = level_order_1,
+                         labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none")
+```
 
