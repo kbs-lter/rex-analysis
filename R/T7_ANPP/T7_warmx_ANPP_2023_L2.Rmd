@@ -55,7 +55,6 @@ anpp23 <- anpp23 %>% filter(Footprint != "IR")
 # remove unwanted columns
 anpp23 = subset(anpp23, select = -c(Scale_meter_square,
                                     Group_Code,
-                                    Subplot_ID,
                                     Experimental_Unit_ID,
                                     Footprint_Treatment_full,
                                     Subplot,
@@ -63,7 +62,8 @@ anpp23 = subset(anpp23, select = -c(Scale_meter_square,
                                     Unique_Field_Location_Code,
                                     FP_location,
                                     Subplot_location,
-                                    Replicate))
+                                    Replicate,
+                                    Treatment))
 
 anpp23_noinsect <- anpp23 %>% 
   filter(Subplot_Descriptions %in% c("drought", "ambient", "warmed", "warmed_drought"))
