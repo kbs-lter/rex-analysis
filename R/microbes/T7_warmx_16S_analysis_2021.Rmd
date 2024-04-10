@@ -214,6 +214,7 @@ Rarefy data and setting up to make stacked bar plots
 # Rarefy data to 1000 reads 
 set.seed(01221990)
 rare_16S <- rarefy_even_depth(data_16S_counts, sample.size = 1000)
+rare_16S_1 <- rarefy_even_depth(data_16S_counts, sample.size = min(sample_sums(data_16S_counts)))
 
 data_16S_rel <- transform_sample_counts(rare_16S, function(x) x/sum(x))
 
@@ -787,13 +788,16 @@ summarize_phyloseq(data_16S_filtered_nopredrought)
 data_16S_filtered_noIRC <- subset_samples(data_16S_filtered, Subplot_Descriptions%in%c("ambient", "warmed_drought", "drought", "warmed"))
 summarize_phyloseq(data_16S_filtered_noIRC)
 
-
+# peak drought and no irrigated control
+data_16S_filtered_peak_noIRC <- subset_samples(data_16S_filtered_noIRC, Drought == "Peak-Drought")
 ```
 
 #Alpha Diversity
 ```{r}
-#  Rarefy the samples without replacement. Rarefaction is used to simulate even number of reads per sample. The rarefaction depth chosen is the 90% of the minimum sample depth in the dataset.
+# Rarefy the samples without replacement. Rarefaction is used to simulate even number of reads per sample. The rarefaction depth chosen is the 90% of the minimum sample depth in the dataset
 ps.rarefied = rarefy_even_depth(data_16S_filtered_noinsect, rngseed=1, sample.size = 0.9*min(sample_sums(data_16S_filtered_noinsect)), replace=F)
+
+ps.rarefied_1 = rarefy_even_depth(data_16S_filtered_noinsect, rngseed=1, sample.size = min(sample_sums(data_16S_filtered_noinsect)), replace=F)
 
 # Plotting Alpha Diversity
 treatment_names <- c("ambient" = "Ambient",
@@ -843,9 +847,72 @@ pairwise.wilcox.test(richness$Shannon, sample_data(ps.rarefied)$Drought, p.adj =
 
 #Beta Diversity
 
+Working outside of a phyloseq object
 ```{r}
-otu.test<-ps.rarefied@otu_table@.Data
+otu.test <- data.frame(ps.rarefied_1@otu_table@.Data)
+taxa.test <- data.frame(ps.rarefied_1@tax_table@.Data)
 
+
+```
+
+Exploring with just peak drought & no irrigated control (removing irrigated control gets you a balanced design)
+```{r}
+# rarefy samples
+ps.rarefied_peak_noIRC = rarefy_even_depth(data_16S_filtered_peak_noIRC, rngseed=1, sample.size = min(sample_sums(data_16S_filtered_peak_noIRC)), replace=F)
+
+# PCoA plot using bray-curtis as distance
+bray_dist = phyloseq::distance(ps.rarefied_peak_noIRC, method="bray")
+ordination = ordinate(ps.rarefied_peak_noIRC, method="PCoA", distance=bray_dist)
+
+#png("T7_warmx_16S_pcoa_no_insects.png", units="in", width=10, height=6, res=300)
+plot_ordination(ps.rarefied_peak_noIRC, ordination, color="Subplot_Descriptions") + 
+        geom_point(aes(color = Subplot_Descriptions), size=4, alpha=0.75) +
+        #stat_ellipse(aes(fill = Drought), geom = "polygon", alpha = .5) +
+        scale_colour_manual(name = "Subplot Descriptions", 
+                          breaks = c("ambient", "warmed", "drought", "warmed_drought"),
+                          labels = c("Ambient", "Warmed", "Drought", "Warmed + Drought"),
+                          values = c("ambient" = "darkblue", "drought" = "gray58", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        #labs(x="Axis 1",
+        #     y="Axis 2") +
+        theme(aspect.ratio=1)
+#dev.off()
+
+# Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
+set.seed(22)
+adonis2(bray_dist ~ sample_data(ps.rarefied_peak_noIRC)$Subplot_Descriptions)
+
+# trying Jennifer's code below:
+#bray.dist <- phyloseq::distance(ps.rarefied, method = "bray”)
+
+#set.seed(53)
+
+# setting up the permutation object
+#perm1 <- with(sample_data(ps.rarefied), how(blocks = Replicate, plots = Plots(strata = Footprint, #type="free”), nperm = 9999))
+
+#adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Footprint*sample_data(ps.rarefied)$Subplot, by = #"margin”, permutations = #perm1) 
+#If the interaction is not significant, you should rerun the model without the interaction. For this code, if the interaction is not significant, it won’t show you if the main effects are significant. 
+
+perm1 <- with(sample_data(ps.rarefied_peak_noIRC), how(blocks = Replicate, plots = Plots(strata=Footprint, type="free"), within=Within(type="free"), nperm = 9999))
+
+adonis2(bray_dist ~ sample_data(ps.rarefied_peak_noIRC)$Footprint * sample_data(ps.rarefied_peak_noIRC)$Subplot, by = "margin", permutations = perm1)
+
+adonis2(bray_dist ~ sample_data(ps.rarefied_peak_noIRC)$Footprint + sample_data(ps.rarefied_peak_noIRC)$Subplot, by = "margin", permutations = perm1)
+
+adonis2(bray_dist ~ sample_data(ps.rarefied_peak_noIRC)$Subplot_Descriptions + sample_data(ps.rarefied_peak_noIRC)$Footprint + sample_data(ps.rarefied_peak_noIRC)$Subplot, by = "margin", permutations = perm1)
+
+###############################################################################
+ordination_rda = ordinate(ps.rarefied_peak_noIRC, method="RDA", distance=bray_dist)
+
+plot_ordination(ps.rarefied_peak_noIRC, ordination_rda, color="Subplot_Descriptions") + 
+        geom_point(aes(color = Subplot_Descriptions), size=4, alpha=0.75) +
+        #stat_ellipse(aes(fill = Drought), geom = "polygon", alpha = .5) +
+        scale_colour_manual(name = "Subplot Descriptions", 
+                          breaks = c("ambient", "warmed", "drought", "warmed_drought"),
+                          labels = c("Ambient", "Warmed", "Drought", "Warmed + Drought"),
+                          values = c("ambient" = "darkblue", "drought" = "gray58", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        #labs(x="Axis 1",
+        #     y="Axis 2") +
+        theme(aspect.ratio=1)
 ```
 
 
@@ -855,11 +922,11 @@ PCoA
 # unweighted-Unifrac only considers presence/absence
 
 # PCoA plot using UNWEIGHTED UniFrac as distance
-wunifrac_dist = phyloseq::distance(ps.rarefied, method="unifrac", weighted=F)
-ordination = ordinate(ps.rarefied, method="PCoA", distance=wunifrac_dist)
+wunifrac_dist = phyloseq::distance(ps.rarefied_1, method="unifrac", weighted=F)
+ordination = ordinate(ps.rarefied_1, method="PCoA", distance=wunifrac_dist)
 
 #png("T7_warmx_16S_pcoa_no_insects.png", units="in", width=10, height=6, res=300)
-plot_ordination(ps.rarefied, ordination, color="Subplot_Descriptions", shape = "Drought") + 
+plot_ordination(ps.rarefied_1, ordination, color="Subplot_Descriptions", shape = "Drought") + 
         geom_point(aes(color = Subplot_Descriptions, shape = Drought), size=4, alpha=0.75) +
         #stat_ellipse(aes(fill = Drought), geom = "polygon", alpha = .5) +
         scale_colour_manual(name = "Subplot Descriptions", 
@@ -872,11 +939,11 @@ plot_ordination(ps.rarefied, ordination, color="Subplot_Descriptions", shape = "
 #dev.off()
 
 # PCoA plot using WEIGHTED UniFrac as distance
-weighted_unifrac_dist <- phyloseq::distance(ps.rarefied, method="unifrac", weighted=T)
-ordination <- ordinate(ps.rarefied, method="PCoA", distance=weighted_unifrac_dist)
+weighted_unifrac_dist <- phyloseq::distance(ps.rarefied_1, method="unifrac", weighted=T)
+ordination <- ordinate(ps.rarefied_1, method="PCoA", distance=weighted_unifrac_dist)
 
 #png("T7_warmx_16S_pcoa_weighted_unifrac_no_insects.png", units="in", width=10, height=6, res=300)
-plot_ordination(ps.rarefied, ordination, color="Subplot_Descriptions", shape = "Drought") + 
+plot_ordination(ps.rarefied_1, ordination, color="Subplot_Descriptions", shape = "Drought") + 
         geom_point(aes(color = Subplot_Descriptions, shape = Drought), size=4, alpha=0.75) +
         #stat_ellipse() +
         scale_colour_manual(name = "Subplot Descriptions", 
@@ -891,7 +958,7 @@ plot_ordination(ps.rarefied, ordination, color="Subplot_Descriptions", shape = "
 
 # Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
 set.seed(22)
-adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Subplot_Descriptions + sample_data(ps.rarefied)$Drought)
+adonis2(wunifrac_dist ~ sample_data(ps.rarefied_1)$Subplot_Descriptions + sample_data(ps.rarefied_1)$Drought)
 
 # Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
 set.seed(22)
@@ -908,9 +975,9 @@ adonis2(weighted_unifrac_dist ~ sample_data(ps.rarefied)$Subplot_Descriptions + 
 #adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Footprint*sample_data(ps.rarefied)$Subplot, by = #"margin”, permutations = #perm1) 
 #If the interaction is not significant, you should rerun the model without the interaction. For this code, if the interaction is not significant, it won’t show you if the main effects are significant. 
 
-perm1 <- with(sample_data(ps.rarefied), how(blocks = Replicate, plots = Plots(strata=Footprint, type="free"), within=Within(type="free"), nperm = 9999))
+perm1 <- with(sample_data(ps.rarefied_1), how(blocks = Replicate, plots = Plots(strata=Footprint, type="free"), within=Within(type="free"), nperm = 9999))
 
-adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Footprint * sample_data(ps.rarefied)$Subplot, by = "margin", permutations = perm1)
+adonis2(wunifrac_dist ~ sample_data(ps.rarefied_1)$Footprint * sample_data(ps.rarefied_1)$Subplot, by = "margin", permutations = perm1)
 
 ```
 
