@@ -77,39 +77,22 @@ hist(residuals(m1), main = "Plant height")
 shapiro.test(resid(m1))
 outlierTest(m1) # checking for outliers - none
 
-# removing outliers and re-testing assumptions - from old analyses w/ all plant height data (not just harvest time point)
-#height2 <- height[-c(437,225,422,449),]
-#m2 <- lmer(sqrt_height ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = height2, REML=F)
-# Check Assumptions:
-# (1) Linearity: if covariates are not categorical
-# (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
-#plot(m2, main = "Plant height")
-# Homogeneity of variance looks better here (increasing variance in resids does not increase with fitted values)
-# Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
-#leveneTest(residuals(m2) ~ height2$Climate_Treatment) # not met
-#leveneTest(residuals(m2) ~ height2$Galling_Status) # not met
-# this homogeneity looks better than the above model, so going with it
-# (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
-# Check for normal residuals
-#qqPlot(resid(m2), main = "Plant height")
-#hist(residuals(m2), main = "Plant height")
-#shapiro.test(resid(m2)) # better
-#outlierTest(m2) # leaving this for now
 
 
 ###### Checking model results ########
-m1 <- lmer(log_height ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = height, REML=F)
 anova(m1)
-emmip(m2, Climate_Treatment~Galling_Status)
+emmip(m1, Climate_Treatment~Galling_Status)
 # this outcome shows us that climate has an effect but not galling. there is also no interaction btwn climate and galling
 # model w/o interaction term, since it was not significant
 height <- within(height, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Warm Drought")) # re-set the reference level for diff. comparisons
 m2 <- lmer(log(Height_cm) ~ Climate_Treatment + Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = height, REML=F)
 anova(m2)
 summary(m2)
+# back-transforming - W vs. A and W vs. I
 exp(4.43673)-exp(4.43673-0.22449) # warmed plants 17 cm taller than ambient
 exp(4.43673)-exp(4.43673-0.19599) # warmed plants 15 cm taller than irrigated
+# back-transformint - WD vs. A and WD vs. D (set the reference level to warm drought instead of warm)
 exp(4.42690)-exp(4.42690-0.21466) # warmed drought plants 16 cm taller than ambient
 exp(4.42690)-exp(4.42690-0.18240) # warmed drought plants 14 cm taller than drought
-contrast(emmeans(m2, ~Climate_Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt", type="response")
+contrast(emmeans(m2, ~Climate_Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt")
 (0.799 - 1) * 100 # 20% decrease from ambient to warmed

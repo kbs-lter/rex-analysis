@@ -24,13 +24,19 @@ library(emmeans)
 dir<-Sys.getenv("DATA_DIR")
 list.files(dir)
 seed <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_soca_seeds_mass_L1.csv"))
+biomass <- read.csv(file.path(dir, "/T7_warmx_plant_traits/L1/T7_warmx_soca_biomass_L1.csv"))
 str(seed)
 # storing year as a factor
 seed$Year <- as.factor(seed$Year)
+biomass$Year <- as.factor(biomass$Year)
 # adding unique plant ID for each subplot
 seed <- seed %>%
   group_by(Treatment, Rep, Footprint, Subplot) %>%
   mutate(plant_num = 1:n())
+
+# merge seed and biomass dataframes
+# note to self: 267 is duplicated in 2021 - fix this
+seed <- left_join(seed,biomass,by=c("Treatment","Rep","Footprint","Subplot","Climate_Treatment","Galling_Status","Year","Unique_ID"))
 
 
 
@@ -71,7 +77,7 @@ plot(fit.gamma)
 ##### full model #####
 seed <- within(seed, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Ambient Drought"))
 seed <- within(seed, Galling_Status <- relevel(factor(Galling_Status), ref = "Non-Galled"))
-full.model <- glmmTMB(Seeds_Mass ~ Climate_Treatment + Galling_Status + (1|Year/Treatment/Rep/Footprint/Subplot/plant_num),
+full.model <- glmmTMB(Seeds_Mass ~ Climate_Treatment * Galling_Status + (1|Year/Treatment/Rep/Footprint/Subplot/plant_num) + (1|Biomass),
                       data=seed,
                       family=ziGamma(link="log"),
                       zi=~.)
