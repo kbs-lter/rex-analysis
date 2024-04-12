@@ -21,12 +21,8 @@ knitr::opts_chunk$set(echo = TRUE)
 rm(list=ls())
 
 # Load packages
-library(bbmle)
-library(lmerTest)
-library(fitdistrplus)
 library(sjPlot)
 library(car)
-library(emmeans)
 library(tidyverse)
 library(ggpubr)
 library(jtools) #summ 
@@ -39,46 +35,13 @@ dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
 
 # Read in data
-anpp <- read.csv(file.path(dir, "T7_ANPP/L1/T7_ANPP_L1.csv")) # 2019-2023 ANPP data
-meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
-
-# filter out just warmx plots
-anpp_warmx <- anpp %>% filter(Footprint == c("OC", "OR"))
-anpp_IR <- anpp %>% filter(Footprint == "IR" & Subplot == "C")
-
-anpp_warmx1 <- full_join(anpp_warmx, anpp_IR)
-
-names(anpp_warmx1)[names(anpp_warmx1)=="Plot_ID"] <- "Unique_ID"
-anpp_warmx1 <- anpp_warmx1[,-9]
-meta <- meta[,-c(5,7,10)]
-
-anpp <- full_join(anpp_warmx1, meta, by = c("Unique_ID", "Subplot", "Treatment", "Replicate", "Footprint"))
+anpp <- read.csv(file.path(dir, "T7_ANPP/L1/T7_warmx_ANPP_L1.csv")) # 2019-2023 ANPP data from warmx plots
 
 # Specifying the order that we want the treatments to be listed in the figures on the x-axis
 level_order <- c('irrigated_control', 'ambient', 'drought', 'drought_insecticide', 'insecticide', 'warmed_drought_insecticide', 'warmed_insecticide', 'warmed','warmed_drought')
 
 level_order_1 <- c('irrigated_control', 'ambient', 'drought', 'warmed','warmed_drought')
 ```
-
-In 2023, plots were harvested at 0.2 and 0.8 areas. Below sums sums the 0.2 and 0.8 values for each unique subplot and species
-and then adds those back into the anpp data set. 
-```{r}
-# filter out 2023 data
-anpp23 <- anpp %>% filter(Year == 2023)
-
-# create new data frame that sums the 0.2 and 0.8 values for each unique subplot and species
-anpp23_sum <- anpp23 %>%
-        group_by(Unique_ID, Species_Code) %>%
-        mutate(plant_biomass_gm2 = sum(plant_biomass_gm2)) %>%
-        distinct(Unique_ID, .keep_all = TRUE)
-
-anpp23_sum <- anpp23_sum[,-11]
-
-anpp23_sum$Scale_meter_square <- 1
-
-anpp <- full_join(anpp, anpp23_sum)
-```
-
 
 ```{r}
 # to get average biomass per year and per treatment, first sum total biomass per plot
