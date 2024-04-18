@@ -862,10 +862,23 @@ ps.rarefied_peak_noIRC = rarefy_even_depth(data_16S_filtered_peak_noIRC, rngseed
 
 # PCoA plot using bray-curtis as distance
 bray_dist = phyloseq::distance(ps.rarefied_peak_noIRC, method="bray")
-ordination = ordinate(ps.rarefied_peak_noIRC, method="PCoA", distance=bray_dist)
+ordination_pcoa = ordinate(ps.rarefied_peak_noIRC, method="PCoA", distance=bray_dist)
+
+# https://stackoverflow.com/questions/76465183/plot-ordination-function-of-phyloseq-plots-shapes-double-within-itself
+# Save the PCoA vectors data from your ordinated object
+vectors <- as.data.frame(ordination_pcoa$vectors)
+values <- as.data.frame(ordination_pcoa$values)
+
+library(tibble)
+vectors <- rownames_to_column(vectors, "SampleID")
+
+metadata <- rownames_to_column(data.frame(ps.rarefied_peak_noIRC@sam_data), "SampleID")
+vectors_metadata <- dplyr::inner_join(vectors, metadata, by = "SampleID")
+
+ggplot(vectors_metadata, aes(x = Axis.1, y = Axis.2, color = Subplot_Descriptions)) + geom_point()
 
 #png("T7_warmx_16S_pcoa_no_insects.png", units="in", width=10, height=6, res=300)
-plot_ordination(ps.rarefied_peak_noIRC, ordination, color="Subplot_Descriptions") + 
+plot_ordination(ps.rarefied_peak_noIRC, ordination_pcoa, color="Subplot_Descriptions") + 
         geom_point(aes(color = Subplot_Descriptions), size=4, alpha=0.75) +
         #stat_ellipse(aes(fill = Drought), geom = "polygon", alpha = .5) +
         scale_colour_manual(name = "Subplot Descriptions", 
@@ -903,6 +916,17 @@ adonis2(bray_dist ~ sample_data(ps.rarefied_peak_noIRC)$Subplot_Descriptions + s
 ###############################################################################
 ordination_rda = ordinate(ps.rarefied_peak_noIRC, method="RDA", distance=bray_dist)
 
+rda_scores <- vegan::scores(ordination_rda, display = "sites")
+# Add labels, make a data.frame
+rda_scores <- data.frame(labels = rownames(arrowmat), arrowmat)
+# Define the arrow aesthetic mapping
+arrow_map = aes(xend = CA1, yend = CA2, x = 0, y = 0, shape = NULL, color = NULL, 
+    label = labels)
+label_map = aes(x = 1.2 * CA1, y = 1.2 * CA2, shape = NULL, color = NULL, 
+    label = labels)
+
+arrowhead = arrow(length = unit(0.05, "npc"))
+
 plot_ordination(ps.rarefied_peak_noIRC, ordination_rda, color="Subplot_Descriptions") + 
         geom_point(aes(color = Subplot_Descriptions), size=4, alpha=0.75) +
         #stat_ellipse(aes(fill = Drought), geom = "polygon", alpha = .5) +
@@ -912,7 +936,34 @@ plot_ordination(ps.rarefied_peak_noIRC, ordination_rda, color="Subplot_Descripti
                           values = c("ambient" = "darkblue", "drought" = "gray58", "warmed" = "red2", "warmed_drought" = "darkred")) +
         #labs(x="Axis 1",
         #     y="Axis 2") +
-        theme(aspect.ratio=1)
+        theme(aspect.ratio=1) +
+        geom_segment(arrow_map, size = 0.5, data = rda_scores, color = "gray", arrow = arrowhead) + 
+        geom_text(label_map, size = 2, data = rda_scores)
+
+###############################################################################
+# https://github.com/joey711/phyloseq/issues/274
+
+ordination_cca = ordinate(ps.rarefied_peak_noIRC, method="CCA")
+
+# Mimic biplot from example
+p0 = plot_ordination(ps.rarefied_peak_noIRC, ordination_cca, type = "biplot", color = "Subplot_Descriptions")
+p0
+
+# Now add the environmental variables as arrows
+arrowmat = vegan::scores(ordination_cca, display = "sites")
+# Add labels, make a data.frame
+arrowdf <- data.frame(labels = rownames(arrowmat), arrowmat)
+# Define the arrow aesthetic mapping
+arrow_map = aes(xend = CA1, yend = CA2, x = 0, y = 0, shape = NULL, color = NULL, 
+    label = labels)
+label_map = aes(x = 1.2 * CA1, y = 1.2 * CA2, shape = NULL, color = NULL, 
+    label = labels)
+# Make a new graphic
+arrowhead = arrow(length = unit(0.05, "npc"))
+p1 = p0 + 
+        geom_segment(arrow_map, size = 0.5, data = arrowdf, color = "gray", arrow = arrowhead) + 
+        geom_text(label_map, size = 2, data = arrowdf)
+p1
 ```
 
 

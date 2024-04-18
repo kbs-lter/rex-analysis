@@ -1,7 +1,7 @@
 ---
 title: "T7 warmx ANPP Plots"
 author: "Moriah Young"
-date: "`r format(Sys.time(), '%B %d, %Y')`"
+date: "April 19, 2024"
 output: pdf_document
 editor_options: 
   chunk_output_type: console
@@ -197,6 +197,21 @@ ggplot(anpp_avg3, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_
                                   "warmed_drought" = "Warmed +\n Drought")) +
         theme(legend.position = "none")
 
+# point range graph
+ggplot(anpp_avg3, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
+        geom_pointrange(aes(ymin=avg_biomass-se, ymax=avg_biomass+se), linetype="solid",shape=21,size=1) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        labs(x = "Treatment") +
+        ylab(bquote("Average Biomass " ('g/1m'^2))) +
+        scale_x_discrete(limits = level_order_1, labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated \n Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none")
+
+
 anpp23 <- anpp %>%
         filter(Year=='2023') %>%
         filter(Scale_meter_square==1)
@@ -216,5 +231,30 @@ ggplot(anpp23, aes(x = Subplot_Descriptions, y = plant_biomass_gm2, fill = Subpl
                                   "warmed" = "Warmed",
                                   "warmed_drought" = "Warmed +\n Drought")) +
         theme(legend.position = "none")
+
+
+```
+
+Avg total anpp
+```{r}
+anpp_total <- anpp %>%
+        group_by(Year, Unique_ID, Scale_meter_square, Subplot_Descriptions) %>% 
+        summarize(sum_biomass = sum(plant_biomass_gm2, na.rm = TRUE))
+
+anpp_total_avg <- anpp %>%
+        group_by(Year, Unique_ID, Scale_meter_square, Subplot_Descriptions) %>% 
+        summarize(sum_biomass = sum(plant_biomass_gm2, na.rm = TRUE)) %>% # summing biomass per plot
+        group_by(Year, Scale_meter_square, Subplot_Descriptions) %>%
+        summarize(avg_biomass = mean(sum_biomass, na.rm = TRUE), # taking avg biomass of each treatment
+                  se = std.error(sum_biomass, na.rm = TRUE))
+
+
+# removing insecticide treatments
+anpp_avg_noinsect <- anpp_avg %>%
+  filter(!(Subplot_Descriptions=='drought_insecticide' |
+             Subplot_Descriptions=='insecticide' |
+             Subplot_Descriptions=='warmed_drought_insecticide' |
+             Subplot_Descriptions=='warmed_insecticide'))
+
 ```
 
