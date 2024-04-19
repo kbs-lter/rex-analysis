@@ -63,7 +63,7 @@ anpp_avg_noinsect <- anpp_avg %>%
 
 ```
 
-All treatments (including insecticide)
+All treatments (including insecticide) - excluding 2019 year and only using 0.2 scale data
 ```{r}
 anpp_avg1 <- anpp_avg %>%
         filter(!(Year=='2019')) %>%
@@ -88,7 +88,8 @@ ggplot(anpp_avg1, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_
                                   "insecticide" = "Insecticide", 
                                   'warmed_drought_insecticide' = " Insecticide +\n Warmed +\n Drought", 
                                   'warmed_insecticide' = "Insecticide +\n Warmed")) +
-        theme(legend.position = "none")
+        theme(legend.position = "none",
+              axis.text.x = element_text(angle = 45, hjust = 1))
 #dev.off
 ```
 
@@ -98,7 +99,7 @@ anpp_avg2 <- anpp_avg_noinsect %>%
         filter(!(Year=='2019')) %>%
         filter(Scale_meter_square==0.2)
 
-#png("avg_anpp_no_insect_2022_barplot.png", units="in", width=6, height=6, res=300)
+png("avg_anpp_no_insect_all_years_barplot.png", units="in", width=8, height=6, res=300)
 ggplot(anpp_avg2, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
         geom_bar(stat = "identity") +
         geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
@@ -113,26 +114,42 @@ ggplot(anpp_avg2, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_
                                   "irrigated_control" = "Irrigated \n Control",
                                   "warmed" = "Warmed",
                                   "warmed_drought" = "Warmed +\n Drought")) +
-        theme(legend.position = "none")
-#dev.off
+        theme(legend.position = "none",
+              axis.text.x = element_text(angle = 45, hjust = 1))
+dev.off()
 
 # below is a similar plot but groups by subplot description
+
+facet_order <- c("irrigated_control", "ambient", "warmed", "drought", "warmed_drought")
+# Convert Subplot_Descriptions to a factor with specified levels
+anpp_avg2$Subplot_Descriptions <- factor(anpp_avg2$Subplot_Descriptions, levels = facet_order)
+
+png("avg_anpp_no_insect_all_years_barplot2.png", units="in", width=8, height=6, res=300)
 ggplot(anpp_avg2, aes(x = factor(Year), y = avg_biomass, fill = Subplot_Descriptions)) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
-  geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), 
-                position = position_dodge(width = 0.9), width = 0.25) +
-  facet_wrap(~Subplot_Descriptions) +
-  scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
-                                "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred"),
-                     guide = "none") + # Hide the legend
-  labs(x = "Treatment") +
-  ylab(bquote("Average Biomass " ('g/0.20m'^2))) +
-  scale_x_discrete(labels = c("ambient" = "Ambient",
-                               "drought" = "Drought",
-                               "irrigated_control" = "Irrigated \n Control",
-                               "warmed" = "Warmed",
-                               "warmed_drought" = "Warmed +\n Drought")) +
-  theme(legend.position = "none")
+        geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+        geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), 
+                      position = position_dodge(width = 0.9), width = 0.25) +
+        facet_wrap(~Subplot_Descriptions, labeller = labeller(Subplot_Descriptions = 
+                                                                      c("ambient" = "Ambient",
+                                                                        "drought" = "Drought",
+                                                                        "irrigated_control" = "Irrigated Control",
+                                                                        "warmed" = "Warmed",
+                                                                        "warmed_drought" = "Warmed + Drought")), 
+                   drop = FALSE, nrow = 1) +
+        scale_fill_manual(values = c("ambient" = "darkblue", 
+                                     "drought" = "gray58", 
+                                     "irrigated_control" = "deepskyblue", 
+                                     "warmed" = "red2", 
+                                     "warmed_drought" = "darkred"),
+                          labels = c("irrigated_control" = "Irrigated Control",
+                                  "ambient" = "Ambient",
+                                  "warmed" = "Warmed",
+                                  "drought" = "Drought",
+                                  "warmed_drought" = "Warmed + Drought")) + 
+        labs(x = "Treatment") +
+        ylab(bquote("Average Biomass " ('g/0.20m'^2))) +
+        theme(legend.position = "none")
+dev.off()
 ```
 
 Boxplot
@@ -140,22 +157,6 @@ Boxplot
 anpp1 <- anpp %>%
         filter(!(Year=='2019')) %>%
         filter(Scale_meter_square==0.2)
-
-ggplot(anpp_avg2, aes(x = Subplot_Descriptions, y = avg_biomass, fill = Subplot_Descriptions)) +
-        geom_bar(stat = "identity") +
-        geom_errorbar(aes(ymin = avg_biomass - se, ymax = avg_biomass + se), width = 0.2,
-                         position = "identity") +
-        facet_wrap(~Year) +
-        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
-        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
-        labs(x = "Treatment") +
-        ylab(bquote("Average Biomass " ('g/0.20m'^2))) +
-        scale_x_discrete(limits = level_order_1, labels=c("ambient" = "Ambient",
-                                  "drought" = "Drought",
-                                  "irrigated_control" = "Irrigated \n Control",
-                                  "warmed" = "Warmed",
-                                  "warmed_drought" = "Warmed +\n Drought")) +
-        theme(legend.position = "none")
 
 # boxplot
 ggplot(anpp1, aes(x = Subplot_Descriptions, y = plant_biomass_gm2, fill = Subplot_Descriptions)) +
@@ -172,7 +173,8 @@ ggplot(anpp1, aes(x = Subplot_Descriptions, y = plant_biomass_gm2, fill = Subplo
                                   "irrigated_control" = "Irrigated \n Control",
                                   "warmed" = "Warmed",
                                   "warmed_drought" = "Warmed +\n Drought")) +
-        theme(legend.position = "none")
+        theme(legend.position = "none",
+              axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 2023 1m2 data
@@ -219,7 +221,7 @@ anpp23 <- anpp %>%
 # boxplot - this must be off because the averages are a lot bigger than what the graph is showing us but maybe bc of outliers?
 ggplot(anpp23, aes(x = Subplot_Descriptions, y = plant_biomass_gm2, fill = Subplot_Descriptions)) +
         #geom_jitter(shape=16, position=position_jitterdodge(), alpha = 0.6, aes(colour = Subplot_Descriptions)) +
-        geom_boxplot(color = "black") +
+        geom_boxplot(color = "black", outliers = FALSE) +
         scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
         "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
         labs(x = "Treatment") +
@@ -232,29 +234,6 @@ ggplot(anpp23, aes(x = Subplot_Descriptions, y = plant_biomass_gm2, fill = Subpl
                                   "warmed_drought" = "Warmed +\n Drought")) +
         theme(legend.position = "none")
 
-
-```
-
-Avg total anpp
-```{r}
-anpp_total <- anpp %>%
-        group_by(Year, Unique_ID, Scale_meter_square, Subplot_Descriptions) %>% 
-        summarize(sum_biomass = sum(plant_biomass_gm2, na.rm = TRUE))
-
-anpp_total_avg <- anpp %>%
-        group_by(Year, Unique_ID, Scale_meter_square, Subplot_Descriptions) %>% 
-        summarize(sum_biomass = sum(plant_biomass_gm2, na.rm = TRUE)) %>% # summing biomass per plot
-        group_by(Year, Scale_meter_square, Subplot_Descriptions) %>%
-        summarize(avg_biomass = mean(sum_biomass, na.rm = TRUE), # taking avg biomass of each treatment
-                  se = std.error(sum_biomass, na.rm = TRUE))
-
-
-# removing insecticide treatments
-anpp_avg_noinsect <- anpp_avg %>%
-  filter(!(Subplot_Descriptions=='drought_insecticide' |
-             Subplot_Descriptions=='insecticide' |
-             Subplot_Descriptions=='warmed_drought_insecticide' |
-             Subplot_Descriptions=='warmed_insecticide'))
 
 ```
 
