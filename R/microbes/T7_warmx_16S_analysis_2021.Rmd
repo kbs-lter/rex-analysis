@@ -783,24 +783,29 @@ ggplot(sum4_noinsect, aes(x = sampling_period, y = means, fill = Genus)) +
 #dev.off()
 ```
 
-#Create phyloseq object that doesn't include insecticide treatments with filtered data
-```{r}
+#Subsetting phyloseq object
+```{r
+# no insecticide treatment
 data_16S_filtered_noinsect <- subset_samples(data_16S_filtered, Subplot_Descriptions%in%c("ambient", "irrigated_control", "warmed_drought", "drought", "warmed"))
 summarize_phyloseq(data_16S_filtered_noinsect)
 
-# just peak drought
+# peak drought only + no insecticide
 data_16S_filtered_nona <- subset_samples(data_16S_filtered_noinsect, !is.na(sampling_period))
 data_16S_filtered_noinsect_peakdrought <- subset_samples(data_16S_filtered_nona, sampling_period == "Peak-Drought")
 summarize_phyloseq(data_16S_filtered_noinsect_peakdrought)
 
-# removing just pre drought
+# removing just pre drought + no insecticide
 data_16S_filtered_nopredrought <- subset_samples(data_16S_filtered_noinsect, sampling_period%in%c("Peak-Drought", "Post-Drought", "Recovery"))
 summarize_phyloseq(data_16S_filtered_nopredrought)
 
-# removing irrigated control and pre-drought
+# removing irrigated control and pre-drought + no insecticide
 data_16S_filtered_noIRC <- subset_samples(rare_16S, Subplot_Descriptions%in%c("ambient", "warmed_drought", "drought", "warmed"))
 data_16S_filtered_balanced <- subset_samples(data_16S_filtered_noIRC, sampling_period%in%c("Peak-Drought", "Post-Drought", "Recovery"))
 summarize_phyloseq(data_16S_filtered_balanced)
+
+# removing irrigated control for balanced design
+data_16S_noIRC <- subset_samples(rare_16S, !(Subplot_Descriptions %in% "irrigated_control"))
+summarize_phyloseq(data_16S_noIRC)
 
 # peak drought and no irrigated control
 data_16S_filtered_peak_noIRC <- subset_samples(data_16S_filtered_noIRC, sampling_period == "Peak-Drought")
@@ -1139,11 +1144,50 @@ plot_ordination(phylum, rda.test, color="Drought", shape = "sampling_period") +
         theme(aspect.ratio=1)
 ```
 
+No irrigated control data
+```{r}
+data_16S_noIRC
+
+# phylum
+
+phylum <- aggregate_taxa(data_16S_noIRC, 'Phylum', verbose = FALSE)
+
+# PCoA plot using bray-curtis as distance
+bray_dist = phyloseq::distance(phylum, method="bray")
+ordination = ordinate(phylum, method="PCoA", distance=bray_dist)
+
+plot_ordination(phylum, ordination) + 
+        geom_point(aes(color = Subplot_Descriptions), size=4, alpha=0.75) +
+        #stat_ellipse(aes(group = Subplot_Descriptions)) +
+        theme(aspect.ratio=1)
+
+set.seed(22)
+adonis2(bray_dist ~ sample_data(phylum)$Subplot_Descriptions + sample_data(phylum)$sampling_period)
+adonis2(bray_dist ~ sample_data(phylum)$Drought + sample_data(phylum)$Warming + sample_data(phylum)$Insecticide + sample_data(phylum)$sampling_period)
+
+# this works
+perm1 <- with(sample_data(phylum), how(blocks=Rep, plots=Plots(strata=Rep_Footprint, type="free"), within=Within(type="free"), nperm = 999))
+
+perm2 <- with(sample_data(phylum), how(blocks=Rep, within=Within(type="free"), nperm = 999))
+
+adonis2(bray_dist ~ sample_data(phylum)$Subplot_Descriptions + sample_data(phylum)$sampling_period, by = "margin", permutations = perm1)
+
+adonis2(bray_dist ~ sample_data(phylum)$Subplot_Descriptions + sample_data(phylum)$sampling_period, by = "margin", permutations = perm2)
+
+adonis2(bray_dist ~ sample_data(phylum)$Drought + sample_data(phylum)$Warming + sample_data(phylum)$sampling_period, by = "margin", permutations = perm1)
+
+adonis2(bray_dist ~ sample_data(phylum)$Drought + sample_data(phylum)$Warming + sample_data(phylum)$Insecticide + sample_data(phylum)$sampling_period, by = "margin", permutations = perm2)
+
+rda.test = ordinate(phylum, method="RDA")
+plot_ordination(phylum, rda.test, color="Drought", shape = "sampling_period") + 
+        geom_point(aes(shape = sampling_period), size=4, alpha=0.75) +
+        stat_ellipse(aes(group = Drought)) +
+        theme(aspect.ratio=1)
+```
 
 
 RDA
 ```{r}
-# RDA plot using WEIGHTED UniFrac as distance
 RDA_ps.rarefied = ordinate(ps.rarefied, method="RDA")
 
 plot_ordination(ps.rarefied, RDA_ps.rarefied, color="Subplot_Descriptions", shape = "Drought") + 
@@ -1161,38 +1205,6 @@ plot_ordination(ps.rarefied, RDA_ps.rarefied, color="Subplot_Descriptions", shap
 
 
 ```
-
-PCoA excluding irrigated control
-```{r}
-ps.rarefied_noIRC = rarefy_even_depth(data_16S_filtered_noIRC, rngseed=1, sample.size = 0.9*min(sample_sums(data_16S_filtered_nopredrought)), replace=F)
-
-# PCoA plot using WEIGHTED UniFrac as distance
-weighted_unifrac_dist = phyloseq::distance(ps.rarefied_noIRC, method="unifrac", weighted=T)
-ordination = ordinate(ps.rarefied_nopredrought, method="PCoA", distance=weighted_unifrac_dist)
-
-#png("T7_warmx_16S_pcoa_weighted_unifrac_no_insects.png", units="in", width=10, height=6, res=300)
-plot_ordination(ps.rarefied_noIRC, ordination, color="Subplot_Descriptions", shape = "Drought") + 
-        geom_point(aes(color = Subplot_Descriptions, shape = Drought), size=4, alpha=0.75) +
-        #stat_ellipse() +
-        scale_colour_manual(name = "Subplot Descriptions", 
-                          breaks = c("irrigated_control", "ambient", "warmed", "drought", "warmed_drought"),
-                          labels = c("Irrigated Control", "Ambient", "Warmed", "Drought", "Warmed + Drought"),
-                          values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
-        
-        #labs(x="Axis 1",
-        #     y="Axis 2") +
-        theme(aspect.ratio=1)
-#dev.off()
-
-# Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using PERMANOVA:
-set.seed(22)
-adonis2(weighted_unifrac_dist ~ sample_data(ps.rarefied_noIRC)$Subplot_Descriptions + sample_data(ps.rarefied_noIRC)$Drought)
-
-perm1 <- with(sample_data(ps.rarefied_noIRC), how(blocks = Replicate, plots = Plots(strata=Footprint, type="free"), nperm = 9999))
-
-adonis2(wunifrac_dist ~ sample_data(ps.rarefied_noIRC)$Footprint * sample_data(ps.rarefied_noIRC)$Subplot, by = "margin", permutations = perm1)
-```
-
 
 PCoA excluding irrigated control
 ```{r}
