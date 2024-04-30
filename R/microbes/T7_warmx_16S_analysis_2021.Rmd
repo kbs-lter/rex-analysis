@@ -1,7 +1,7 @@
 ---
 title: "T7 warmx 16S Analysis 2021"
 author: "Moriah Young"
-date: "2023-01-31"
+date: "2023-01-31, updated 2024-04-29"
 output: pdf_document
 editor_options: 
   chunk_output_type: console
@@ -32,75 +32,41 @@ library(microbiome)
 library(multcomp)
 library(nlme)
 library(phyloseq)
-library(phylosmith) ##
 library(qiime2R)
 library(tidyverse)
 library(vegan)
 library(zCompositions)
-library(microViz) ##
-library(DESeq2) ##
-library(ANCOMBC) ##
 library(permute)
 library(pheatmap)
 library(plotrix)
+#library(phylosmith) ##
+#library(microViz) ##
+#library(DESeq2) ##
+#library(ANCOMBC) ##
 
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
 ```
 
-Read QZA files into dataframe, re-format taxonomic tables, and re-upload them as .csv files
+
 ```{r}
-# Code below you only need to do once so it's # out as to not have to run every time
-#SVs16S <- read_qza("/Users/moriahyoung/Downloads/16S-2021-merged-dada2table.qza")
-#SVs16Stable <- SVs16S$data
-#write.csv(SVs16Stable, file = "/Users/moriahyoung/Downloads/16S-merged-dada2table.csv")
-
-#taxonomy16S <- read_qza("/Users/moriahyoung/Downloads/16S-taxonomy.qza")
-#tax16S <- taxonomy16S$data %>% as_tibble() %>%
-#  mutate(Taxon=gsub("[a-z]__", "", Taxon)) %>% 
-#  separate(Taxon, sep=";", c("Kingdom","Phylum","Class","Order","Family","Genus","Species"))%>%
-#  mutate(Phylum=replace_na(Phylum,"empty"))
-#write.csv(tax16S, file = "/Users/moriahyoung/Downloads/16S-taxonomy.csv", row.names =F)
-
 physeq_tree <- qza_to_phyloseq(
-        tree = "/Users/moriahyoung/Desktop/physeq_object/16S-2021-fasttree-rooted-tree.qza"
+        tree = "/Users/moriahyoung/Desktop/phyloseq_object/16S-2021-fasttree-rooted-tree.qza"
         )
 physeq_tree
-
-# create phyloseq object
-#data_16S_unfiltered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Downloads/16S-merged-dada2table.csv",
-#                                         taxonomy.file = "/Users/moriahyoung/Downloads/16S-taxonomy.csv",
-#                                         metadata.file = "/Users/moriahyoung/Desktop/16S_2021_metadata.csv")
-#summarize_phyloseq(data_16S_unfiltered)
 ```
 
 ```{r}
-# filter data
 
-# filter out non bacteria
-#data_16S_uf1 <- subset_taxa(data_16S_unfiltered, Kingdom == "Bacteria" | Kingdom == "Archaea")
-#data_16S_uf2 <- subset_taxa(data_16S_uf1, Kingdom != "Eukaryota")
-#data_16S_uf3 <- subset_taxa(data_16S_uf2, Order != "Chloroplast")
-#data_16S_uf4 <- subset_taxa(data_16S_uf3, Family != "Mitochondria")
-
-#summarize_phyloseq(data_16S_uf4)
-
-# Remove samples with extremely low read depth 
-# data_16S_uf5 <- prune_samples(sample_sums(data_16S_uf4)>=1000, data_16S_uf4)
-
-# Export filtered data
-# write.csv(data_16S_uf5@otu_table, "/Users/moriahyoung/Desktop/16S-merged-table-filtered.csv")
-# write.csv(data_16S_uf5@tax_table, "/Users/moriahyoung/Desktop/16S-taxonomy-filtered.csv")
-# upload these to REX google shared drive
-
-taxonomy <- read.csv("/Users/moriahyoung/Desktop/physeq_object/16S-taxonomy-filtered.csv")
-otu <- read.csv("/Users/moriahyoung/Desktop/physeq_object/16S-merged-table-filtered.csv")
+taxonomy <- read.csv("/Users/moriahyoung/Desktop/phyloseq_object/16S-taxonomy-filtered.csv")
+otu <- read.csv("/Users/moriahyoung/Desktop/phyloseq_object/16S-merged-table-filtered.csv")
+metadata <- read.csv("/Users/moriahyoung/Desktop/phyloseq_object/16S_2021_metadata.csv")
 
 # Create phyloseq objects of filtered data (16S)
-data_16S_filtered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/physeq_object/16S-merged-table-filtered.csv",
-                                       taxonomy.file = "/Users/moriahyoung/Desktop/physeq_object/16S-taxonomy-filtered.csv",
-                                       metadata.file = "/Users/moriahyoung/Desktop/physeq_object/16S_2021_metadata.csv")
+data_16S_filtered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-merged-table-filtered.csv",
+                                       taxonomy.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-taxonomy-filtered.csv",
+                                       metadata.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S_2021_metadata.csv")
 summarize_phyloseq(data_16S_filtered)
 
 # merge the phyloseq object with the phylogenetic tree with the other phyloseq object
@@ -108,7 +74,7 @@ data_16S_filtered <- merge_phyloseq(data_16S_filtered, physeq_tree)
 summarize_phyloseq(data_16S_filtered)
 
 # order sample data - "Drought" and "Subplot_Descriptions"
-sample_data(data_16S_filtered)$Drought <- ordered(sample_data(data_16S_filtered)$Drought, c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"))
+sample_data(data_16S_filtered)$sample_period <- ordered(sample_data(data_16S_filtered)$sampling_period, c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"))
 sample_data(data_16S_filtered)$Subplot_Descriptions <- ordered(sample_data(data_16S_filtered)$Subplot_Descriptions, c("irrigated_control", "ambient", "warmed", "warmed_insecticide", "insecticide", "drought", "warmed_drought", "drought_insecticide", "warmed_drought_insecticide"))
 ```
 
@@ -116,7 +82,7 @@ sample_data(data_16S_filtered)$Subplot_Descriptions <- ordered(sample_data(data_
 ```{r}
 data_16S_counts <- data_16S_filtered
 # remove samples that have less than 1000 reads
-data_16S_counts <- prune_samples(sample_sums(data_16S_counts)>=1000, data_16S_counts) # this is already done above...
+data_16S_counts <- prune_samples(sample_sums(data_16S_counts)>=1000, data_16S_counts)
 #data_16S_filtered <- transform_sample_counts(data_16S_filtered, function(x) x/sum(x))
 # Prune SVs that are not present 5 times in at least 2 samples --> remove taxa not seen more than 5 times in at least ~1% of the samples. This protects against an OTU with small mean & trivially large C.V.
 #data_16S_counts <- filter_taxa(data_16S_counts, function(x) sum(x >5) > (0.01058201*length(x)), TRUE)
@@ -207,15 +173,25 @@ curve_16S <- ggplot(rarefaction_curve_data_summary_verbose %>% filter(Measure ==
 curve_16S
 ```
 
+#Filter data and rarefy data
+```{r}
+# filter data
+# Remove taxa not seen more than 3 times in at least 20% of the samples. This protects against an OTU with small mean & trivially large C.V.
+data_16S_counts_filtered <- filter_taxa(data_16S_counts, function(x) sum(x > 3) > (0.2*length(x)), TRUE)
+summarize_phyloseq(data_16S_counts_filtered)
+
+# Rarefy data to min sample size reads 
+set.seed(1022)
+#rare_16S <- rarefy_even_depth(data_16S_counts, sample.size = 1000)
+rare_16S <- rarefy_even_depth(data_16S_counts_filtered, sample.size = min(sample_sums(data_16S_counts)))
+summarize_phyloseq(rare_16S)
+sample_data(rare_16S)
+```
+
 #Taxonomy - Stacked Bar Plots
 
-Rarefy data and setting up to make stacked bar plots
+Setting up to make stacked bar plots
 ```{r}
-# Rarefy data to 1000 reads 
-set.seed(01221990)
-rare_16S <- rarefy_even_depth(data_16S_counts, sample.size = 1000)
-rare_16S_1 <- rarefy_even_depth(data_16S_counts, sample.size = min(sample_sums(data_16S_counts)))
-
 data_16S_rel <- transform_sample_counts(rare_16S, function(x) x/sum(x))
 
 # subset to non insecticide plots
@@ -250,27 +226,38 @@ abundant_16S_phylum_glom <- tax_glom(abundant_16S_phylum, taxrank = "Phylum")
 abundant_16S_phylum_melt <- psmelt(abundant_16S_phylum_glom)
 
 sum2 <- abundant_16S_phylum_melt %>% 
-  group_by(Subplot_Descriptions, Drought, Phylum) %>%
+  group_by(Subplot_Descriptions, sampling_period, Phylum) %>%
+  summarise(means = mean(Abundance))
+
+sum3 <- abundant_16S_phylum_melt %>% 
+  group_by(Drought, sampling_period, Phylum) %>%
   summarise(means = mean(Abundance))
 
 #Everything that's left is considered rare  
 rare <- sum2 %>%
-  group_by(Subplot_Descriptions, Drought) %>%
+  group_by(Subplot_Descriptions, sampling_period) %>%
+  summarise(means = 1- sum(means)) %>%
+  mutate(Phylum = "Rare Taxa")
+
+rare1 <- sum3 %>%
+  group_by(Drought, sampling_period) %>%
   summarise(means = 1- sum(means)) %>%
   mutate(Phylum = "Rare Taxa")
 
 #concatenate the datasets
 sum2 = rbind(sum2, rare)
+sum3 = rbind(sum3, rare1)
 
 #order groups
 sum2$Phylum <- forcats::fct_relevel(sum2$Phylum, "Rare Taxa", after = Inf)
+sum3$Phylum <- forcats::fct_relevel(sum3$Phylum, "Rare Taxa", after = Inf)
 
 # Stacked bar plot for top phylas
 # facet by timing of soil collection (aka "Drought")
 #png("T7_warmx_16S_phylum_stacked_bar_plot_by_drought.png", units="in", width=10, height=6, res=300)
 ggplot(sum2, aes(x = Subplot_Descriptions, y = means, fill = Phylum)) +
         geom_bar(position = "stack", stat = "identity", col = "black") +
-        facet_grid(~Drought, scale="free") +
+        facet_grid(~sampling_period, scale="free") +
         theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
         scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
                                      "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
@@ -295,7 +282,7 @@ ggplot(sum2, aes(x = Subplot_Descriptions, y = means, fill = Phylum)) +
 
 # facet by treatment
 #png("T7_warmx_16S_phylum_stacked_bar_plot_by_treatment.png", units="in", width=10, height=6, res=300)
-ggplot(sum2, aes(x = Drought, y = means, fill = Phylum)) +
+ggplot(sum2, aes(x = sampling_period, y = means, fill = Phylum)) +
         geom_bar(position = "stack", stat = "identity", col = "black") +
         facet_grid(~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
         theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
@@ -320,6 +307,32 @@ ggplot(sum2, aes(x = Drought, y = means, fill = Phylum)) +
               title = element_text(size = 12))
 #dev.off()
 
+
+
+ggplot(sum3, aes(x = Drought, y = means, fill = Phylum)) +
+        geom_bar(position = "stack", stat = "identity", col = "black") +
+        facet_grid(~sampling_period, scale="free") +
+        theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
+        scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
+                                     "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed Drought",
+                                  "drought_insecticide" = "Drought Insecticide", 
+                                  "insecticide" = "Insecticide", 
+                                  'warmed_drought_insecticide' = "Warmed Drought Insecticide", 
+                                  'warmed_insecticide' = "Warmed Insecticide")) +
+        #scale_y_continuous(name = NULL, breaks = NULL) +
+        panel_border() +
+        theme_bw() +
+        ggtitle("") +
+        theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+        theme(strip.text = element_text(size = 12, face = "italic"), axis.text.x = element_text(size = 10),
+              axis.title = element_blank(),
+              title = element_text(size = 12))
+#dev.off()
 ```
 
 #Phylum Level - non insecticide plots
@@ -338,7 +351,7 @@ sum2_noinsect <- abundant_16S_phylum_melt_noinsect %>%
 
 #Everything that's left is considered rare  
 rare <- sum2_noinsect %>%
-  group_by(Subplot_Descriptions, Drought) %>%
+  group_by(Subplot_Descriptions, sampling_period) %>%
   summarise(means = 1- sum(means)) %>%
   mutate(Phylum = "Rare Taxa")
 
@@ -353,7 +366,7 @@ sum2_noinsect$Phylum <- forcats::fct_relevel(sum2_noinsect$Phylum, "Rare Taxa", 
 #png("T7_warmx_16S_phylum_stacked_bar_plot_by_drought.png", units="in", width=10, height=6, res=300)
 ggplot(sum2_noinsect, aes(x = Subplot_Descriptions, y = means, fill = Phylum)) +
         geom_bar(position = "stack", stat = "identity", col = "black") +
-        facet_grid(~Drought, scale="free") +
+        facet_grid(~sampling_period, scale="free") +
         theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
         scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
                                      "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
@@ -374,7 +387,7 @@ ggplot(sum2_noinsect, aes(x = Subplot_Descriptions, y = means, fill = Phylum)) +
 
 # facet by treatment
 png("T7_warmx_16S_phylum_stacked_bar_plot_by_treatment_noinsect.png", units="in", width=10, height=6, res=300)
-ggplot(sum2_noinsect, aes(x = Drought, y = means, fill = Phylum)) +
+ggplot(sum2_noinsect, aes(x = sampling_period, y = means, fill = Phylum)) +
         geom_bar(position = "stack", stat = "identity", col = "black") +
         facet_grid(~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names_noinsect)) +
         scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1", "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
@@ -435,7 +448,7 @@ sum5$Class <- forcats::fct_relevel(sum5$Class, "Rare Taxa", after = Inf)
 #png("T7_warmx_16S_class_stacked_bar_plot.png", units="in", width=10, height=6, res=300)
 ggplot(sum5, aes(x = Subplot_Descriptions, y = means, fill = Class)) +
         geom_bar(position = "stack", stat = "identity", col = "black") +
-        facet_grid(~Drought, scale="free") +
+        facet_grid(~sampling_period, scale="free") +
         theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
         scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1", "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4", "cyan2", "deeppink", "darkslategrey", "gold", "lightslateblue")) +
         scale_x_discrete(labels=c("ambient" = "Ambient",
@@ -455,7 +468,7 @@ ggplot(sum5, aes(x = Subplot_Descriptions, y = means, fill = Class)) +
 
 # facet_grid by treatment aka "Subplot_Descriptions"
 png("T7_warmx_16S_class_stacked_bar_plot_by_treatment_noinsect.png", units="in", width=10, height=6, res=300)
-ggplot(sum5, aes(x = Drought, y = means, fill = Class)) +
+ggplot(sum5, aes(x = sampling_period, y = means, fill = Class)) +
         geom_bar(position = "stack", stat = "identity", col = "black") +
         facet_grid(~Subplot_Descriptions, scale="free", labeller = 
                            as_labeller(treatment_names_noinsect)) +
@@ -496,12 +509,12 @@ abundant_16S_family_glom <- tax_glom(abundant_16S_family, taxrank = "Family")
 abundant_16S_family_melt <- psmelt(abundant_16S_family_glom)
 
 sum3 <- abundant_16S_family_melt %>% 
-  group_by(Subplot_Descriptions, Drought, Family) %>%
+  group_by(Subplot_Descriptions, sampling_period, Family) %>%
   summarise(means = mean(Abundance))
 
 #Everything that's left is considered rare  
 rare <- sum3 %>%
-  group_by(Subplot_Descriptions, Drought) %>%
+  group_by(Subplot_Descriptions, sampling_period) %>%
   summarise(means = 1- sum(means)) %>%
   mutate(Family = "Rare Taxa")
 
@@ -515,7 +528,7 @@ sum3$Family <- forcats::fct_relevel(sum3$Family, "Rare Taxa", after = Inf)
 #png("T7_warmx_16S_family_stacked_bar_plot.png", units="in", width=10, height=6, res=300)
 ggplot(sum3, aes(x = Subplot_Descriptions, y = means, fill = Family)) +
         geom_bar(position = "stack", stat = "identity", col = "black") +
-        facet_grid(~Drought, scale="free") +
+        facet_grid(~sampling_period, scale="free") +
         theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
         #scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
         #                             "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
@@ -540,7 +553,7 @@ ggplot(sum3, aes(x = Subplot_Descriptions, y = means, fill = Family)) +
 
 # facet_grid by treatment aka "Subplot_Descriptions"
 #png("T7_warmx_16S_family_stacked_bar_plot_by_treatment.png", units="in", width=10, height=6, res=300)
-ggplot(sum3, aes(x = Drought, y = means, fill = Family)) +
+ggplot(sum3, aes(x = sampling_period, y = means, fill = Family)) +
         geom_bar(position = "stack", stat = "identity", col = "black") +
         facet_grid(~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
         theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
@@ -581,12 +594,12 @@ abundant_16S_family_glom_noinsect <- tax_glom(abundant_16S_family_noinsect, taxr
 abundant_16S_family_melt_noinsect <- psmelt(abundant_16S_family_glom_noinsect)
 
 sum3_noinsect <- abundant_16S_family_melt_noinsect %>% 
-  group_by(Subplot_Descriptions, Drought, Family) %>%
+  group_by(Subplot_Descriptions, sampling_period, Family) %>%
   summarise(means = mean(Abundance))
 
 #Everything that's left is considered rare  
 rare <- sum3_noinsect %>%
-  group_by(Subplot_Descriptions, Drought) %>%
+  group_by(Subplot_Descriptions, sampling_period) %>%
   summarise(means = 1- sum(means)) %>%
   mutate(Family = "Rare Taxa")
 
@@ -599,7 +612,7 @@ sum3$Family <- forcats::fct_relevel(sum3$Family, "Rare Taxa", after = Inf)
 # stacked bar plot for top Families
 # facet_grid by treatment aka "Subplot_Descriptions"
 #png("T7_warmx_16S_family_stacked_bar_plot_by_treatment.png", units="in", width=10, height=6, res=300)
-ggplot(sum3_noinsect, aes(x = Drought, y = means, fill = Family)) +
+ggplot(sum3_noinsect, aes(x = sampling_period, y = means, fill = Family)) +
         geom_bar(position = "stack", stat = "identity", col = "black") +
         facet_grid(~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
         theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
@@ -640,7 +653,7 @@ abundant_16S_genus_glom <- tax_glom(abundant_16S_genus, taxrank = "Genus")
 abundant_16S_genus_melt <- psmelt(abundant_16S_genus_glom)
 
 sum4 <- abundant_16S_genus_melt %>% 
-  group_by(Subplot_Descriptions, Drought, Genus) %>%
+  group_by(Subplot_Descriptions, sampling_period, Genus) %>%
   summarise(means = mean(Abundance))
 
 #Everything that's left is considered rare  
@@ -660,7 +673,7 @@ sum4$Genus <- forcats::fct_relevel(sum4$Genus, "Rare Taxa", after = Inf)
 #png("T7_warmx_16S_genus_stacked_bar_plot.png", units="in", width=10, height=6, res=300)
 ggplot(sum4, aes(x = Subplot_Descriptions, y = means, fill = Genus)) +
         geom_bar(position = "stack", stat = "identity", col = "black") +
-        facet_grid(~Drought, scale="free") +
+        facet_grid(~sampling_period, scale="free") +
         theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
         #scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
         #                             "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
@@ -685,7 +698,7 @@ ggplot(sum4, aes(x = Subplot_Descriptions, y = means, fill = Genus)) +
 
 # facet_grid by treatment aka "Subplot_Descriptions"
 #png("T7_warmx_16S_genus_stacked_bar_plot_by_treatment.png", units="in", width=11, height=6, res=300)
-ggplot(sum4, aes(x = Drought, y = means, fill = Genus)) +
+ggplot(sum4, aes(x = sampling_period, y = means, fill = Genus)) +
         geom_bar(position = "stack", stat = "identity", col = "black") +
         facet_grid(~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
         theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
@@ -726,12 +739,12 @@ abundant_16S_genus_glom_noinsect <- tax_glom(abundant_16S_genus_noinsect, taxran
 abundant_16S_genus_melt_noinsect <- psmelt(abundant_16S_genus_glom_noinsect)
 
 sum4_noinsect <- abundant_16S_genus_melt_noinsect %>% 
-  group_by(Subplot_Descriptions, Drought, Genus) %>%
+  group_by(Subplot_Descriptions, sampling_period, Genus) %>%
   summarise(means = mean(Abundance))
 
 #Everything that's left is considered rare  
 rare <- sum4_noinsect %>%
-  group_by(Subplot_Descriptions, Drought) %>%
+  group_by(Subplot_Descriptions, sampling_period) %>%
   summarise(means = 1- sum(means)) %>%
   mutate(Genus = "Rare Taxa")
 
@@ -744,7 +757,7 @@ sum4_noinsect$Genus <- forcats::fct_relevel(sum4_noinsect$Genus, "Rare Taxa", af
 # Stacked bar plot for top genus'
 # facet_grid by treatment aka "Subplot_Descriptions"
 #png("T7_warmx_16S_genus_stacked_bar_plot_by_treatment.png", units="in", width=11, height=6, res=300)
-ggplot(sum4_noinsect, aes(x = Drought, y = means, fill = Genus)) +
+ggplot(sum4_noinsect, aes(x = sampling_period, y = means, fill = Genus)) +
         geom_bar(position = "stack", stat = "identity", col = "black") +
         facet_grid(~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
         theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
@@ -776,24 +789,26 @@ data_16S_filtered_noinsect <- subset_samples(data_16S_filtered, Subplot_Descript
 summarize_phyloseq(data_16S_filtered_noinsect)
 
 # just peak drought
-data_16S_filtered_nona <- subset_samples(data_16S_filtered_noinsect, !is.na(Drought))
-data_16S_filtered_noinsect_peakdrought <- subset_samples(data_16S_filtered_nona, Drought == "Peak-Drought")
+data_16S_filtered_nona <- subset_samples(data_16S_filtered_noinsect, !is.na(sampling_period))
+data_16S_filtered_noinsect_peakdrought <- subset_samples(data_16S_filtered_nona, sampling_period == "Peak-Drought")
 summarize_phyloseq(data_16S_filtered_noinsect_peakdrought)
 
 # removing just pre drought
-data_16S_filtered_nopredrought <- subset_samples(data_16S_filtered_noinsect, Drought%in%c("Peak-Drought", "Post-Drought", "Recovery"))
+data_16S_filtered_nopredrought <- subset_samples(data_16S_filtered_noinsect, sampling_period%in%c("Peak-Drought", "Post-Drought", "Recovery"))
 summarize_phyloseq(data_16S_filtered_nopredrought)
 
-# removing irrigated control
-data_16S_filtered_noIRC <- subset_samples(data_16S_filtered, Subplot_Descriptions%in%c("ambient", "warmed_drought", "drought", "warmed"))
-summarize_phyloseq(data_16S_filtered_noIRC)
+# removing irrigated control and pre-drought
+data_16S_filtered_noIRC <- subset_samples(rare_16S, Subplot_Descriptions%in%c("ambient", "warmed_drought", "drought", "warmed"))
+data_16S_filtered_balanced <- subset_samples(data_16S_filtered_noIRC, sampling_period%in%c("Peak-Drought", "Post-Drought", "Recovery"))
+summarize_phyloseq(data_16S_filtered_balanced)
 
 # peak drought and no irrigated control
-data_16S_filtered_peak_noIRC <- subset_samples(data_16S_filtered_noIRC, Drought == "Peak-Drought")
+data_16S_filtered_peak_noIRC <- subset_samples(data_16S_filtered_noIRC, sampling_period == "Peak-Drought")
 ```
 
 #Alpha Diversity
 ```{r}
+# NOTE 4/29/24 rarefying is done before this but not using the same object - should only need to rarefy once!!
 # Rarefy the samples without replacement. Rarefaction is used to simulate even number of reads per sample. The rarefaction depth chosen is the 90% of the minimum sample depth in the dataset
 ps.rarefied = rarefy_even_depth(data_16S_filtered_noinsect, rngseed=1, sample.size = 0.9*min(sample_sums(data_16S_filtered_noinsect)), replace=F)
 
@@ -806,13 +821,13 @@ treatment_names <- c("ambient" = "Ambient",
                      "warmed" = "Warmed",
                      "warmed_drought" = "Warmed + Drought")
 
-plot_richness(ps.rarefied, x="Drought", color="Subplot_Descriptions", measures=c("Observed"))
-plot_richness(ps.rarefied, x="Drought", measures=c("Observed", "Shannon")) + geom_boxplot()
-plot_richness(ps.rarefied, x="Subplot_Descriptions", measures=c("Observed")) + geom_boxplot() + facet_grid(.~Drought)
-plot_richness(ps.rarefied, x="Subplot_Descriptions", measures=c("Shannon")) + geom_boxplot() + facet_grid(.~Drought)
+plot_richness(ps.rarefied, x="sampling_period", color="Subplot_Descriptions", measures=c("Observed"))
+plot_richness(ps.rarefied, x="sampling_period", measures=c("Observed", "Shannon")) + geom_boxplot()
+plot_richness(ps.rarefied, x="Subplot_Descriptions", measures=c("Observed")) + geom_boxplot() + facet_grid(.~sampling_period)
+plot_richness(ps.rarefied, x="Subplot_Descriptions", measures=c("Shannon")) + geom_boxplot() + facet_grid(.~sampling_period)
 
 png("T7_warmx_16S_observed_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
-plot_richness(ps.rarefied, x="Drought", measures=c("Observed")) + 
+plot_richness(ps.rarefied, x="sampling_period", measures=c("Observed")) + 
         geom_boxplot(aes(fill = Subplot_Descriptions)) + 
         labs(y = "Observed OTUs", x = "Time of Sampling") +
         facet_grid(.~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
@@ -827,7 +842,7 @@ plot_richness(ps.rarefied, x="Drought", measures=c("Observed")) +
 dev.off()
 
 #png("T7_warmx_16S_shannon_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
-plot_richness(ps.rarefied, x="Drought", measures=c("Shannon")) + 
+plot_richness(ps.rarefied, x="sampling_period", measures=c("Shannon")) + 
         geom_boxplot(aes(fill = Subplot_Descriptions)) + 
         labs(x = "Time of Sampling", y = "Shannon Index") +
         facet_grid(.~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
@@ -840,6 +855,9 @@ richness <- estimate_richness(ps.rarefied)
 head(richness)
 kruskal.test(richness$Shannon ~ sample_data(ps.rarefied)$Subplot_Descriptions)
 pairwise.wilcox.test(richness$Shannon, sample_data(ps.rarefied)$Subplot_Descriptions, p.adj = "bonf")
+
+kruskal.test(richness$Shannon ~ sample_data(ps.rarefied)$sampling_period)
+pairwise.wilcox.test(richness$Shannon, sample_data(ps.rarefied)$sampling_period, p.adj = "bonf")
 
 kruskal.test(richness$Shannon ~ sample_data(ps.rarefied)$Drought)
 pairwise.wilcox.test(richness$Shannon, sample_data(ps.rarefied)$Drought, p.adj = "bonf")
@@ -973,31 +991,31 @@ PCoA
 # unweighted-Unifrac only considers presence/absence
 
 # PCoA plot using UNWEIGHTED UniFrac as distance
-wunifrac_dist = phyloseq::distance(ps.rarefied_1, method="unifrac", weighted=F)
-ordination = ordinate(ps.rarefied_1, method="PCoA", distance=wunifrac_dist)
+wunifrac_dist = phyloseq::distance(ps.rarefied, method="unifrac", weighted=F)
+ordination = ordinate(ps.rarefied, method="PCoA", distance=wunifrac_dist)
 
 #png("T7_warmx_16S_pcoa_no_insects.png", units="in", width=10, height=6, res=300)
-plot_ordination(ps.rarefied_1, ordination, color="Subplot_Descriptions", shape = "Drought") + 
-        geom_point(aes(color = Subplot_Descriptions, shape = Drought), size=4, alpha=0.75) +
+plot_ordination(ps.rarefied, ordination, color="Subplot_Descriptions", shape = "sampling_period") + 
+        geom_point(aes(color = Subplot_Descriptions, shape = sample_period), size=4, alpha=0.75) +
         #stat_ellipse(aes(fill = Drought), geom = "polygon", alpha = .5) +
         scale_colour_manual(name = "Subplot Descriptions", 
                           breaks = c("irrigated_control", "ambient", "warmed", "drought", "warmed_drought"),
                           labels = c("Irrigated Control", "Ambient", "Warmed", "Drought", "Warmed + Drought"),
                           values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
-        labs(x="Axis 1",
-             y="Axis 2") +
+        #labs(x="Axis 1",
+        #     y="Axis 2") +
         theme(aspect.ratio=1)
 #dev.off()
 
 # PCoA plot using WEIGHTED UniFrac as distance
-weighted_unifrac_dist <- phyloseq::distance(ps.rarefied_1, method="unifrac", weighted=T)
-ordination <- ordinate(ps.rarefied_1, method="PCoA", distance=weighted_unifrac_dist)
+weighted_unifrac_dist <- phyloseq::distance(ps.rarefied, method="unifrac", weighted=T)
+ordination <- ordinate(ps.rarefied, method="PCoA", distance=weighted_unifrac_dist)
 
 #png("T7_warmx_16S_pcoa_weighted_unifrac_no_insects.png", units="in", width=10, height=6, res=300)
-plot_ordination(ps.rarefied_1, ordination, color="Subplot_Descriptions", shape = "Drought") + 
-        geom_point(aes(color = Subplot_Descriptions, shape = Drought), size=4, alpha=0.75) +
+plot_ordination(ps.rarefied, ordination, color="Subplot_Descriptions", shape = "sampling_period") + 
+        geom_point(aes(color = Subplot_Descriptions, shape = sampling_period), size=4, alpha=0.75) +
         #stat_ellipse() +
-        scale_colour_manual(name = "Subplot Descriptions", 
+            scale_colour_manual(name = "Subplot Descriptions", 
                           breaks = c("irrigated_control", "ambient", "warmed", "drought", "warmed_drought"),
                           labels = c("Irrigated Control", "Ambient", "Warmed", "Drought", "Warmed + Drought"),
                           values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
@@ -1009,11 +1027,11 @@ plot_ordination(ps.rarefied_1, ordination, color="Subplot_Descriptions", shape =
 
 # Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
 set.seed(22)
-adonis2(wunifrac_dist ~ sample_data(ps.rarefied_1)$Subplot_Descriptions + sample_data(ps.rarefied_1)$Drought)
+adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Subplot_Descriptions + sample_data(ps.rarefied)$sampling_period)
 
 # Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
 set.seed(22)
-adonis2(weighted_unifrac_dist ~ sample_data(ps.rarefied)$Subplot_Descriptions + sample_data(ps.rarefied)$Drought)
+adonis2(weighted_unifrac_dist ~ sample_data(ps.rarefied)$Subplot_Descriptions + sample_data(ps.rarefied)$sampling_period)
 
 # trying Jennifer's code below:
 #bray.dist <- phyloseq::distance(ps.rarefied, method = "bray”)
@@ -1026,11 +1044,101 @@ adonis2(weighted_unifrac_dist ~ sample_data(ps.rarefied)$Subplot_Descriptions + 
 #adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Footprint*sample_data(ps.rarefied)$Subplot, by = #"margin”, permutations = #perm1) 
 #If the interaction is not significant, you should rerun the model without the interaction. For this code, if the interaction is not significant, it won’t show you if the main effects are significant. 
 
-perm1 <- with(sample_data(ps.rarefied_1), how(blocks = Replicate, plots = Plots(strata=Footprint, type="free"), within=Within(type="free"), nperm = 9999))
+perm1 <- with(sample_data(ps.rarefied), how(blocks = Replicate, plots = Plots(strata=Footprint, type="free"), within=Within(type="free"), nperm = 9999))
 
-adonis2(wunifrac_dist ~ sample_data(ps.rarefied_1)$Footprint * sample_data(ps.rarefied_1)$Subplot, by = "margin", permutations = perm1)
+# no footprint
+perm2 <- with(sample_data(ps.rarefied), how(blocks = Replicate, within=Within(type="free"), nperm = 9999))
+
+adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Subplot_Descriptions * sample_data(ps.rarefied)$sampling_period, by = "margin", permutations = perm1)
+
+adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Subplot_Descriptions + sample_data(ps.rarefied)$sampling_period, by = "margin", permutations = perm2)
+
+adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Drought + sample_data(ps.rarefied)$Warming + sample_data(ps.rarefied)$Insecticide + sample_data(ps.rarefied)$sampling_period, by = "margin", permutations = perm2)
+
+adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Drought + sample_data(ps.rarefied)$Warming + sample_data(ps.rarefied)$sampling_period, by = "margin", permutations = perm2)
+
+# if you need to change a phyloseq "slot" to a factor:
+# Access sample data slot
+sample_data <- sample_data(ps.rarefied)
+
+# Convert the slot to a factor (assuming 'Drought' is not already a factor)
+sample_data$Drought <- as.factor(sample_data$Drought)
+sample_data$Insecticide <- as.factor(sample_data$Insecticide)
+
+# Assign the modified slot back to the Phyloseq object
+sample_data(ps.rarefied) <- sample_data
+
+# Verify the change
+sample_data(ps.rarefied)
 
 ```
+
+# PCoA aggregating by different levels
+```{r}
+data_16S_filtered_balanced
+# class
+class <- aggregate_taxa(data_16S_filtered_balanced, 'Class', verbose = FALSE)
+
+# PCoA plot using bray-curtis as distance
+bray_dist = phyloseq::distance(class, method="bray")
+ordination = ordinate(class, method="PCoA", distance=bray_dist)
+
+plot_ordination(class, ordination) + 
+        geom_point(aes(color = sampling_period), size=4, alpha=0.75) +
+        #stat_ellipse() +
+        theme(aspect.ratio=1)
+
+set.seed(22)
+adonis2(bray_dist ~ sample_data(class)$Subplot_Descriptions + sample_data(class)$sampling_period)
+
+# this works
+perm1 <- with(sample_data(class), how(blocks=Rep, plots=Plots(strata=Rep_Footprint, type="free"), within=Within(type="free"), nperm = 999))
+
+perm2 <- with(sample_data(class), how(blocks=Rep, within=Within(type="free"), nperm = 999))
+
+adonis2(bray_dist ~ sample_data(class)$Subplot_Descriptions + sample_data(class)$sampling_period, by = "margin", permutations = perm1)
+
+adonis2(bray_dist ~ sample_data(class)$Subplot_Descriptions + sample_data(class)$sampling_period, by = "margin", permutations = perm2)
+
+adonis2(bray_dist ~ sample_data(class)$Drought + sample_data(class)$Warming + sample_data(class)$sampling_period, by = "margin", permutations = perm2)
+
+# thoughts - if i have missing samples, for example here with pre drought, maybe make it so all time points have the same amount of samples, but will lose some statistical power by dropping one of my replicates
+
+###############################
+# phylum
+
+phylum <- aggregate_taxa(data_16S_filtered_balanced, 'Phylum', verbose = FALSE)
+
+# PCoA plot using bray-curtis as distance
+bray_dist = phyloseq::distance(phylum, method="bray")
+ordination = ordinate(phylum, method="PCoA", distance=bray_dist)
+
+plot_ordination(phylum, ordination) + 
+        geom_point(aes(color = sampling_period), size=4, alpha=0.75) +
+        theme(aspect.ratio=1)
+
+set.seed(22)
+adonis2(bray_dist ~ sample_data(phylum)$Subplot_Descriptions + sample_data(phylum)$sampling_period)
+adonis2(bray_dist ~ sample_data(phylum)$Drought + sample_data(phylum)$Warming + sample_data(phylum)$sampling_period)
+
+# this works
+perm1 <- with(sample_data(phylum), how(blocks=Rep, plots=Plots(strata=Rep_Footprint, type="free"), within=Within(type="free"), nperm = 999))
+
+perm2 <- with(sample_data(phylum), how(blocks=Rep, within=Within(type="free"), nperm = 999))
+
+adonis2(bray_dist ~ sample_data(phylum)$Subplot_Descriptions + sample_data(phylum)$sampling_period, by = "margin", permutations = perm1)
+
+adonis2(bray_dist ~ sample_data(phylum)$Drought + sample_data(phylum)$Warming + sample_data(phylum)$sampling_period, by = "margin", permutations = perm1)
+
+adonis2(bray_dist ~ sample_data(phylum)$Drought + sample_data(phylum)$Warming + sample_data(phylum)$sampling_period, by = "margin", permutations = perm2)
+
+rda.test = ordinate(phylum, method="RDA")
+plot_ordination(phylum, rda.test, color="Drought", shape = "sampling_period") + 
+        geom_point(aes(shape = sampling_period), size=4, alpha=0.75) +
+        stat_ellipse(aes(group = Drought)) +
+        theme(aspect.ratio=1)
+```
+
 
 
 RDA
