@@ -186,6 +186,11 @@ set.seed(1022)
 rare_16S <- rarefy_even_depth(data_16S_counts_filtered, sample.size = min(sample_sums(data_16S_counts)))
 summarize_phyloseq(rare_16S)
 sample_data(rare_16S)
+
+# Rarefy the samples without replacement. Rarefaction is used to simulate even number of reads per sample. The rarefaction depth chosen is the 90% of the minimum sample depth in the dataset
+#ps.rarefied = rarefy_even_depth(data_16S_filtered_noinsect, rngseed=1, sample.size = #0.9*min(sample_sums(data_16S_filtered_noinsect)), replace=F)
+#
+#ps.rarefied_1 = rarefy_even_depth(data_16S_filtered_noinsect, rngseed=1, sample.size = #min(sample_sums(data_16S_filtered_noinsect)), replace=F)
 ```
 
 #Taxonomy - Stacked Bar Plots
@@ -784,7 +789,7 @@ ggplot(sum4_noinsect, aes(x = sampling_period, y = means, fill = Genus)) +
 ```
 
 #Subsetting phyloseq object
-```{r
+```{r}
 # no insecticide treatment
 data_16S_filtered_noinsect <- subset_samples(data_16S_filtered, Subplot_Descriptions%in%c("ambient", "irrigated_control", "warmed_drought", "drought", "warmed"))
 summarize_phyloseq(data_16S_filtered_noinsect)
@@ -812,12 +817,15 @@ data_16S_filtered_peak_noIRC <- subset_samples(data_16S_filtered_noIRC, sampling
 ```
 
 #Alpha Diversity
+# consider not using rarefied data or untrimmed data for alpha diversity?
 ```{r}
-# NOTE 4/29/24 rarefying is done before this but not using the same object - should only need to rarefy once!!
-# Rarefy the samples without replacement. Rarefaction is used to simulate even number of reads per sample. The rarefaction depth chosen is the 90% of the minimum sample depth in the dataset
-ps.rarefied = rarefy_even_depth(data_16S_filtered_noinsect, rngseed=1, sample.size = 0.9*min(sample_sums(data_16S_filtered_noinsect)), replace=F)
+# no insecticide treatment
+rare_16S_noinsect <- subset_samples(rare_16S, Subplot_Descriptions%in%c("ambient", "irrigated_control", "warmed_drought", "drought", "warmed"))
+summarize_phyloseq(rare_16S_noinsect)
 
-ps.rarefied_1 = rarefy_even_depth(data_16S_filtered_noinsect, rngseed=1, sample.size = min(sample_sums(data_16S_filtered_noinsect)), replace=F)
+# order sample data - "sampling_period" and "Subplot_Descriptions"
+sample_data(rare_16S_noinsect)$sample_period <- ordered(sample_data(rare_16S_noinsect)$sampling_period, c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"))
+sample_data(rare_16S_noinsect)$Subplot_Descriptions <- ordered(sample_data(rare_16S_noinsect)$Subplot_Descriptions, c("irrigated_control", "ambient", "warmed", "warmed_insecticide", "insecticide", "drought", "warmed_drought", "drought_insecticide", "warmed_drought_insecticide"))
 
 # Plotting Alpha Diversity
 treatment_names <- c("ambient" = "Ambient",
@@ -826,13 +834,14 @@ treatment_names <- c("ambient" = "Ambient",
                      "warmed" = "Warmed",
                      "warmed_drought" = "Warmed + Drought")
 
-plot_richness(ps.rarefied, x="sampling_period", color="Subplot_Descriptions", measures=c("Observed"))
-plot_richness(ps.rarefied, x="sampling_period", measures=c("Observed", "Shannon")) + geom_boxplot()
-plot_richness(ps.rarefied, x="Subplot_Descriptions", measures=c("Observed")) + geom_boxplot() + facet_grid(.~sampling_period)
-plot_richness(ps.rarefied, x="Subplot_Descriptions", measures=c("Shannon")) + geom_boxplot() + facet_grid(.~sampling_period)
+plot_richness(rare_16S_noinsect, x="sampling_period", color="Subplot_Descriptions", measures=c("Observed"))
+plot_richness(rare_16S_noinsect, x="sampling_period", measures=c("Observed", "Shannon")) + geom_boxplot()
+plot_richness(rare_16S_noinsect, x="Subplot_Descriptions", measures=c("Observed")) + geom_boxplot() + facet_grid(.~sampling_period)
+plot_richness(rare_16S_noinsect, x="Subplot_Descriptions", measures=c("Shannon")) + geom_boxplot() + facet_grid(.~sampling_period)
+
 
 png("T7_warmx_16S_observed_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
-plot_richness(ps.rarefied, x="sampling_period", measures=c("Observed")) + 
+plot_richness(rare_16S_noinsect, x="sampling_period", measures=c("Observed")) + 
         geom_boxplot(aes(fill = Subplot_Descriptions)) + 
         labs(y = "Observed OTUs", x = "Time of Sampling") +
         facet_grid(.~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
@@ -847,7 +856,7 @@ plot_richness(ps.rarefied, x="sampling_period", measures=c("Observed")) +
 dev.off()
 
 #png("T7_warmx_16S_shannon_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
-plot_richness(ps.rarefied, x="sampling_period", measures=c("Shannon")) + 
+plot_richness(rare_16S_noinsect, x="sampling_period", measures=c("Shannon")) + 
         geom_boxplot(aes(fill = Subplot_Descriptions)) + 
         labs(x = "Time of Sampling", y = "Shannon Index") +
         facet_grid(.~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
@@ -856,16 +865,18 @@ plot_richness(ps.rarefied, x="sampling_period", measures=c("Shannon")) +
         theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 #dev.off()
 
-richness <- estimate_richness(ps.rarefied)
+richness <- estimate_richness(rare_16S_noinsect)
 head(richness)
-kruskal.test(richness$Shannon ~ sample_data(ps.rarefied)$Subplot_Descriptions)
-pairwise.wilcox.test(richness$Shannon, sample_data(ps.rarefied)$Subplot_Descriptions, p.adj = "bonf")
+kruskal.test(richness$Shannon ~ sample_data(rare_16S_noinsect)$Subplot_Descriptions)
+pairwise.wilcox.test(richness$Shannon, sample_data(rare_16S_noinsect)$Subplot_Descriptions, p.adj = "bonf")
 
-kruskal.test(richness$Shannon ~ sample_data(ps.rarefied)$sampling_period)
-pairwise.wilcox.test(richness$Shannon, sample_data(ps.rarefied)$sampling_period, p.adj = "bonf")
+kruskal.test(richness$Shannon ~ sample_data(rare_16S_noinsect)$sampling_period)
+pairwise.wilcox.test(richness$Shannon, sample_data(rare_16S_noinsect)$sampling_period, p.adj = "bonf")
 
-kruskal.test(richness$Shannon ~ sample_data(ps.rarefied)$Drought)
-pairwise.wilcox.test(richness$Shannon, sample_data(ps.rarefied)$Drought, p.adj = "bonf")
+kruskal.test(richness$Shannon ~ sample_data(rare_16S_noinsect)$Drought)
+pairwise.wilcox.test(richness$Shannon, sample_data(rare_16S_noinsect)$Drought, p.adj = "bonf")
+
+
 ```
 
 #Beta Diversity
@@ -1174,24 +1185,24 @@ adonis2(bray_dist ~ sample_data(phylum)$Subplot_Descriptions + sample_data(phylu
 
 adonis2(bray_dist ~ sample_data(phylum)$Subplot_Descriptions + sample_data(phylum)$sampling_period, by = "margin", permutations = perm2)
 
-adonis2(bray_dist ~ sample_data(phylum)$Drought + sample_data(phylum)$Warming + sample_data(phylum)$sampling_period, by = "margin", permutations = perm1)
+adonis2(bray_dist ~ sample_data(phylum)$Drought + sample_data(phylum)$Warming + sample_data(phylum)$Insecticide + sample_data(phylum)$sampling_period, by = "margin", permutations = perm1)
 
 adonis2(bray_dist ~ sample_data(phylum)$Drought + sample_data(phylum)$Warming + sample_data(phylum)$Insecticide + sample_data(phylum)$sampling_period, by = "margin", permutations = perm2)
 
 rda.test = ordinate(phylum, method="RDA")
-plot_ordination(phylum, rda.test, color="Drought", shape = "sampling_period") + 
+plot_ordination(phylum, rda.test, color="Insecticide") + 
         geom_point(aes(shape = sampling_period), size=4, alpha=0.75) +
-        stat_ellipse(aes(group = Drought)) +
+        stat_ellipse(aes(group = Insecticide)) +
         theme(aspect.ratio=1)
 ```
 
 
 RDA
 ```{r}
-RDA_ps.rarefied = ordinate(ps.rarefied, method="RDA")
+rda_rare_16S = ordinate(rare_16S, method="RDA")
 
-plot_ordination(ps.rarefied, RDA_ps.rarefied, color="Subplot_Descriptions", shape = "Drought") + 
-        geom_point(aes(color = Subplot_Descriptions, shape = Drought), size=4, alpha=0.75) +
+plot_ordination(rare_16S, rda_rare_16S, color="Subplot_Descriptions", shape = "sampling_period") + 
+        geom_point(aes(color = Subplot_Descriptions, shape = sampling_period), size=4, alpha=0.75) +
         #stat_ellipse() +
         scale_colour_manual(name = "Subplot Descriptions", 
                           breaks = c("irrigated_control", "ambient", "warmed", "drought", "warmed_drought"),
