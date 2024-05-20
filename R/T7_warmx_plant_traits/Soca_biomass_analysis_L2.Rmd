@@ -115,7 +115,24 @@ Checking model results
 summary(m1)
 anova(m1)
 
-contrast(emmeans(m1, ~Climate_Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt")
+emmip(m1, Climate_Treatment~Galling_Status)
+
+# https://www.youtube.com/watch?v=RGn07Dcrkgw
+m1_eff <- emmeans(m1, spec = "Climate_Treatment")
+summary(m1_eff)
+m2_eff <- update(m1_eff, tran=make.tran('power', p=0))
+summary(m2_eff, type="response")
+
+mg_eff <- emmeans(m1, spec = "Galling_Status")
+summary(mg_eff)
+mg2_eff <- update(mg_eff, tran=make.tran('power', p=0))
+summary(mg2_eff, type="response")
+
+# back-transforming - A vs. W and A vs. WD
+exp(1.38186)-exp(1.38186-0.39075) # 1.288078 - warmed plants weigh 1.3g more than ambient
+exp(1.38186)-exp(1.38186-0.43532) # 1.405523 - warmed + drought plants weight 1.4g more than ambient
+
+contrast(emmeans(m1, ~Climate_Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt", type = "response")
 contrast(emmeans(m1, ~Galling_Status), "pairwise", simple = "each", combine = F, adjust = "mvt")
 
 # calculating effect size of galling status - accounting for log transformation
@@ -131,6 +148,36 @@ exp((1.38186) + (-0.367396)*1) # 2.757885
 2.757885 - 3.982302 # -1.224417 grams
 
 kable(anova(m1)) %>% kableExtra::kable_styling()
+
+# trying this:
+# Given values (example)
+estimate <- 0.13  # Estimate
+SE <- 0.041      # Standard Error
+df <- 422        # Degrees of Freedom (use the value from your model output)
+
+# Find the critical t-value for 95% CI
+t_value <- qt(0.975, df)  # For a two-tailed test and alpha = 0.05
+
+# Calculate the margin of error
+margin_of_error <- t_value * SE
+
+# Calculate the confidence interval
+lower_ci <- estimate - margin_of_error
+upper_ci <- estimate + margin_of_error
+
+# Display results
+lower_ci
+upper_ci
+
+# Back-transform using the exponential function
+estimate_original <- exp(estimate)
+lower_ci_original <- exp(lower_ci)
+upper_ci_original <- exp(upper_ci)
+
+# Print the results
+estimate_original  # This should be around 1.139
+lower_ci_original  # This should be around 1.049
+upper_ci_original  # This should be around 1.236
 ```
 
 
