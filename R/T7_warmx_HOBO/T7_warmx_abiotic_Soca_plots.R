@@ -43,7 +43,7 @@ hobo_season$date <- paste0(hobo_season$month,"",hobo_season$day)
 hobo_season$date <- as.numeric(hobo_season$date)
 hobo_season_sum <- hobo_season %>%
   filter(!(year == "2023")) %>%
-  filter(month >= "05") %>%
+  filter(month >= "07") %>%
   filter(month <= "10")
 # create new dataframe with only soil data from May - October
 soil_season <- soil_data
@@ -51,15 +51,22 @@ soil_season$month <- format(soil_season$Date_Time,format="%m")
 soil_season$year <- format(soil_season$Date_Time,format="%Y")
 soil_season$hour <- format(soil_season$Date_Time, format="%H")
 soil_season$day <- format(soil_season$Date_Time, format="%d")
+soil_season$monthday <- format(soil_season$Date_Time, format="%m%d")
+soil_season$month_day <- format(soil_season$Date_Time, format="%m-%d")
 soil_season_sum <- soil_season %>%
-  filter(!(year == "2023")) %>%
-  filter(month >= "05") %>%
+  filter(!(year == "2023" | year == "2024")) %>%
+  filter(month >= "07") %>%
   filter(month <= "10")
+soil_drought_check <- soil_season %>%
+  filter(!(year == "2023" | year == "2024")) %>%
+  filter(monthday >= "0620") %>%
+  filter(monthday <= "0831") %>%
+  filter(Subplot_Descriptions == "drought")
 
 
 
-### temperature average from May - Oct ###
-# take average temp per day, per rep, per treatment
+### temperature average from July - Oct ###
+# take average temp per rep, per treatment
 hobo_temp_rep_avg <- hobo_season_sum %>%
   group_by(Rep, Treatment) %>%
   summarize(average_temp = mean(Temperature_C, na.rm = TRUE))
@@ -69,7 +76,7 @@ hobo_temp_avg <- hobo_temp_rep_avg %>%
   summarize(avg_temp = mean(average_temp, na.rm = TRUE),
             se = std.error(average_temp, na.rm = TRUE))
 
-# take average temp per day, per rep, per treatment, per year
+# take average temp per rep, per treatment, per year
 hobo_temp_rep_avg_year <- hobo_season_sum %>%
   group_by(Rep, Treatment, year) %>%
   summarize(average_temp = mean(Temperature_C, na.rm = TRUE))
@@ -81,7 +88,7 @@ hobo_temp_avg_year <- hobo_temp_rep_avg_year %>%
 
 
 
-### soil temp and moisture average from May - Oct ###
+### soil temp and moisture average from July - Oct ###
 # take average per day, per rep, per treatment
 soil_sampling_avg_rep <- soil_season_sum %>%
   group_by(Rep, Subplot_Descriptions) %>%
@@ -95,7 +102,7 @@ soil_sampling_avg <- soil_sampling_avg_rep %>%
             avg_moist = mean(average_moist, na.rm=T),
             se_moist = std.error(average_moist, na.rm=T))
 
-# take average per day, per rep, per treatment, per year
+# take average per rep, per treatment, per year
 soil_sampling_avg_rep_year <- soil_season_sum %>%
   group_by(Rep, Subplot_Descriptions, year) %>%
   summarize(average_temp = mean(temperature, na.rm = TRUE),
@@ -107,6 +114,14 @@ soil_sampling_avg_year <- soil_sampling_avg_rep_year %>%
             se_temp = std.error(average_temp, na.rm = TRUE),
             avg_moist = mean(average_moist, na.rm=T),
             se_moist = std.error(average_moist, na.rm=T))
+
+
+
+### daily soil moisture from july-aug in drought treatment ###
+dr_check <- soil_drought_check %>%
+  group_by(month_day,year,Rep) %>%
+  summarize(average_moist = mean(vwc, na.rm = TRUE),
+            se_moist = std.error(vwc, na.rm=T))
 
 
 
@@ -220,5 +235,52 @@ png("rex_abiotic_yearly.png", units="in", width=12, height=5, res=300)
 annotate_figure(abiotic_comb_yearly,
                 bottom = text_grob("Treatment", color = "black", size=17))
 dev.off()
+
+
+
+# plot - daily avg. soil moisture from july-august 2021
+dr_check$Rep <- as.character(dr_check$Rep)
+dr_check_2021 <- dr_check %>%
+  filter(year == "2021")
+everyother <- function(x) x[seq_along(x) %% 4 == 0]
+png("rex_drought_2021.png", units="in", width=12, height=5, res=300)
+ggplot(dr_check_2021, aes(x = month_day, y = average_moist, group=Rep, color=Rep)) +
+  geom_errorbar(aes(ymin=average_moist-se_moist, ymax=average_moist+se_moist),width=0.1,color="black",linetype="solid") +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  labs(y="VWC", x="Date", title="2021") +
+  scale_x_discrete(breaks=everyother) +
+  theme_bw() +
+  theme(axis.title = element_text(size=20),
+        axis.text = element_text(size=18),
+        title=element_text(size=20),
+        legend.title = element_text(size=20),
+        legend.text = element_text(size=18))
+dev.off()
+
+
+
+# plot - daily avg. soil moisture from july-august 2022
+dr_check$Rep <- as.character(dr_check$Rep)
+dr_check_2022 <- dr_check %>%
+  filter(year == "2022")
+everyother <- function(x) x[seq_along(x) %% 6 == 0]
+png("rex_drought_2022.png", units="in", width=12, height=5, res=300)
+ggplot(dr_check_2022, aes(x = month_day, y = average_moist, group=Rep, color=Rep)) +
+  geom_errorbar(aes(ymin=average_moist-se_moist, ymax=average_moist+se_moist),width=0.1,color="black",linetype="solid") +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  labs(y="VWC", x="Date", title="2022") +
+  scale_x_discrete(breaks=everyother) +
+  theme_bw() +
+  theme(axis.title = element_text(size=20),
+        axis.text = element_text(size=18),
+        title = element_text(size=20),
+        legend.title = element_text(size=20),
+        legend.text = element_text(size=18))
+dev.off()
+
+
+
 
 
