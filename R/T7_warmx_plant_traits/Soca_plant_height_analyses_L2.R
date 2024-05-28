@@ -23,7 +23,7 @@ library(multcomp)
 dir<-Sys.getenv("DATA_DIR")
 
 # Read in data
-height <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_soca_height_harvest_L1.csv"))
+height <- read.csv(file.path(dir, "/T7_warmx_plant_traits/L1/T7_warmx_soca_height_harvest_L1.csv"))
 
 
 ###### Data exploration #######
@@ -91,7 +91,7 @@ summary(m2)
 # back-transforming - W vs. A and W vs. I
 exp(4.43673)-exp(4.43673-0.22449) # warmed plants 17 cm taller than ambient
 exp(4.43673)-exp(4.43673-0.19599) # warmed plants 15 cm taller than irrigated
-# back-transformint - WD vs. A and WD vs. D (set the reference level to warm drought instead of warm)
+# back-transforming - WD vs. A and WD vs. D (set the reference level to warm drought instead of warm)
 exp(4.42690)-exp(4.42690-0.21466) # warmed drought plants 16 cm taller than ambient
 exp(4.42690)-exp(4.42690-0.18240) # warmed drought plants 14 cm taller than drought
 contrast(emmeans(m2, ~Climate_Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt")
