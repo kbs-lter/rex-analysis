@@ -80,19 +80,16 @@ outlierTest(m1) # checking for outliers - none
 
 
 ###### Checking model results ########
-anova(m1)
-emmip(m1, Climate_Treatment~Galling_Status)
 # this outcome shows us that climate has an effect but not galling. there is also no interaction btwn climate and galling
-# model w/o interaction term, since it was not significant
 height <- within(height, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Warm Drought")) # re-set the reference level for diff. comparisons
-m2 <- lmer(log(Height_cm) ~ Climate_Treatment + Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = height, REML=F)
+m2 <- lmer(log(Height_cm) ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = height, REML=F)
+emmip(m2, Climate_Treatment~Galling_Status)
 anova(m2)
 summary(m2)
-# back-transforming - W vs. A and W vs. I
-exp(4.43673)-exp(4.43673-0.22449) # warmed plants 17 cm taller than ambient
-exp(4.43673)-exp(4.43673-0.19599) # warmed plants 15 cm taller than irrigated
+# back-transforming - W vs. A
+exp(4.43693)-exp(4.43693-0.23552) # warmed plants 17.7 cm taller than ambient
 # back-transforming - WD vs. A and WD vs. D (set the reference level to warm drought instead of warm)
-exp(4.42690)-exp(4.42690-0.21466) # warmed drought plants 16 cm taller than ambient
-exp(4.42690)-exp(4.42690-0.18240) # warmed drought plants 14 cm taller than drought
+exp(4.47952)-exp(4.47952-0.27812) # warmed drought plants 21.4 cm taller than ambient
+exp(4.47952)-exp(4.47952-0.24918) # warmed drought plants 19.5 cm taller than drought
 contrast(emmeans(m2, ~Climate_Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt")
 (0.799 - 1) * 100 # 20% decrease from ambient to warmed
