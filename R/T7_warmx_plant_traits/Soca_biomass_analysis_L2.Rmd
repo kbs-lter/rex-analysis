@@ -118,7 +118,7 @@ anova(m1)
 emmip(m1, Climate_Treatment~Galling_Status)
 
 # re-set the reference level for diff. comparisons
-biomass <- within(biomass, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Ambient Drought"))
+biomass <- within(biomass, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Ambient"))
 m1 <- lmer(log_biomass ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = biomass, REML=F)
 summary(m1)
 
@@ -130,22 +130,17 @@ exp(1.38186)-exp(1.38186-0.43532) # 1.405523 - warmed + drought plants weighed ~
 
 # Pairwise comparisons for climate treatments
 # back-transforming - D vs. W
-exp(1.46130)-exp(1.46130-0.31131) # -2.149712 - drought plants weighed ~2.1 g less than warmed
+exp(1.46130)-exp(1.46130-0.31131) # -1.1534 - warmed plants weighed ~1.2 g more than droughted plants
 
 # Pairwise comparisons for climate treatments
 # back-transforming - D vs. WD
 exp(1.46130)-exp(1.46130-0.35589) # 1.291098 - warmed + drought plants weighed ~1.3 g more than drought plants
 
 # Pairwise comparisons for non-galled vs galled
-# re-set the reference level for diff. comparisons
-biomass <- within(biomass, Galling_Status <- relevel(factor(Galling_Status), ref = "Galled"))
-# rerun model
-m1 <- lmer(log_biomass ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = biomass, REML=F)
 summary(m1)
-anova(m1)
 
-# back-transforming - non-galled vs. galled
-exp(1.42062)-exp(1.42062-0.04069) # 0.1650629 - galled plants weighed 0.17 g more than non-galled plants
+# back-transforming - galled vs. non-galled
+exp(1.42062)-exp(1.42062-(-0.04069)) # -0.1719178 - non-galled plants weighed 0.17 g less than non-galled plants
 
 contrast(emmeans(m1, ~Climate_Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt", type = "response")
 contrast(emmeans(m1, ~Galling_Status), "pairwise", simple = "each", combine = F, adjust = "mvt")
