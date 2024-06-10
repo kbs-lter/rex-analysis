@@ -118,36 +118,34 @@ anova(m1)
 emmip(m1, Climate_Treatment~Galling_Status)
 
 # re-set the reference level for diff. comparisons
-biomass <- within(biomass, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Ambient"))
+biomass <- within(biomass, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Ambient Drought"))
 m1 <- lmer(log_biomass ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = biomass, REML=F)
 summary(m1)
-anova(m1)
-
-# https://www.youtube.com/watch?v=RGn07Dcrkgw
-m1_eff <- emmeans(m1, spec = "Climate_Treatment")
-summary(m1_eff)
-m2_eff <- update(m1_eff, tran=make.tran('power', p=0))
-summary(m2_eff, type="response")
-
-mg_eff <- emmeans(m1, spec = "Galling_Status")
-summary(mg_eff)
-mg2_eff <- update(mg_eff, tran=make.tran('power', p=0))
-summary(mg2_eff, type="response")
 
 # Pairwise comparisons for climate treatments
-# back-transforming - A vs. W and A vs. WD
-exp(1.30039)-exp(1.30039-0.34404) # 1.068547 - warmed plants weigh 1.1 g more than ambient
+# back-transforming - A vs. W
+exp(1.38186)-exp(1.38186-0.39075) # 1.288078 - warmed plants weighed ~1.3 g more than ambient
+# back-transforming - A vs. WD
+exp(1.38186)-exp(1.38186-0.43532) # 1.405523 - warmed + drought plants weighed ~1.4 g more than ambient
+
+# Pairwise comparisons for climate treatments
+# back-transforming - D vs. W
+exp(1.46130)-exp(1.46130-0.31131) # -2.149712 - drought plants weighed ~2.1 g less than warmed
+
+# Pairwise comparisons for climate treatments
+# back-transforming - D vs. WD
+exp(1.46130)-exp(1.46130-0.35589) # 1.291098 - warmed + drought plants weighed ~1.3 g more than drought plants
 
 # Pairwise comparisons for non-galled vs galled
 # re-set the reference level for diff. comparisons
-biomass <- within(biomass, Galling_Status <- relevel(factor(Galling_Status), ref = "Non-Galled"))
+biomass <- within(biomass, Galling_Status <- relevel(factor(Galling_Status), ref = "Galled"))
 # rerun model
 m1 <- lmer(log_biomass ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = biomass, REML=F)
 summary(m1)
 anova(m1)
 
 # back-transforming - non-galled vs. galled
-exp(1.30039)-exp(1.30039-0.08147) # 0.2871964 - galled plants weighed 0.29 g more than non-galled plants
+exp(1.42062)-exp(1.42062-0.04069) # 0.1650629 - galled plants weighed 0.17 g more than non-galled plants
 
 contrast(emmeans(m1, ~Climate_Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt", type = "response")
 contrast(emmeans(m1, ~Galling_Status), "pairwise", simple = "each", combine = F, adjust = "mvt")
@@ -168,47 +166,6 @@ exp((1.38186) + (-0.367396)*1) # 2.757885
 # make table for supp
 kable(anova(m1)) %>% kableExtra::kable_styling()
 
-# trying this:
-# Given values (example)
-estimate <- 0.13  # Estimate
-SE <- 0.041      # Standard Error
-df <- 422        # Degrees of Freedom (use the value from your model output)
-
-# Find the critical t-value for 95% CI
-t_value <- qt(0.975, df)  # For a two-tailed test and alpha = 0.05
-
-# Calculate the margin of error
-margin_of_error <- t_value * SE
-
-# Calculate the confidence interval
-lower_ci <- estimate - margin_of_error
-upper_ci <- estimate + margin_of_error
-
-# Display results
-lower_ci
-upper_ci
-
-# Back-transform using the exponential function
-estimate_original <- exp(estimate)
-lower_ci_original <- exp(lower_ci)
-upper_ci_original <- exp(upper_ci)
-
-# Print the results
-estimate_original  # This should be around 1.139
-lower_ci_original  # This should be around 1.049
-upper_ci_original  # This should be around 1.236
 ```
 
-
-```{r}
-m2 <- lmer(log_biomass ~ Climate_Treatment + Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = biomass, REML=F)
-
-check_model(m2)
-
-summary(m2)
-anova(m2)
-
-contrast(emmeans(m2, ~Climate_Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt")
-contrast(emmeans(m2, ~Galling_Status), "pairwise", simple = "each", combine = F, adjust = "mvt")
-```
 
