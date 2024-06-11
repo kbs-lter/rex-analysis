@@ -24,6 +24,10 @@ dir<-Sys.getenv("DATA_DIR")
 
 # Read in data
 height <- read.csv(file.path(dir, "/T7_warmx_plant_traits/L1/T7_warmx_soca_height_harvest_L1.csv"))
+#removing rep 4
+height <- height %>%
+  filter(!(Rep == 4 & Climate_Treatment == "Warm Drought")) %>%
+  filter(!(Rep == 4 & Climate_Treatment == "Ambient Drought"))
 
 
 ###### Data exploration #######
@@ -69,7 +73,7 @@ plot(m1, main = "Plant height")
 # Homogeneity of variance looks a bit off (increasing variance in resids does increase with fitted values)
 # Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
 leveneTest(residuals(m1) ~ height$Climate_Treatment) # met
-leveneTest(residuals(m1) ~ height$Galling_Status) # not met, but pretty close
+leveneTest(residuals(m1) ~ height$Galling_Status) # met
 # (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
 # Check for normal residuals
 qqPlot(resid(m1), main = "Plant height")
