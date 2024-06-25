@@ -18,16 +18,13 @@ library(car)
 library(emmeans)
 library(bbmle)
 library(multcomp)
+library(knitr)
 
 # Set working directory
 dir<-Sys.getenv("DATA_DIR")
 
 # Read in data
 height <- read.csv(file.path(dir, "/T7_warmx_plant_traits/L1/T7_warmx_soca_height_harvest_L1.csv"))
-#removing rep 4
-height <- height %>%
-  filter(!(Rep == 4 & Climate_Treatment == "Warm Drought")) %>%
-  filter(!(Rep == 4 & Climate_Treatment == "Ambient Drought"))
 
 
 ###### Data exploration #######
@@ -89,6 +86,7 @@ height <- within(height, Climate_Treatment <- relevel(factor(Climate_Treatment),
 m2 <- lmer(log(Height_cm) ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = height, REML=F)
 emmip(m2, Climate_Treatment~Galling_Status)
 anova(m2)
+kable(anova(m2)) %>% kableExtra::kable_styling()
 summary(m2)
 # back-transforming - W vs. A
 exp(4.43693)-exp(4.43693-0.23552) # warmed plants 17.7 cm taller than ambient
