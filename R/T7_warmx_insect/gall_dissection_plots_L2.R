@@ -4,7 +4,7 @@
 # DATA INPUT:     Data imported as csv files from shared REX Google drive T7_warmx_insect L1 folder
 # DATA OUTPUT:    Plots
 # PROJECT:        REX
-# DATE:           Jan 2022
+# DATE:           Jan 2022; updated June 2024 w/ gall weight
 
 # Clear all existing data
 rm(list=ls())
@@ -27,6 +27,7 @@ dir<-Sys.getenv("DATA_DIR")
 # Read in data
 count <- read.csv(file.path(dir, "T7_warmx_insect/L1/T7_warmx_Soca_gall_chmb_count_L1.csv"))
 vol <- read.csv(file.path(dir, "T7_warmx_insect/L1/T7_warmx_Soca_gall_chmb_vol_L1.csv"))
+weight <- read.csv(file.path(dir, "T7_warmx_insect/L1/T7_warmx_Soca_galls_weight_L1.csv"))
 
 # Taking averages
 count_avg <- count %>%
@@ -37,6 +38,10 @@ vol_avg <- vol %>%
   group_by(treatment) %>%
   summarize(avg_vol = mean(chamber_volume_mm3, na.rm = TRUE),
             se = std.error(chamber_volume_mm3, na.rm = TRUE))
+weight_avg <- weight %>%
+  group_by(Climate_Treatment) %>%
+  summarize(avg_weight = mean(Dried_Weight, na.rm = TRUE),
+            se = std.error(Dried_Weight, na.rm = TRUE))
 
 # Boxplot of chamber counts
 png("gall_chamber_count_box.png", units="in", width=8, height=6, res=300)
@@ -103,3 +108,17 @@ ggplot(vol_avg, aes(x = treatment, y = avg_vol)) +
                             "Warm Drought" = "Warmed & \n Drought")) +
   theme(legend.position = "none")
 dev.off()
+
+
+# Plot of means for gall weight
+ggplot(weight_avg, aes(x = Climate_Treatment, y = avg_weight)) +
+  geom_pointrange(aes(ymin = avg_weight - se, ymax = avg_weight + se),pch=21,size=1, fill = "olivedrab4") +
+  labs(x = "Treatment", y = "Gall Weight (g)") +
+  #scale_fill_manual(values = c("olivedrab4", "darkseagreen2"), name="Gall Presence",labels=c("Gall","No Gall")) +
+  scale_x_discrete(limits = c("Irrigated Control", "Ambient", "Ambient Drought", "Warm", "Warm Drought"),
+                   labels=c("Ambient" = "Ambient",
+                            "Ambient Drought" = "Drought",
+                            "Irrigated Control" = "Irrigated \n Control",
+                            "Warm" = "Warmed",
+                            "Warm Drought" = "Warmed & \n Drought")) +
+  theme(legend.position = "right")

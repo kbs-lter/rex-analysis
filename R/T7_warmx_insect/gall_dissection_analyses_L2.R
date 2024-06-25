@@ -4,7 +4,7 @@
 # DATA INPUT:     Data imported as csv files from shared REX Google drive T7_warmx_insect L1 folder
 # DATA OUTPUT:    analyses
 # PROJECT:        REX
-# DATE:           Jan 2022
+# DATE:           Jan 2022; updated June 2024 with gall weight
 
 # Clear all existing data
 rm(list=ls())
@@ -18,6 +18,7 @@ library(car)
 library(emmeans)
 library(bbmle)
 library(multcomp)
+library(knitr)
 
 # Set working directory
 dir<-Sys.getenv("DATA_DIR")
@@ -25,6 +26,7 @@ dir<-Sys.getenv("DATA_DIR")
 # Read in data
 count <- read.csv(file.path(dir, "T7_warmx_insect/L1/T7_warmx_Soca_gall_chmb_count_L1.csv"))
 vol <- read.csv(file.path(dir, "T7_warmx_insect/L1/T7_warmx_Soca_gall_chmb_vol_L1.csv"))
+weight <- read.csv(file.path(dir, "T7_warmx_insect/L1/T7_warmx_Soca_galls_weight_L1.csv"))
 
 
 ######## Gall chamber counts ########
@@ -150,4 +152,58 @@ summary(m4)
 vol <- within(vol, treatment <- relevel(factor(treatment), ref = "Warm Drought"))
 m4 <- lmer(log_vol ~ treatment + (1|unique_plant_number) + (1|rep/footprint), data = vol, REML=FALSE)
 summary(m4)
+
+
+
+######## Gall weight ########
+# Data exploration
+descdist(weight$Dried_Weight, discrete = FALSE)
+hist(weight$Dried_Weight)
+qqnorm(weight$Dried_Weight)
+shapiro.test(weight$Dried_Weight)
+# pretty right skewed, going to try a few transformations & poisson distribution
+
+# square root transformation
+weight$sqrt_weight <- sqrt(weight$Dried_Weight)
+descdist(weight$sqrt_weight, discrete = FALSE)
+hist(weight$sqrt_weight)
+qqnorm(weight$sqrt_weight)
+shapiro.test(weight$sqrt_weight)
+
+# log transformation
+weight$log_weight <- log(weight$Dried_Weight)
+descdist(weight$log_weight, discrete = FALSE)
+hist(weight$log_weight)
+qqnorm(weight$log_weight)
+shapiro.test(weight$log_weight) # sqrt was better
+
+# Assumption checking - log transformation
+weight <- within(weight, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Irrigated Control"))
+m1 <- lmer(sqrt(Dried_Weight) ~ Climate_Treatment + (1|Rep/Footprint) + (1|Year), data = weight, REML=FALSE)
+# Check Assumptions:
+# (1) Linearity: if covariates are not categorical
+# (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
+plot(m1, main = "Gall weight")
+# Homogeneity of variance is ok here (increasing variance in resids is not increasing with fitted values)
+# Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
+leveneTest(residuals(m1) ~ weight$Climate_Treatment)
+# Assumption met
+# (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
+# Check for normal residuals
+qqPlot(resid(m1), main = "Gall weight")
+hist(residuals(m1), main = "Gall weight")
+shapiro.test(resid(m1))
+outlierTest(m1)
+
+# Model outcomes
+anova(m1)
+kable(anova(m1)) %>% kableExtra::kable_styling()
+summary(m1)
+# back-transforming
+# A vs IR
+# D vs IR
+# W vs IR
+
+contrast(emmeans(m1, ~Climate_Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt")
+
 
