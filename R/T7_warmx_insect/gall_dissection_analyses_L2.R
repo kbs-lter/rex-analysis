@@ -179,7 +179,7 @@ shapiro.test(weight$log_weight) # sqrt was better
 
 # Assumption checking - log transformation
 weight <- within(weight, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Irrigated Control"))
-m1 <- lmer(sqrt(Dried_Weight) ~ Climate_Treatment + (1|Rep/Footprint) + (1|Year), data = weight, REML=FALSE)
+m1 <- lmer(sqrt(Dried_Weight) ~ Climate_Treatment + (1|Rep/Footprint/Subplot) + (1|Year), data = weight, REML=FALSE)
 # Check Assumptions:
 # (1) Linearity: if covariates are not categorical
 # (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
@@ -202,7 +202,6 @@ summary(m1)
 # back-transforming
 # A vs IR
 # D vs IR
-# W vs IR
 
 contrast(emmeans(m1, ~Climate_Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt")
 
