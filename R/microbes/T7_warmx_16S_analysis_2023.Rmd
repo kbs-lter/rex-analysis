@@ -63,8 +63,8 @@ otu <- read.csv("/Users/moriahyoung/Desktop/phyloseq_object/16S-2023-table-filte
 metadata <- read.csv("/Users/moriahyoung/Desktop/phyloseq_object/bacterial_2023_metadata.csv")
 
 # Create phyloseq objects of filtered data (16S)
-data_16S_filtered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-2023-table-filtered.csv",
-                                       taxonomy.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-2023-taxonomy-filtered.csv",
+data_16S_filtered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-2023-table-filtered-noncontam.csv",
+                                       taxonomy.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-2023-taxonomy-filtered-noncontam.csv",
                                        metadata.file = "/Users/moriahyoung/Desktop/phyloseq_object/bacterial_2023_metadata.csv")
 summarize_phyloseq(data_16S_filtered)
 
@@ -89,8 +89,8 @@ summarize_phyloseq(data_16S_counts)
 
 sum(colSums(otu_table(data_16S_counts)))
 sort(colSums(otu_table(data_16S_counts)))
-# min = 2488
-# max = 202,979
+# min = 3593
+# max = 35,991
 
 # https://github.com/joey711/phyloseq/issues/143
 # Rarefaction Curve Function
