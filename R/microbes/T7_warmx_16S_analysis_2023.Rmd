@@ -1,0 +1,193 @@
+---
+title: "T7 warmx 16S Analysis 2023"
+author: "Moriah Young"
+date: "2024-07-01"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE, message=FALSE}
+rm(list = ls()) # clear working environment
+
+# load packages
+library(compositions)
+library(cowplot)
+library(cluster)
+library(data.table)
+library(devtools)
+library(plyr)
+library(dplyr)
+library(doParallel)
+library(factoextra)
+library(ggplot2)
+library(ggsignif)
+library(gridExtra)
+library(hillR)
+library(microbiome)
+library(multcomp)
+library(nlme)
+library(phyloseq)
+library(qiime2R)
+library(tidyverse)
+library(vegan)
+library(zCompositions)
+library(permute)
+library(pheatmap)
+library(plotrix)
+#library(phylosmith) ##
+#library(microViz) ##
+#library(DESeq2) ##
+#library(ANCOMBC) ##
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+```
+
+```{r}
+physeq_tree <- qza_to_phyloseq(
+        tree = "/Users/moriahyoung/Desktop/phyloseq_object/16S-2023-fasttree-rooted-tree.qza"
+        )
+physeq_tree
+```
+
+```{r}
+
+taxonomy <- read.csv("/Users/moriahyoung/Desktop/phyloseq_object/16S-2023-taxonomy-filtered-noncontam.csv")
+otu <- read.csv("/Users/moriahyoung/Desktop/phyloseq_object/16S-2023-table-filtered-noncontam.csv")
+metadata <- read.csv("/Users/moriahyoung/Desktop/phyloseq_object/bacterial_2023_metadata.csv")
+
+# Create phyloseq objects of filtered data (16S)
+data_16S_filtered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-2023-table-filtered.csv",
+                                       taxonomy.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-2023-taxonomy-filtered.csv",
+                                       metadata.file = "/Users/moriahyoung/Desktop/phyloseq_object/bacterial_2023_metadata.csv")
+summarize_phyloseq(data_16S_filtered)
+
+# merge the phyloseq object with the phylogenetic tree with the other phyloseq object
+data_16S_filtered <- merge_phyloseq(data_16S_filtered, physeq_tree)
+summarize_phyloseq(data_16S_filtered)
+
+# order sample data - "Drought" and "Subplot_Descriptions"
+sample_data(data_16S_filtered)$sample_period <- ordered(sample_data(data_16S_filtered)$sampling_period, c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"))
+sample_data(data_16S_filtered)$Subplot_Descriptions <- ordered(sample_data(data_16S_filtered)$Subplot_Descriptions, c("irrigated_control", "ambient", "warmed", "warmed_insecticide", "insecticide", "drought", "warmed_drought", "drought_insecticide", "warmed_drought_insecticide"))
+```
+
+# Rarefaction Curves
+```{r}
+data_16S_counts <- data_16S_filtered
+# remove samples that have less than 1000 reads
+data_16S_counts <- prune_samples(sample_sums(data_16S_counts)>=1000, data_16S_counts)
+#data_16S_filtered <- transform_sample_counts(data_16S_filtered, function(x) x/sum(x))
+# Prune SVs that are not present 5 times in at least 2 samples --> remove taxa not seen more than 5 times in at least ~1% of the samples. This protects against an OTU with small mean & trivially large C.V.
+#data_16S_counts <- filter_taxa(data_16S_counts, function(x) sum(x >5) > (0.01058201*length(x)), TRUE)
+summarize_phyloseq(data_16S_counts)
+
+sum(colSums(otu_table(data_16S_counts)))
+sort(colSums(otu_table(data_16S_counts)))
+# min = 2488
+# max = 202,979
+
+# https://github.com/joey711/phyloseq/issues/143
+# Rarefaction Curve Function
+calculate_rarefaction_curves <- function(psdata, measures, depths, parallel=T) {
+        require('plyr') # ldply
+        require('reshape2') # melt
+        require('doParallel')
+  
+# set parallel options if required
+if (parallel) {
+        paropts  <- list(.packages=c("phyloseq", "reshape2"))
+        } else {
+                paropts  <- NULL
+                }
+  
+estimate_rarified_richness <- function(psdata, measures, depth) {
+    if(max(sample_sums(psdata)) < depth) return()
+    psdata <- prune_samples(sample_sums(psdata) >= depth, psdata)
+    
+    rarified_psdata <- rarefy_even_depth(psdata, depth, verbose = FALSE)
+    
+    alpha_diversity <- estimate_richness(rarified_psdata, measures = measures)
+    
+    # as.matrix forces the use of melt.array, which includes the Sample names (rownames)
+    molten_alpha_diversity <- melt(as.matrix(alpha_diversity), varnames = c('Sample', 'Measure'), value.name = 'Alpha_diversity')
+    
+    molten_alpha_diversity
+  }
+  
+  names(depths) <- depths # this enables automatic addition of the Depth to the output by ldply
+  rarefaction_curve_data <- ldply(depths, estimate_rarified_richness, psdata = psdata, measures = measures, .id = 'Depth', .progress = ifelse(interactive() && ! parallel, 'text', 'none'), .parallel=parallel, .paropts=paropts)
+  
+  # convert Depth from factor to numeric
+  rarefaction_curve_data$Depth <- as.numeric(levels(rarefaction_curve_data$Depth))[rarefaction_curve_data$Depth]
+  
+  rarefaction_curve_data
+}
+
+# Summarize alpha diversity
+rarefaction_curve_data <- calculate_rarefaction_curves(data_16S_counts, c('Observed', 'Shannon'), 
+                                                       rep(c(1, 10, 100, 1000, 1:100 * 10000), each = 10))
+
+rarefaction_curve_data_summary <- ddply(rarefaction_curve_data, c('Depth', 'Sample', 'Measure'), summarise, Alpha_diversity_mean = mean(Alpha_diversity), Alpha_diversity_sd = sd(Alpha_diversity))
+
+# Add sample data
+rarefaction_curve_data_summary_verbose <-  merge(rarefaction_curve_data_summary %>% mutate(Sample = gsub("[.]", "-", Sample)),
+                                                 data.frame(sample_data(data_16S_counts)) %>% 
+                                                         rownames_to_column(var = "rowname"),
+                                                 by.x = 'Sample', by.y = 'rowname')
+
+discrete_palettes <- list(RColorBrewer::brewer.pal(3, "Set2"))
+
+rarefaction_curve_data_summary_verbose$Subplot_Descriptions <- factor(rarefaction_curve_data_summary_verbose$Subplot_Descriptions)
+
+# plot
+curve_16S_facet <- 
+        ggplot(rarefaction_curve_data_summary_verbose %>% filter(Measure == "Observed"), aes(x = Depth, y = Alpha_diversity_mean,  ymin = Alpha_diversity_mean - Alpha_diversity_sd, ymax = Alpha_diversity_mean + Alpha_diversity_sd, colour = Subplot_Descriptions, group = Sample)) + 
+        geom_line(alpha=1) + 
+        geom_pointrange() + 
+        scale_x_continuous(trans = "log10", name = "Sequence Depth") +
+        ylab("Richness") +
+        facet_wrap(~Subplot_Descriptions, scales = 'free') +
+        theme(legend.text = element_text(hjust = 0)) +
+        labs(title = "16S Rarefaction Curves") +
+        theme_bw()
+
+curve_16S_facet
+
+curve_16S <- ggplot(rarefaction_curve_data_summary_verbose %>% filter(Measure == "Observed"), aes(x = Depth, y = Alpha_diversity_mean,  ymin = Alpha_diversity_mean - Alpha_diversity_sd, ymax = Alpha_diversity_mean + Alpha_diversity_sd, colour = Subplot_Descriptions, group = Sample)) + 
+        geom_line(alpha=1) + 
+        geom_pointrange() + 
+        scale_x_continuous(trans = "log10", name = "Sequence Depth") +
+        ylab("Richness") +
+        #facet_wrap(~Subplot_Descriptions, scales = 'free') +
+        theme(legend.text = element_text(hjust = 0)) +
+        labs(title = "16S Rarefaction Curves") +
+        theme_bw()
+
+curve_16S
+```
+
+#Filter data and rarefy data
+```{r}
+# filter data
+# Remove taxa not seen more than 3 times in at least 20% of the samples. This protects against an OTU with small mean & trivially large C.V.
+data_16S_counts_filtered <- filter_taxa(data_16S_counts, function(x) sum(x > 3) > (0.2*length(x)), TRUE)
+summarize_phyloseq(data_16S_counts_filtered)
+
+# Rarefy data to min sample size reads 
+set.seed(1022)
+#rare_16S <- rarefy_even_depth(data_16S_counts, sample.size = 1000)
+rare_16S <- rarefy_even_depth(data_16S_counts_filtered, sample.size = min(sample_sums(data_16S_counts)))
+summarize_phyloseq(rare_16S)
+sample_data(rare_16S)
+
+# Rarefy the samples without replacement. Rarefaction is used to simulate even number of reads per sample. The rarefaction depth chosen is the 90% of the minimum sample depth in the dataset
+#ps.rarefied = rarefy_even_depth(data_16S_filtered_noinsect, rngseed=1, sample.size = #0.9*min(sample_sums(data_16S_filtered_noinsect)), replace=F)
+#
+#ps.rarefied_1 = rarefy_even_depth(data_16S_filtered_noinsect, rngseed=1, sample.size = #min(sample_sums(data_16S_filtered_noinsect)), replace=F)
+```
