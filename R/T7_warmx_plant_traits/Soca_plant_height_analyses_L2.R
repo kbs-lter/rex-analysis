@@ -18,6 +18,7 @@ library(car)
 library(emmeans)
 library(bbmle)
 library(multcomp)
+library(knitr)
 
 # Set working directory
 dir<-Sys.getenv("DATA_DIR")
@@ -69,7 +70,7 @@ plot(m1, main = "Plant height")
 # Homogeneity of variance looks a bit off (increasing variance in resids does increase with fitted values)
 # Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
 leveneTest(residuals(m1) ~ height$Climate_Treatment) # met
-leveneTest(residuals(m1) ~ height$Galling_Status) # not met, but pretty close
+leveneTest(residuals(m1) ~ height$Galling_Status) # met
 # (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
 # Check for normal residuals
 qqPlot(resid(m1), main = "Plant height")
@@ -85,6 +86,7 @@ height <- within(height, Climate_Treatment <- relevel(factor(Climate_Treatment),
 m2 <- lmer(log(Height_cm) ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = height, REML=F)
 emmip(m2, Climate_Treatment~Galling_Status)
 anova(m2)
+kable(anova(m2)) %>% kableExtra::kable_styling()
 summary(m2)
 # back-transforming - W vs. A
 exp(4.43693)-exp(4.43693-0.23552) # warmed plants 17.7 cm taller than ambient

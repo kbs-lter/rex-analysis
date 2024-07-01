@@ -37,7 +37,10 @@ seed <- seed %>%
 # merge seed and biomass dataframes
 # note to self: 267 is duplicated in 2021 - fix this
 seed <- left_join(seed,biomass,by=c("Treatment","Rep","Footprint","Subplot","Climate_Treatment","Galling_Status","Year","Unique_ID"))
-
+#removing rep 4
+seed <- seed %>%
+  filter(!(Rep == 4 & Climate_Treatment == "Warm Drought")) %>%
+  filter(!(Rep == 4 & Climate_Treatment == "Ambient Drought"))
 
 
 ##################################### distribution check #####################################
@@ -77,7 +80,7 @@ plot(fit.gamma)
 ##### full model #####
 seed <- within(seed, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Ambient Drought"))
 seed <- within(seed, Galling_Status <- relevel(factor(Galling_Status), ref = "Non-Galled"))
-full.model <- glmmTMB(Seeds_Mass ~ Climate_Treatment * Galling_Status + (1|Year/Treatment/Rep/Footprint/Subplot/plant_num) + (1|Biomass),
+full.model <- glmmTMB(Seeds_Mass ~ Climate_Treatment * Galling_Status + (1|Year:Rep:Footprint) + (1|Biomass),
                       data=seed,
                       family=ziGamma(link="log"),
                       zi=~.)
