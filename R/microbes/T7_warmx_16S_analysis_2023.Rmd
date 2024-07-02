@@ -73,7 +73,7 @@ data_16S_filtered <- merge_phyloseq(data_16S_filtered, physeq_tree)
 summarize_phyloseq(data_16S_filtered)
 
 # order sample data - "Drought" and "Subplot_Descriptions"
-sample_data(data_16S_filtered)$sample_period <- ordered(sample_data(data_16S_filtered)$sampling_period, c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"))
+sample_data(data_16S_filtered)$sample_period <- ordered(sample_data(data_16S_filtered)$Date, c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"))
 sample_data(data_16S_filtered)$Subplot_Descriptions <- ordered(sample_data(data_16S_filtered)$Subplot_Descriptions, c("irrigated_control", "ambient", "warmed", "warmed_insecticide", "insecticide", "drought", "warmed_drought", "drought_insecticide", "warmed_drought_insecticide"))
 ```
 
@@ -82,6 +82,7 @@ sample_data(data_16S_filtered)$Subplot_Descriptions <- ordered(sample_data(data_
 data_16S_counts <- data_16S_filtered
 # remove samples that have less than 1000 reads
 data_16S_counts <- prune_samples(sample_sums(data_16S_counts)>=1000, data_16S_counts)
+
 #data_16S_filtered <- transform_sample_counts(data_16S_filtered, function(x) x/sum(x))
 # Prune SVs that are not present 5 times in at least 2 samples --> remove taxa not seen more than 5 times in at least ~1% of the samples. This protects against an OTU with small mean & trivially large C.V.
 #data_16S_counts <- filter_taxa(data_16S_counts, function(x) sum(x >5) > (0.01058201*length(x)), TRUE)
@@ -89,7 +90,7 @@ summarize_phyloseq(data_16S_counts)
 
 sum(colSums(otu_table(data_16S_counts)))
 sort(colSums(otu_table(data_16S_counts)))
-# min = 3593
+# min = 5736
 # max = 35,991
 
 # https://github.com/joey711/phyloseq/issues/143
@@ -190,4 +191,362 @@ sample_data(rare_16S)
 #ps.rarefied = rarefy_even_depth(data_16S_filtered_noinsect, rngseed=1, sample.size = #0.9*min(sample_sums(data_16S_filtered_noinsect)), replace=F)
 #
 #ps.rarefied_1 = rarefy_even_depth(data_16S_filtered_noinsect, rngseed=1, sample.size = #min(sample_sums(data_16S_filtered_noinsect)), replace=F)
+```
+
+#Subsetting phyloseq object
+```{r}
+# no insecticide treatment
+data_16S_filtered_noinsect <- subset_samples(data_16S_filtered, Subplot_Descriptions%in%c("ambient", "irrigated_control", "warmed_drought", "drought", "warmed"))
+summarize_phyloseq(data_16S_filtered_noinsect)
+
+# peak drought only + no insecticide
+data_16S_filtered_nona <- subset_samples(data_16S_filtered_noinsect, !is.na(sampling_period))
+data_16S_filtered_noinsect_peakdrought <- subset_samples(data_16S_filtered_nona, sampling_period == "Peak-Drought")
+summarize_phyloseq(data_16S_filtered_noinsect_peakdrought)
+
+# removing just pre drought + no insecticide
+data_16S_filtered_nopredrought <- subset_samples(data_16S_filtered_noinsect, sampling_period%in%c("Peak-Drought", "Post-Drought", "Recovery"))
+summarize_phyloseq(data_16S_filtered_nopredrought)
+
+# removing irrigated control and pre-drought + no insecticide
+data_16S_filtered_noIRC <- subset_samples(rare_16S, Subplot_Descriptions%in%c("ambient", "warmed_drought", "drought", "warmed"))
+data_16S_filtered_balanced <- subset_samples(data_16S_filtered_noIRC, sampling_period%in%c("Peak-Drought", "Post-Drought", "Recovery"))
+summarize_phyloseq(data_16S_filtered_balanced)
+
+# removing irrigated control for balanced design
+data_16S_noIRC <- subset_samples(rare_16S, !(Subplot_Descriptions %in% "irrigated_control"))
+summarize_phyloseq(data_16S_noIRC)
+
+# peak drought and no irrigated control
+data_16S_filtered_peak_noIRC <- subset_samples(data_16S_filtered_noIRC, sampling_period == "Peak-Drought")
+```
+
+# PEAK DROUGHT NO IRRIGATED CONTROL
+#Subsetting phyloseq object
+```{r}
+# no insecticide treatment and no irrigated control
+data_rare_noinsect <- subset_samples(rare_16S, Subplot_Descriptions%in%c("ambient", "warmed_drought", "drought", "warmed"))
+
+# peak drought only
+data_rare_noinsect_nona <- subset_samples(data_rare_noinsect, !is.na(Date))
+data_rare_noinsect_peak <- subset_samples(data_rare_noinsect_nona, Date == "Peak-Drought")
+summarize_phyloseq(data_rare_noinsect_peak)
+
+```
+
+#Alpha Diversity
+# consider not using rarefied data or untrimmed data for alpha diversity?
+```{r}
+# no insecticide treatment
+rare_16S_noinsect <- subset_samples(rare_16S, Subplot_Descriptions%in%c("ambient", "irrigated_control", "warmed_drought", "drought", "warmed"))
+summarize_phyloseq(rare_16S_noinsect)
+
+# order sample data - "Date" and "Subplot_Descriptions"
+sample_data(rare_16S_noinsect)$Date <- ordered(sample_data(rare_16S_noinsect)$Date, c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"))
+sample_data(rare_16S_noinsect)$Subplot_Descriptions <- ordered(sample_data(rare_16S_noinsect)$Subplot_Descriptions, c("irrigated_control", "ambient", "warmed", "warmed_insecticide", "insecticide", "drought", "warmed_drought", "drought_insecticide", "warmed_drought_insecticide"))
+
+# Plotting Alpha Diversity
+treatment_names <- c("ambient" = "Ambient",
+                     "drought" = "Drought",
+                     "irrigated_control" = "Irrigated Control",
+                     "warmed" = "Warmed",
+                     "warmed_drought" = "Warmed + Drought")
+
+plot_richness(rare_16S_noinsect, x="Date", color="Subplot_Descriptions", measures=c("Observed"))
+plot_richness(rare_16S_noinsect, x="Date", measures=c("Observed", "Shannon")) + geom_boxplot()
+plot_richness(rare_16S_noinsect, x="Subplot_Descriptions", measures=c("Observed")) + geom_boxplot() + facet_grid(.~Date)
+plot_richness(rare_16S_noinsect, x="Subplot_Descriptions", measures=c("Shannon")) + geom_boxplot() + facet_grid(.~Date)
+
+
+png("T7_warmx_16S_observed_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
+plot_richness(rare_16S_noinsect, x="Date", measures=c("Observed")) + 
+        geom_boxplot(aes(fill = Subplot_Descriptions)) + 
+        labs(y = "Observed OTUs", x = "Time of Sampling") +
+        facet_grid(.~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        theme(legend.position = "none", 
+              axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 15),
+              axis.text.y = element_text(size = 12),
+              axis.title.x = element_text(size=12),
+              axis.title.y = element_text(size=12),
+              strip.text.x = element_text(size = 12, face = "italic"))
+dev.off()
+
+#png("T7_warmx_16S_shannon_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
+plot_richness(rare_16S_noinsect, x="Date", measures=c("Shannon")) + 
+        geom_boxplot(aes(fill = Subplot_Descriptions)) + 
+        labs(x = "Time of Sampling", y = "Shannon Index") +
+        facet_grid(.~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+#dev.off()
+
+richness <- estimate_richness(rare_16S_noinsect)
+head(richness)
+kruskal.test(richness$Shannon ~ sample_data(rare_16S_noinsect)$Subplot_Descriptions)
+pairwise.wilcox.test(richness$Shannon, sample_data(rare_16S_noinsect)$Subplot_Descriptions, p.adj = "bonf")
+
+kruskal.test(richness$Shannon ~ sample_data(rare_16S_noinsect)$Date)
+pairwise.wilcox.test(richness$Shannon, sample_data(rare_16S_noinsect)$sampling_period, p.adj = "bonf")
+
+kruskal.test(richness$Shannon ~ sample_data(rare_16S_noinsect)$Drought)
+pairwise.wilcox.test(richness$Shannon, sample_data(rare_16S_noinsect)$Drought, p.adj = "bonf")
+
+```
+
+Exploring with just peak drought & no irrigated control (removing irrigated control gets you a balanced design)
+```{r}
+# peak and post drought and no insecticide
+rare_16S_noinsect_peakpost <- subset_samples(rare_16S_noinsect, Date%in%c("Peak-Drought", "Post-Drought"))
+
+# removing irrigated control and pre-drought + no insecticide
+rare_16S_noinsect_peakpost_noIRC <- subset_samples(rare_16S_noinsect_peakpost, Subplot_Descriptions%in%c("ambient", "warmed_drought", "drought", "warmed"))
+
+# PCoA plot using bray-curtis as distance
+bray_dist = phyloseq::distance(rare_16S_noinsect_peakpost_noIRC, method="bray")
+ordination_pcoa = ordinate(rare_16S_noinsect_peakpost_noIRC, method="PCoA", distance=bray_dist)
+
+# https://stackoverflow.com/questions/76465183/plot-ordination-function-of-phyloseq-plots-shapes-double-within-itself
+# Save the PCoA vectors data from your ordinated object
+vectors <- as.data.frame(ordination_pcoa$vectors)
+values <- as.data.frame(ordination_pcoa$values)
+
+library(tibble)
+vectors <- rownames_to_column(vectors, "SampleID")
+
+metadata <- rownames_to_column(data.frame(rare_16S_noinsect_peakpost_noIRC@sam_data), "SampleID")
+vectors_metadata <- dplyr::inner_join(vectors, metadata, by = "SampleID")
+
+ggplot(vectors_metadata, aes(x = Axis.1, y = Axis.2, color = Subplot_Descriptions)) + geom_point()
+
+#png("T7_warmx_16S_pcoa_no_insects.png", units="in", width=10, height=6, res=300)
+plot_ordination(rare_16S_noinsect_peakpost_noIRC, ordination_pcoa, color="Subplot_Descriptions") + 
+        geom_point(aes(color = Subplot_Descriptions), size=4, alpha=0.75) +
+        #stat_ellipse(aes(fill = Drought), geom = "polygon", alpha = .5) +
+        scale_colour_manual(name = "Subplot Descriptions", 
+                          breaks = c("ambient", "warmed", "drought", "warmed_drought"),
+                          labels = c("Ambient", "Warmed", "Drought", "Warmed + Drought"),
+                          values = c("ambient" = "darkblue", "drought" = "gray58", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        #labs(x="Axis 1",
+        #     y="Axis 2") +
+        theme(aspect.ratio=1)
+#dev.off()
+
+plot_ordination(rare_16S_noinsect_peakpost_noIRC, ordination_pcoa, color="Date") + 
+        geom_point(size=4, alpha=0.75) +
+        #stat_ellipse(aes(fill = Drought), geom = "polygon", alpha = .5) +
+        #labs(x="Axis 1",
+        #     y="Axis 2") +
+        theme(aspect.ratio=1)
+
+# Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
+set.seed(22)
+adonis2(bray_dist ~ sample_data(rare_16S_noinsect_peakpost_noIRC)$Subplot_Descriptions)
+adonis2(bray_dist ~ sample_data(rare_16S_noinsect_peakpost_noIRC)$Date)
+
+# trying Jennifer's code below:
+#bray.dist <- phyloseq::distance(ps.rarefied, method = "bray”)
+
+#set.seed(53)
+
+
+
+
+#adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Footprint*sample_data(ps.rarefied)$Subplot, by = #"margin”, permutations = #perm1) 
+#If the interaction is not significant, you should rerun the model without the interaction. For this code, if the interaction is not significant, it won’t show you if the main effects are significant. 
+
+# setting up the permutation object
+perm1 <- with(sample_data(rare_16S_noinsect_peakpost_noIRC), how(blocks = Replicate, plots = Plots(strata=Footprint, type="free"), within=Within(type="free"), nperm = 9999))
+
+adonis2(bray_dist ~ sample_data(rare_16S_noinsect_peakpost_noIRC)$Footprint * sample_data(rare_16S_noinsect_peakpost_noIRC)$Subplot, by = "margin", permutations = perm1)
+
+adonis2(bray_dist ~ sample_data(ps.rarefied_peak_noIRC)$Footprint + sample_data(ps.rarefied_peak_noIRC)$Subplot, by = "margin", permutations = perm1)
+
+adonis2(bray_dist ~ sample_data(rare_16S_noinsect_peakpost_noIRC)$Subplot_Descriptions + sample_data(rare_16S_noinsect_peakpost_noIRC)$Footprint + sample_data(rare_16S_noinsect_peakpost_noIRC)$Subplot, by = "margin", permutations = perm1)
+```
+
+# DROUGHT - ALL SAMPLING TIMES
+#Subsetting phyloseq object
+```{r}
+# no insecticide treatment and no irrigated control
+data_rare_drought <- subset_samples(rare_16S, Subplot_Descriptions%in%c("drought"))
+```
+
+#Alpha Diversity
+```{r}
+# order sample data - "Date" and "Subplot_Descriptions"
+sample_data(data_rare_drought)$Date <- ordered(sample_data(data_rare_drought)$Date, c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"))
+
+plot_richness(data_rare_drought, x="Date", measures=c("Observed"))
+plot_richness(data_rare_drought, x="Date", measures=c("Observed", "Shannon")) + geom_boxplot()
+
+png("T7_warmx_16S_observed_alpha_diversity_drought.png", units="in", width=10, height=6, res=300)
+plot_richness(data_rare_drought, x="Date", measures=c("Observed")) + 
+        geom_boxplot(aes(fill = Date)) + 
+        labs(y = "Observed OTUs", x = "Time of Sampling") +
+        theme(legend.position = "none", 
+              axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 15),
+              axis.text.y = element_text(size = 12),
+              axis.title.x = element_text(size=12),
+              axis.title.y = element_text(size=12),
+              strip.text.x = element_text(size = 12, face = "italic"))
+dev.off()
+
+#png("T7_warmx_16S_shannon_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
+plot_richness(data_rare_drought, x="Date", measures=c("Shannon")) + 
+        geom_boxplot(aes(fill = Date)) + 
+        labs(x = "Time of Sampling", y = "Shannon Index") +
+        theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+#dev.off()
+
+richness <- estimate_richness(data_rare_drought)
+head(richness)
+kruskal.test(richness$Shannon ~ sample_data(data_rare_drought)$Date)
+pairwise.wilcox.test(richness$Shannon, sample_data(data_rare_drought)$Date, p.adj = "bonf")
+
+```
+
+Beta Diversity
+```{r}
+# PCoA plot using bray-curtis as distance
+bray_dist = phyloseq::distance(data_rare_drought, method="bray")
+ordination_pcoa = ordinate(data_rare_drought, method="PCoA", distance=bray_dist)
+
+# https://stackoverflow.com/questions/76465183/plot-ordination-function-of-phyloseq-plots-shapes-double-within-itself
+# Save the PCoA vectors data from your ordinated object
+vectors <- as.data.frame(ordination_pcoa$vectors)
+values <- as.data.frame(ordination_pcoa$values)
+
+library(tibble)
+vectors <- rownames_to_column(vectors, "SampleID")
+
+metadata <- rownames_to_column(data.frame(data_rare_drought@sam_data), "SampleID")
+vectors_metadata <- dplyr::inner_join(vectors, metadata, by = "SampleID")
+
+ggplot(vectors_metadata, aes(x = Axis.1, y = Axis.2, color = Date)) + geom_point()
+
+#png("T7_warmx_16S_pcoa_no_insects.png", units="in", width=10, height=6, res=300)
+plot_ordination(data_rare_drought, ordination_pcoa, color="Date") + 
+        geom_point(size=5, alpha=0.80) +
+        #stat_ellipse(aes(fill = Drought), geom = "polygon", alpha = .5) +
+        #labs(x="Axis 1",
+        #     y="Axis 2") +
+        theme(aspect.ratio=1)
+#dev.off()
+
+# Test whether the sampling periods ("Dates") differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
+set.seed(22)
+adonis2(bray_dist ~ sample_data(data_rare_drought)$Date)
+
+# trying Jennifer's code below:
+#bray.dist <- phyloseq::distance(ps.rarefied, method = "bray”)
+
+#set.seed(53)
+
+#adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Footprint*sample_data(ps.rarefied)$Subplot, by = #"margin”, permutations = #perm1) 
+#If the interaction is not significant, you should rerun the model without the interaction. For this code, if the interaction is not significant, it won’t show you if the main effects are significant. 
+
+# setting up the permutation object
+perm1 <- with(sample_data(data_rare_drought), how(blocks = Rep_Footprint, plots = Plots(strata=Footprint, type="free"), within=Within(type="free"), nperm = 9999))
+
+adonis2(bray_dist ~ sample_data(data_rare_drought)$Date, by = "margin", permutations = perm1)
+adonis2(bray_dist ~ sample_data(data_rare_drought)$Replicate, by = "margin", permutations = perm1)
+```
+
+# WARMED + DROUGHT - ALL SAMPLING TIMES
+#Subsetting phyloseq object
+```{r}
+# no insecticide treatment and no irrigated control
+data_rare_warm_drought <- subset_samples(rare_16S, Subplot_Descriptions%in%c("warmed_drought"))
+```
+
+#Alpha Diversity
+```{r}
+# order sample data - "Date" and "Subplot_Descriptions"
+sample_data(data_rare_warm_drought)$Date <- ordered(sample_data(data_rare_warm_drought)$Date, c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"))
+
+plot_richness(data_rare_warm_drought, x="Date", measures=c("Observed"))
+plot_richness(data_rare_warm_drought, x="Date", measures=c("Observed", "Shannon")) + geom_boxplot()
+
+png("T7_warmx_16S_observed_alpha_diversity_drought.png", units="in", width=10, height=6, res=300)
+plot_richness(data_rare_warm_drought, x="Date", measures=c("Observed")) + 
+        geom_boxplot(aes(fill = Date)) + 
+        labs(y = "Observed OTUs", x = "Time of Sampling") +
+        theme(legend.position = "none", 
+              axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 15),
+              axis.text.y = element_text(size = 12),
+              axis.title.x = element_text(size=12),
+              axis.title.y = element_text(size=12),
+              strip.text.x = element_text(size = 12, face = "italic"))
+dev.off()
+
+#png("T7_warmx_16S_shannon_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
+plot_richness(data_rare_warm_drought, x="Date", measures=c("Shannon")) + 
+        geom_boxplot(aes(fill = Date)) + 
+        labs(x = "Time of Sampling", y = "Shannon Index") +
+        theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+#dev.off()
+
+richness <- estimate_richness(data_rare_warm_drought)
+head(richness)
+kruskal.test(richness$Shannon ~ sample_data(data_rare_warm_drought)$Date)
+pairwise.wilcox.test(richness$Shannon, sample_data(data_rare_warm_drought)$Date, p.adj = "bonf")
+
+```
+
+Beta Diversity
+```{r}
+# PCoA plot using bray-curtis as distance
+bray_dist = phyloseq::distance(data_rare_warm_drought, method="bray")
+ordination_pcoa = ordinate(data_rare_warm_drought, method="PCoA", distance=bray_dist)
+
+# https://stackoverflow.com/questions/76465183/plot-ordination-function-of-phyloseq-plots-shapes-double-within-itself
+# Save the PCoA vectors data from your ordinated object
+vectors <- as.data.frame(ordination_pcoa$vectors)
+values <- as.data.frame(ordination_pcoa$values)
+
+library(tibble)
+vectors <- rownames_to_column(vectors, "SampleID")
+
+metadata <- rownames_to_column(data.frame(data_rare_warm_drought@sam_data), "SampleID")
+vectors_metadata <- dplyr::inner_join(vectors, metadata, by = "SampleID")
+
+ggplot(vectors_metadata, aes(x = Axis.1, y = Axis.2, color = Date)) + geom_point()
+
+#png("T7_warmx_16S_pcoa_no_insects.png", units="in", width=10, height=6, res=300)
+plot_ordination(data_rare_warm_drought, ordination_pcoa, color="Date") + 
+        geom_point(size=5, alpha=0.80) +
+        #stat_ellipse(aes(fill = Drought), geom = "polygon", alpha = .5) +
+        #labs(x="Axis 1",
+        #     y="Axis 2") +
+        theme(aspect.ratio=1)
+#dev.off()
+
+plot_ordination(data_rare_warm_drought, ordination_pcoa, color="Footprint_Location") + 
+        geom_point(size=5, alpha=0.80) +
+        #stat_ellipse(aes(fill = Drought), geom = "polygon", alpha = .5) +
+        #labs(x="Axis 1",
+        #     y="Axis 2") +
+        theme(aspect.ratio=1)
+
+# Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
+set.seed(22)
+adonis2(bray_dist ~ sample_data(data_rare_warm_drought)$Date)
+adonis2(bray_dist ~ sample_data(data_rare_warm_drought)$Footprint_Location)
+
+# trying Jennifer's code below:
+#bray.dist <- phyloseq::distance(ps.rarefied, method = "bray”)
+
+#set.seed(53)
+
+#adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Footprint*sample_data(ps.rarefied)$Subplot, by = #"margin”, permutations = #perm1) 
+#If the interaction is not significant, you should rerun the model without the interaction. For this code, if the interaction is not significant, it won’t show you if the main effects are significant. 
+
+# setting up the permutation object
+perm1 <- with(sample_data(data_rare_warm_drought), how(blocks = Rep_Footprint, plots = Plots(strata=Footprint, type="free"), within=Within(type="free"), nperm = 9999))
+
+adonis2(bray_dist ~ sample_data(data_rare_warm_drought)$Date, by = "margin", permutations = perm1)
+adonis2(bray_dist ~ sample_data(data_rare_warm_drought)$Footprint_Location, by = "margin", permutations = perm1)
 ```
