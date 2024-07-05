@@ -39,10 +39,10 @@ library(zCompositions)
 library(permute)
 library(pheatmap)
 library(plotrix)
-#library(phylosmith) ##
-#library(microViz) ##
-#library(DESeq2) ##
-#library(ANCOMBC) ##
+library(microViz)
+#library(phylosmith)
+#library(DESeq2)
+#library(ANCOMBC)
 
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
@@ -60,18 +60,37 @@ summarize_phyloseq(phyloseq_2021)
 
 # 2023 data
 # Create phyloseq objects of filtered data (16S)
-phyloseq_2023 <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-2023-table-filtered.csv",
-                                       taxonomy.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-2023-taxonomy-filtered.csv",
+phyloseq_2023 <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-2023-table-filtered-noncontam.csv",
+                                       taxonomy.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-2023-taxonomy-filtered-noncontam.csv",
                                        metadata.file = "/Users/moriahyoung/Desktop/phyloseq_object/bacterial_2023_metadata.csv")
 summarize_phyloseq(phyloseq_2023)
 
 # merge 2021 and 2023 phyloseq objects together
 phyloseq_all <- merge_phyloseq(phyloseq_2021, phyloseq_2023)
+
+samdat_tbl(phyloseq_all)
+summarize_phyloseq(phyloseq_all)
 ```
 
 #Filter data and rarefy data
 ```{r}
 # filter data
+# remove samples that have less than 1000 reads
+data_16S_counts <- prune_samples(sample_sums(phyloseq_all)>=1000, phyloseq_all)
+summarize_phyloseq(data_16S_counts)
+# remove singletons
+data_16S_counts1 <- filter_taxa(data_16S_counts, function (x) {sum(x > 0) > 1}, prune=TRUE)
+summarize_phyloseq(data_16S_counts1)
+
+# Rarefy data to min sample size reads 
+set.seed(1022)
+#rare_16S <- rarefy_even_depth(data_16S_counts, sample.size = 1000)
+rare_16S <- rarefy_even_depth(data_16S_counts1, sample.size = min(sample_sums(data_16S_counts1)))
+summarize_phyloseq(rare_16S)
+sample_data(rare_16S)
+
+###########################################
+# did not run code below
 # Remove taxa not seen more than 3 times in at least 20% of the samples. This protects against an OTU with small mean & trivially large C.V.
 phyloseq_all_filtered <- filter_taxa(phyloseq_all, function(x) sum(x > 3) > (0.2*length(x)), TRUE)
 summarize_phyloseq(phyloseq_all_filtered)

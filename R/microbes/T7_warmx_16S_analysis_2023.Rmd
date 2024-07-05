@@ -420,12 +420,12 @@ vectors <- as.data.frame(ordination_pcoa$vectors)
 values <- as.data.frame(ordination_pcoa$values)
 
 library(tibble)
-vectors <- rownames_to_column(vectors, "SampleID")
+vectors_drought <- rownames_to_column(vectors, "SampleID")
 
-metadata <- rownames_to_column(data.frame(data_rare_drought@sam_data), "SampleID")
-vectors_metadata <- dplyr::inner_join(vectors, metadata, by = "SampleID")
+metadata_drought <- rownames_to_column(data.frame(data_rare_drought@sam_data), "SampleID")
+vectors_metadata_drought <- dplyr::inner_join(vectors_drought, metadata_drought, by = "SampleID")
 
-ggplot(vectors_metadata, aes(x = Axis.1, y = Axis.2, color = Date)) + geom_point()
+ggplot(vectors_metadata_drought, aes(x = Axis.1, y = Axis.2, color = Date)) + geom_point()
 
 #png("T7_warmx_16S_pcoa_no_insects.png", units="in", width=10, height=6, res=300)
 plot_ordination(data_rare_drought, ordination_pcoa, color="Date") + 
@@ -504,16 +504,16 @@ ordination_pcoa = ordinate(data_rare_warm_drought, method="PCoA", distance=bray_
 
 # https://stackoverflow.com/questions/76465183/plot-ordination-function-of-phyloseq-plots-shapes-double-within-itself
 # Save the PCoA vectors data from your ordinated object
-vectors <- as.data.frame(ordination_pcoa$vectors)
-values <- as.data.frame(ordination_pcoa$values)
+vectors_wd <- as.data.frame(ordination_pcoa$vectors)
+values_wd <- as.data.frame(ordination_pcoa$values)
 
 library(tibble)
-vectors <- rownames_to_column(vectors, "SampleID")
+vectors_wd <- rownames_to_column(vectors_wd, "SampleID")
 
-metadata <- rownames_to_column(data.frame(data_rare_warm_drought@sam_data), "SampleID")
-vectors_metadata <- dplyr::inner_join(vectors, metadata, by = "SampleID")
+metadata_wd <- rownames_to_column(data.frame(data_rare_warm_drought@sam_data), "SampleID")
+vectors_metadata_wd <- dplyr::inner_join(vectors_wd, metadata_wd, by = "SampleID")
 
-ggplot(vectors_metadata, aes(x = Axis.1, y = Axis.2, color = Date)) + geom_point()
+ggplot(vectors_metadata_wd, aes(x = Axis.1, y = Axis.2, color = Date)) + geom_point()
 
 #png("T7_warmx_16S_pcoa_no_insects.png", units="in", width=10, height=6, res=300)
 plot_ordination(data_rare_warm_drought, ordination_pcoa, color="Date") + 
@@ -549,4 +549,90 @@ perm1 <- with(sample_data(data_rare_warm_drought), how(blocks = Rep_Footprint, p
 
 adonis2(bray_dist ~ sample_data(data_rare_warm_drought)$Date, by = "margin", permutations = perm1)
 adonis2(bray_dist ~ sample_data(data_rare_warm_drought)$Footprint_Location, by = "margin", permutations = perm1)
+```
+
+# WARMED - ALL SAMPLING TIMES
+#Subsetting phyloseq object
+```{r}
+# no insecticide treatment and no irrigated control
+data_rare_warmed <- subset_samples(rare_16S, Subplot_Descriptions%in%c("warmed"))
+```
+
+#Alpha Diversity
+```{r}
+# order sample data - "Date" and "Subplot_Descriptions"
+sample_data(data_rare_warmed)$Date <- ordered(sample_data(data_rare_drought)$Date, c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"))
+
+plot_richness(data_rare_warmed, x="Date", measures=c("Observed"))
+plot_richness(data_rare_warmed, x="Date", measures=c("Observed", "Shannon")) + geom_boxplot()
+
+png("T7_warmx_16S_observed_alpha_diversity_warmed.png", units="in", width=10, height=6, res=300)
+plot_richness(data_rare_warmed, x="Date", measures=c("Observed")) + 
+        geom_boxplot(aes(fill = Date)) + 
+        labs(y = "Observed OTUs", x = "Time of Sampling") +
+        theme(legend.position = "none", 
+              axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 15),
+              axis.text.y = element_text(size = 12),
+              axis.title.x = element_text(size=12),
+              axis.title.y = element_text(size=12),
+              strip.text.x = element_text(size = 12, face = "italic"))
+dev.off()
+
+#png("T7_warmx_16S_shannon_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
+plot_richness(data_rare_warmed, x="Date", measures=c("Shannon")) + 
+        geom_boxplot(aes(fill = Date)) + 
+        labs(x = "Time of Sampling", y = "Shannon Index") +
+        theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+#dev.off()
+
+richness <- estimate_richness(data_rare_warmed)
+head(richness)
+kruskal.test(richness$Shannon ~ sample_data(data_rare_warmed)$Date)
+pairwise.wilcox.test(richness$Shannon, sample_data(data_rare_drought)$Date, p.adj = "bonf")
+
+```
+
+Beta Diversity
+```{r}
+# PCoA plot using bray-curtis as distance
+bray_dist = phyloseq::distance(data_rare_warmed, method="bray")
+ordination_pcoa = ordinate(data_rare_warmed, method="PCoA", distance=bray_dist)
+
+# https://stackoverflow.com/questions/76465183/plot-ordination-function-of-phyloseq-plots-shapes-double-within-itself
+# Save the PCoA vectors data from your ordinated object
+vectors_warmed <- as.data.frame(ordination_pcoa$vectors)
+values_warmed <- as.data.frame(ordination_pcoa$values)
+
+library(tibble)
+vectors_warmed <- rownames_to_column(vectors_warmed, "SampleID")
+
+metadata_warmed <- rownames_to_column(data.frame(data_rare_warmed@sam_data), "SampleID")
+vectors_metadata_warmed <- dplyr::inner_join(vectors, metadata_warmed, by = "SampleID")
+
+ggplot(vectors_metadata_warmed, aes(x = Axis.1, y = Axis.2, color = Date)) + geom_point()
+
+#png("T7_warmx_16S_pcoa_no_insects.png", units="in", width=10, height=6, res=300)
+plot_ordination(data_rare_warmed, ordination_pcoa, color="Date") + 
+        geom_point(size=5, alpha=0.80) +
+        #stat_ellipse(aes(fill = Drought), geom = "polygon", alpha = .5) +
+        #labs(x="Axis 1",
+        #     y="Axis 2") +
+        theme(aspect.ratio=1)
+#dev.off()
+
+# Test whether the sampling periods ("Dates") differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
+set.seed(22)
+adonis2(bray_dist ~ sample_data(data_rare_warmed)$Date)
+
+# trying Jennifer's code below:
+#bray.dist <- phyloseq::distance(ps.rarefied, method = "bray”)
+#set.seed(53)
+#adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Footprint*sample_data(ps.rarefied)$Subplot, by = #"margin”, permutations = #perm1) 
+#If the interaction is not significant, you should rerun the model without the interaction. For this code, if the interaction is not significant, it won’t show you if the main effects are significant. 
+
+# setting up the permutation object
+perm1 <- with(sample_data(data_rare_warmed), how(blocks = Rep_Footprint, plots = Plots(strata=Footprint, type="free"), within=Within(type="free"), nperm = 9999))
+
+adonis2(bray_dist ~ sample_data(data_rare_warmed)$Date, by = "margin", permutations = perm1)
+adonis2(bray_dist ~ sample_data(data_rare_warmed)$Replicate, by = "margin", permutations = perm1)
 ```
