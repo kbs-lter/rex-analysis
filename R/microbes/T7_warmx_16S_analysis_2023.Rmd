@@ -351,9 +351,6 @@ adonis2(bray_dist ~ sample_data(rare_16S_noinsect_peakpost_noIRC)$Date)
 
 #set.seed(53)
 
-
-
-
 #adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Footprint*sample_data(ps.rarefied)$Subplot, by = #"margin”, permutations = #perm1) 
 #If the interaction is not significant, you should rerun the model without the interaction. For this code, if the interaction is not significant, it won’t show you if the main effects are significant. 
 
