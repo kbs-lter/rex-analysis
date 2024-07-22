@@ -72,13 +72,6 @@ biolog2$carbon_group <- unlist(sapply(biolog2$Well_C_Source, function(cs) {
   group
 }))
 
-# calculate average absorbence of each carbon group by subplot description and hour
-# this doesn't work for me
-biolog_avg <- biolog2 %>% 
-        group_by(Subplot_Descriptions, carbon_group, Hour) %>% 
-        summarize(avg_absorbence = mean(Absorbence, na.rm = TRUE),
-                  se = std.error(Absorbence, na.rm = TRUE))
-
 # Calculate mean and se for absorbence by subplot descriptions, carbon group, and hour
 # Define a custom function to calculate mean and standard error
 calculate_mean_se <- function(x) {
@@ -135,6 +128,77 @@ ggplot(biologHr168, aes(x = Subplot_Descriptions, y = avg_absorbence, fill = Sub
               axis.text.y = element_text(size = 15),
               axis.title.x = element_text(size = 20),
               axis.text.x = element_text(size = 15))
+
+#Filtering for Each Subplot Description
+ambient=as.data.frame(filter(result, Subplot_Descriptions=="ambient"))
+
+drought=as.data.frame(filter(result, Subplot_Descriptions=="drought"))
+
+warmed=as.data.frame(filter(result, Subplot_Descriptions=="warmed"))
+
+warmeddrought=as.data.frame(filter(result, Subplot_Descriptions=="warmed_drought"))
+
+#Plotting avg absorbance of each treatment across time
+#png("AmbientAWCDbyCgroups", units="in", width=7, height=6, res=300)
+ggplot(ambient, aes(x = Hour, y = avg_absorbence, color = carbon_group)) +
+        labs(x = "Hour", 
+             y = "AWCD", 
+             title = "Ambient AWCD") +
+  geom_line() + geom_point() +
+ scale_fill_manual(values = c("amines" = "#a6bddb", "amino_acids" = "#2F4F4f", 
+        "carbohydrates" = "#6B8E23", "carboxylic_acids" = "#8B6914", "phenolic_acids" = "#9D422E", "polymers" = "forestgreen")) +
+        theme(legend.position = "left",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
+dev.off()
+
+#png("WarmedAWCDbyCgroups", units="in", width=7, height=6, res=300)
+ggplot(warmed, aes(x = Hour, y = avg_absorbence, color = carbon_group)) +
+        labs(x = "Hour", 
+             y = "AWCD", 
+             title = "Warmed AWCD") +
+  geom_line() + geom_point() +
+        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "forestgreen", "darkblue")) +
+        theme(legend.position = "left",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
+dev.off()
+
+#png("DroughtAWCDbyCgroups", units="in", width=7, height=6, res=300)
+ggplot(drought, aes(x = Hour, y = avg_absorbence, color = carbon_group)) +
+        labs(x = "Hour", 
+             y = "AWCD", 
+             title = "Drought AWCD") +
+  geom_line() + geom_point() +
+        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "forestgreen", "darkblue")) +
+        theme(legend.position = "left",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
+dev.off()
+
+#png("WarmedDroughtAWCDbyCgroups", units="in", width=7, height=6, res=300)
+ggplot(warmeddrought, aes(x = Hour, y = avg_absorbence, color = carbon_group)) +
+        labs(x = "Hour", 
+             y = "AWCD", 
+             title = "Warmed + Drought AWCD") +
+  geom_line() + geom_point() +
+        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "forestgreen", "darkblue")) +
+        theme(legend.position = "left",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
+dev.off()
 ```
 
 
