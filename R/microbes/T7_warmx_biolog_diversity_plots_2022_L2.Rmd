@@ -145,8 +145,7 @@ ggplot(ambient, aes(x = Hour, y = avg_absorbence, color = carbon_group)) +
              y = "AWCD", 
              title = "Ambient AWCD") +
   geom_line() + geom_point() +
- scale_fill_manual(values = c("amines" = "#a6bddb", "amino_acids" = "#2F4F4f", 
-        "carbohydrates" = "#6B8E23", "carboxylic_acids" = "#8B6914", "phenolic_acids" = "#9D422E", "polymers" = "forestgreen")) +
+ scale_color_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "forestgreen", "darkblue")) +
         theme(legend.position = "left",
               plot.title = element_text(hjust = 0.5, size = 20),
               axis.title.y = element_text(size = 20),
@@ -161,7 +160,7 @@ ggplot(warmed, aes(x = Hour, y = avg_absorbence, color = carbon_group)) +
              y = "AWCD", 
              title = "Warmed AWCD") +
   geom_line() + geom_point() +
-        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "forestgreen", "darkblue")) +
+        scale_color_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "forestgreen", "darkblue")) +
         theme(legend.position = "left",
               plot.title = element_text(hjust = 0.5, size = 20),
               axis.title.y = element_text(size = 20),
@@ -176,7 +175,7 @@ ggplot(drought, aes(x = Hour, y = avg_absorbence, color = carbon_group)) +
              y = "AWCD", 
              title = "Drought AWCD") +
   geom_line() + geom_point() +
-        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "forestgreen", "darkblue")) +
+        scale_color_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "forestgreen", "darkblue")) +
         theme(legend.position = "left",
               plot.title = element_text(hjust = 0.5, size = 20),
               axis.title.y = element_text(size = 20),
@@ -191,7 +190,7 @@ ggplot(warmeddrought, aes(x = Hour, y = avg_absorbence, color = carbon_group)) +
              y = "AWCD", 
              title = "Warmed + Drought AWCD") +
   geom_line() + geom_point() +
-        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "forestgreen", "darkblue")) +
+        scale_color_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "forestgreen", "darkblue")) +
         theme(legend.position = "left",
               plot.title = element_text(hjust = 0.5, size = 20),
               axis.title.y = element_text(size = 20),
