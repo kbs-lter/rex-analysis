@@ -198,6 +198,124 @@ ggplot(warmeddrought, aes(x = Hour, y = avg_absorbence, color = carbon_group)) +
               axis.title.x = element_text(size = 20),
               axis.text.x = element_text(size = 15))
 dev.off()
+
+#Sorting for each carbon group
+amines=as.data.frame(filter(result, result$carbon_group=="amines"))
+aminoacids=as.data.frame(filter(result, result$carbon_group=="amino_acids"))
+carbs=as.data.frame(filter(result, result$carbon_group=="carbohydrates"))
+carboxylicacids=as.data.frame(filter(result, result$carbon_group=="carboxylic_acids"))
+phenolicacids=as.data.frame(filter(result, result$carbon_group=="phenolic_acids"))
+polymers=as.data.frame(filter(result, result$carbon_group=="polymers"))
+
+#carbon group and treatment graphs
+#amines
+ggplot(amines, aes(x = Hour, y = avg_absorbence, color = Subplot_Descriptions)) +  geom_line() + geom_point() +
+        geom_pointrange(aes(ymin=avg_absorbence-se, ymax=avg_absorbence+se)) +
+        labs(x = "Treatment", 
+             y = "Average AWCD", 
+             title = "Average Amine AWCD") + 
+        scale_color_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "right",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
+
+#amino acids
+ggplot(aminoacids, aes(x = Hour, y = avg_absorbence, color = Subplot_Descriptions)) +  geom_line() + geom_point() +
+        geom_pointrange(aes(ymin=avg_absorbence-se, ymax=avg_absorbence+se)) +
+        labs(x = "Treatment", 
+             y = "Average AWCD", 
+             title = "Average Amino Acid AWCD") + 
+        scale_color_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "right",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
+
+#Carbohydrates
+ggplot(carbs, aes(x = Hour, y = avg_absorbence, color = Subplot_Descriptions)) +  geom_line() + geom_point() +
+        geom_pointrange(aes(ymin=avg_absorbence-se, ymax=avg_absorbence+se)) +
+        labs(x = "Treatment", 
+             y = "Average AWCD", 
+             title = "Average Carbohydrate AWCD") + 
+        scale_color_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "right",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
+
+#carboxylic acids
+ggplot(carboxylicacids, aes(x = Hour, y = avg_absorbence, color = Subplot_Descriptions)) +  geom_line() + geom_point() +
+        geom_pointrange(aes(ymin=avg_absorbence-se, ymax=avg_absorbence+se)) +
+        labs(x = "Treatment", 
+             y = "Average AWCD", 
+             title = "Average Carboxylic Acid AWCD") + 
+        scale_color_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "right",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
+
+#Phenolic Acids
+ggplot(phenolicacids, aes(x = Hour, y = avg_absorbence, color = Subplot_Descriptions)) +  geom_line() + geom_point() +
+        geom_pointrange(aes(ymin=avg_absorbence-se, ymax=avg_absorbence+se)) +
+        labs(x = "Treatment", 
+             y = "Average AWCD", 
+             title = "Average Phenolic Acids AWCD") + 
+        scale_color_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "right",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
+
+#Polymers
+ggplot(polymers, aes(x = Hour, y = avg_absorbence, color = Subplot_Descriptions)) +  geom_line() + geom_point() +
+        geom_pointrange(aes(ymin=avg_absorbence-se, ymax=avg_absorbence+se)) +
+        labs(x = "Treatment", 
+             y = "Average AWCD", 
+             title = "Average Polymer AWCD") + 
+        scale_color_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "right",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
+
 ```
 
 
