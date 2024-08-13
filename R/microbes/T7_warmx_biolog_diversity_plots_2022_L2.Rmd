@@ -57,10 +57,10 @@ Maybe move this to cleaning script
 Grouping carbon sources
 ```{r}
 carbon_groups <- list(
-        "amino_acids" = c("β-HydroxyGlycyl-L-Glutamic_Acid", "L-Threonine", "L-Serine", "L-Asparagine", "L-Phenylalanine", "L-Arginine", "γ-Amino_Butyric_Acid"),
+        "amino_acids" = c("β-HydroxyGlycyl-L-Glutamic_Acid", "L-Threonine", "L-Serine", "L-Asparagine", "L-Phenylalanine", "L-Arginine"),
         "amines" = c("Putrescine", "Phenylethylamine"),
-        "carbohydrates" = c("D-Galacturonic_Acid", "D,L-α-Glycerol_Phosphate", "Glucose1-Phosphate", "D-Galactonic_Acid_γ-Lactone", "N-Acetyl-D-Glucosamine", "D-Mannitol", "i-Erythritol", "D-Xylose", "D-Cellobiose", "α-D-Lactose", "β-MethylD-Glucoside", "D-Glucosaminic_Acid"),
-        "carboxylic_acids" = c("D-Malic_Acid", "α-Keto_Butyric_Acid", "Itaconic_Acid", "Pyruvic_Acid_Methyl_Ester"),
+        "carbohydrates" = c("β-MethylD-Glucoside", "D-Xylose", "i-Erythritol", "D-Mannitol", "N-Acetyl-D-Glucosamine", "D-Cellobiose", "Glucose1-Phosphate", "α-D-Lactose", "D,L-α-Glycerol_Phosphate"),
+        "carboxylic_acids" = c("D-Malic_Acid", "α-Keto_Butyric_Acid", "Itaconic_Acid", "Pyruvic_Acid_Methyl_Ester", "γ-Amino_Butyric_Acid", "D-Galactonic_Acid_γ-Lactone", "D-Glucosaminic_Acid", "D-Galacturonic_Acid"),
         "phenolic_acids" = c("4-Hydroxy_Benzoic_Acid", "2-Hydroxy_Benzoic_Acid"),
         "polymers" = c("Glycogen", "Tween_40", "Tween_80", "α-Cyclodextrin")
         )
@@ -152,7 +152,7 @@ ggplot(ambient, aes(x = Hour, y = avg_absorbence, color = carbon_group)) +
               axis.text.y = element_text(size = 15),
               axis.title.x = element_text(size = 20),
               axis.text.x = element_text(size = 15))
-dev.off()
+#dev.off()
 
 #png("WarmedAWCDbyCgroups", units="in", width=7, height=6, res=300)
 ggplot(warmed, aes(x = Hour, y = avg_absorbence, color = carbon_group)) +
@@ -167,7 +167,7 @@ ggplot(warmed, aes(x = Hour, y = avg_absorbence, color = carbon_group)) +
               axis.text.y = element_text(size = 15),
               axis.title.x = element_text(size = 20),
               axis.text.x = element_text(size = 15))
-dev.off()
+#dev.off()
 
 #png("DroughtAWCDbyCgroups", units="in", width=7, height=6, res=300)
 ggplot(drought, aes(x = Hour, y = avg_absorbence, color = carbon_group)) +
@@ -182,7 +182,7 @@ ggplot(drought, aes(x = Hour, y = avg_absorbence, color = carbon_group)) +
               axis.text.y = element_text(size = 15),
               axis.title.x = element_text(size = 20),
               axis.text.x = element_text(size = 15))
-dev.off()
+#dev.off()
 
 #png("WarmedDroughtAWCDbyCgroups", units="in", width=7, height=6, res=300)
 ggplot(warmeddrought, aes(x = Hour, y = avg_absorbence, color = carbon_group)) +
@@ -197,7 +197,7 @@ ggplot(warmeddrought, aes(x = Hour, y = avg_absorbence, color = carbon_group)) +
               axis.text.y = element_text(size = 15),
               axis.title.x = element_text(size = 20),
               axis.text.x = element_text(size = 15))
-dev.off()
+#dev.off()
 
 #Sorting for each carbon group
 amines=as.data.frame(filter(result, result$carbon_group=="amines"))
@@ -262,6 +262,27 @@ ggplot(carbs, aes(x = Hour, y = avg_absorbence, color = Subplot_Descriptions)) +
               axis.title.x = element_text(size = 20),
               axis.text.x = element_text(size = 15))
 
+# same code as above but adds position_dodge so that error bars, etc. don't overlap as much
+ggplot(carbs, aes(x = Hour, y = avg_absorbence, color = Subplot_Descriptions)) +  
+    geom_line(position = position_dodge(width = 0.5)) + 
+    geom_point(position = position_dodge(width = 0.5)) +
+    geom_pointrange(aes(ymin = avg_absorbence - se, ymax = avg_absorbence + se), 
+                    position = position_dodge(width = 1)) +
+    labs(x = "Treatment", 
+         y = "Average AWCD", 
+         title = "Average Carbohydrate AWCD") + 
+    scale_color_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+    scale_x_discrete(labels = c("ambient" = "Ambient",
+                                "drought" = "Drought",
+                                "warmed" = "Warmed",
+                                "warmed_drought" = "Warmed +\n Drought")) +
+    theme(legend.position = "right",
+          plot.title = element_text(hjust = 0.5, size = 20),
+          axis.title.y = element_text(size = 20),
+          axis.text.y = element_text(size = 15),
+          axis.title.x = element_text(size = 20),
+          axis.text.x = element_text(size = 15))
+
 #carboxylic acids
 ggplot(carboxylicacids, aes(x = Hour, y = avg_absorbence, color = Subplot_Descriptions)) +  geom_line() + geom_point() +
         geom_pointrange(aes(ymin=avg_absorbence-se, ymax=avg_absorbence+se)) +
@@ -281,7 +302,9 @@ ggplot(carboxylicacids, aes(x = Hour, y = avg_absorbence, color = Subplot_Descri
               axis.text.x = element_text(size = 15))
 
 #Phenolic Acids
-ggplot(phenolicacids, aes(x = Hour, y = avg_absorbence, color = Subplot_Descriptions)) +  geom_line() + geom_point() +
+ggplot(phenolicacids, aes(x = Hour, y = avg_absorbence, color = Subplot_Descriptions)) +  
+        geom_line() + 
+        geom_point() +
         geom_pointrange(aes(ymin=avg_absorbence-se, ymax=avg_absorbence+se)) +
         labs(x = "Treatment", 
              y = "Average AWCD", 
@@ -486,3 +509,23 @@ ggplot(DGalacturonic_mean, aes(x = Group.1, y = x, group = Group.2, color = Grou
 dev.off()
 
 ```
+
+Stacked bar plot showing Substrate average well color development (SAWCD) at hour 168
+```{r}
+# filter for hour 168
+result168 <- result %>% filter(Hour == 168)
+
+# calculate relative abundance
+result168_relabun <- result168 %>%
+  group_by(Subplot_Descriptions) %>%
+  mutate(Relative_Abundance = avg_absorbence / sum(avg_absorbence))
+
+# stacked bar plot
+ggplot(result168_relabun, aes(x = Subplot_Descriptions, y = Relative_Abundance, fill = carbon_group)) +
+        geom_bar(stat = "identity") +
+        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "forestgreen", "darkblue")) +
+        theme_minimal() +
+        labs(x = "Treatment", y = "SAWCD")
+```
+
+
