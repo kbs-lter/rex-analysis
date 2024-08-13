@@ -72,6 +72,10 @@ biolog2$carbon_group <- unlist(sapply(biolog2$Well_C_Source, function(cs) {
   group
 }))
 
+# move Absorbence column to be the last column
+biolog2 <- biolog2 %>%
+  relocate(Absorbence, .after = last_col())
+
 # Calculate mean and se for absorbence by subplot descriptions, carbon group, and hour
 # Define a custom function to calculate mean and standard error
 calculate_mean_se <- function(x) {
@@ -526,6 +530,28 @@ ggplot(result168_relabun, aes(x = Subplot_Descriptions, y = Relative_Abundance, 
         scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "forestgreen", "darkblue")) +
         theme_minimal() +
         labs(x = "Treatment", y = "SAWCD")
+```
+
+PCA - in progress
+```{r}
+biolog168 <- biolog %>% filter(Hour == 168)
+
+pca_result <- rda(biolog168[,9:39], scale = TRUE)
+
+# Extract PCA scores for the first two principal components
+pca_scores <- as.data.frame(scores(pca_result, display = "sites"))
+
+# Add sample meta data
+pca_scores1 <- cbind(biolog168[,1:8], pca_scores[,1:2])
+
+# Plot the PCA
+ggplot(pca_scores1, aes(x = PC1, y = PC2, label = Subplot_Descriptions, color = Subplot_Descriptions)) +
+  geom_point(size = 4) +
+  geom_text(vjust = -1) +
+  theme_minimal() +
+  labs(title = "PCA Plot of Biolog EcoPlate Data",
+       x = "PC1",
+       y = "PC2")
 ```
 
 
