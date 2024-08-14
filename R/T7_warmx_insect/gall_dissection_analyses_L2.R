@@ -64,7 +64,7 @@ gofstat(list(fit.pois, fit.neg))
 par(mfrow = c(1,2))
 denscomp(list(fit.pois, fit.neg))
 cdfcomp(list(fit.pois, fit.neg))
-# going with poisson
+# going with poisson, also makes sense bc count data
 
 # Assumption checking - poisson 
 count %>%
@@ -72,24 +72,13 @@ count %>%
   dplyr::summarize(mean_num = mean(num_of_chambers, na.rm=T), var_num = var(num_of_chambers, na.rm=T))
 # mean = variance (approximately)
 
-# comparison of models
-m1 <- glmer(num_of_chambers ~ treatment + (1|rep), data = count, family = poisson)
-m2 <- glmer(num_of_chambers ~ treatment + (1|rep/footprint), data = count, family = poisson)
-AICctab(m1, m2, weights=T) # model 1 better but going with 2 since it reflects experimental design
-summary(m2)
-# re-leveling the data & checking summary 
-count <- within(count, treatment <- relevel(factor(treatment), ref = "Irrigated Control"))
+# main model
 m2 <- glmer(num_of_chambers ~ treatment + (1|rep/footprint), data = count, family = poisson)
 summary(m2)
-count <- within(count, treatment <- relevel(factor(treatment), ref = "Warm"))
-m2 <- glmer(num_of_chambers ~ treatment + (1|rep/footprint), data = count, family = poisson)
-summary(m2)
-count <- within(count, treatment <- relevel(factor(treatment), ref = "Warm Drought"))
-m2 <- glmer(num_of_chambers ~ treatment + (1|rep/footprint), data = count, family = poisson)
-summary(m2)
-count <- within(count, treatment <- relevel(factor(treatment), ref = "Ambient Drought"))
-m2 <- glmer(num_of_chambers ~ treatment + (1|rep/footprint), data = count, family = poisson)
-summary(m2)
+car::Anova(m2)
+anova(m2)
+
+
 
 
 ######## Gall chamber volume ########
@@ -115,7 +104,7 @@ qqnorm(vol$log_vol)
 shapiro.test(vol$log_vol) # really good
 
 # Assumption checking - log transformation
-m1 <- lmer(log_vol ~ treatment + (1|rep), data = vol, REML=FALSE)
+m1 <- lmer(log_vol ~ treatment + (1|unique_plant_number) + (1|rep/footprint), data = vol, REML=FALSE)
 # Check Assumptions:
 # (1) Linearity: if covariates are not categorical
 # (2) Homogeneity: Need to Check by plotting residuals vs predicted values.
@@ -131,27 +120,10 @@ hist(residuals(m1), main = "Gall chamber volume")
 shapiro.test(resid(m1))
 outlierTest(m1)
 
-# comparison with other models
-m2 <- lmer(log_vol ~ treatment + (1|rep/footprint), data = vol, REML=FALSE)
-m3 <- lmer(log_vol ~ treatment + unique_plant_number + (1|rep/footprint), data = vol, REML=FALSE)
-m4 <- lmer(log_vol ~ treatment + (1|unique_plant_number) + (1|rep/footprint), data = vol, REML=FALSE)
-m5 <- lmer(log_vol ~ treatment + (1|treatment/unique_plant_number) + (1|rep/footprint), data = vol, REML=FALSE)
-AICctab(m1, m2, m3, m4, m5, weights=T) # model 4
+# model results
+summary(m1)
+anova(m1)
 
-summary(m4)
-# re-leveling the data & checking summary 
-vol <- within(vol, treatment <- relevel(factor(treatment), ref = "Ambient Drought"))
-m4 <- lmer(log_vol ~ treatment + (1|unique_plant_number) + (1|rep/footprint), data = vol, REML=FALSE)
-summary(m4)
-vol <- within(vol, treatment <- relevel(factor(treatment), ref = "Irrigated Control"))
-m4 <- lmer(log_vol ~ treatment + (1|unique_plant_number) + (1|rep/footprint), data = vol, REML=FALSE)
-summary(m4)
-vol <- within(vol, treatment <- relevel(factor(treatment), ref = "Warm"))
-m4 <- lmer(log_vol ~ treatment + (1|unique_plant_number) + (1|rep/footprint), data = vol, REML=FALSE)
-summary(m4)
-vol <- within(vol, treatment <- relevel(factor(treatment), ref = "Warm Drought"))
-m4 <- lmer(log_vol ~ treatment + (1|unique_plant_number) + (1|rep/footprint), data = vol, REML=FALSE)
-summary(m4)
 
 
 
