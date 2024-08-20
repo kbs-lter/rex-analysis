@@ -1,5 +1,5 @@
 ---
-title: "T7 warmx soil moisture plots"
+title: "T7 warmx Microbial Soil GWC plots"
 author: "Moriah Young"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: pdf_document
@@ -35,16 +35,11 @@ dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
 
 # Read in data
-soil_moisture <- read.csv(file.path(dir, "soil/L1/T7_warmx_soil_moisture_2022_L1.csv"))
+soil_gwc <- read.csv(file.path(dir, "soil/L1/T7_warmx_Microbial_Soil_GWC_L1.csv"))
 meta <- read.csv(file.path(dir, "REX_warmx_metadata.csv"))
 
-# minor cleaning of data
-soil_moisture <- soil_moisture[-c(1,2),]
-# change "grav_soil_moisture" column from a character to numeric
-soil_moisture$grav_soil_moisture <- as.numeric(as.character(soil_moisture$grav_soil_moisture)) 
-
 # Specifying the order that we want the treatments to be listed in the figures 
-level_order <- c('Control', 'ambient', 'warmed', 'warmed_insecticide', 'insecticide', 'drought', 'warmed_drought', 'drought_insecticide', 'warmed_drought_insecticide')
+level_order <- c('irrigated_control', 'ambient', 'warmed', 'warmed_insecticide', 'insecticide', 'drought', 'warmed_drought', 'drought_insecticide', 'warmed_drought_insecticide')
 
 level_order_1 <- c('irrigated_control', 'ambient', 'warmed','drought','warmed_drought')
 
@@ -52,11 +47,165 @@ level_order_1 <- c('irrigated_control', 'ambient', 'warmed','drought','warmed_dr
 
 
 ```{r}
+# select for peak and post drought only for 2021-2023
+soil_gwc_1 <- soil_gwc %>% 
+        filter(time_of_sampling == "Peak Drought" | time_of_sampling == "Post Drought")
+
+soil_moisture_avg <- soil_gwc_1 %>%
+  group_by(Unique_ID, Subplot_Descriptions, time_of_sampling, Year) %>% 
+  summarize(sum_soil_moisture = sum(gwc, na.rm = TRUE)) %>% # summing soil moisture per plot
+  group_by(Subplot_Descriptions, time_of_sampling, Year) %>%
+  summarize(avg_soil_moisture = mean(sum_soil_moisture, na.rm = TRUE), # taking avg biomass of each treatment
+            se = std.error(sum_soil_moisture, na.rm = TRUE))
+
+soil_moisture_avg_noinsect <- filter(soil_moisture_avg, Subplot_Descriptions%in%c("Control", "warmed", "ambient", "drought", "warmed_drought")) 
+```
+
+2023
+```{r}
+# bar plot
+soil_moisture_avg_23 <- soil_moisture_avg %>% 
+        filter(Year == 2023)
+
+ggplot(soil_moisture_avg_23, aes(x = factor(Subplot_Descriptions, levels = level_order), y = avg_soil_moisture, fill = Subplot_Descriptions)) +
+        geom_bar(stat = "identity") +
+        facet_wrap(~time_of_sampling, scales = "free_x") +
+        geom_errorbar(aes(ymin = avg_soil_moisture - se, ymax = avg_soil_moisture + se), width = 0.2,
+                         position = "identity") +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought",
+                                  "drought_insecticide" = "Insecticide +\n Drought", 
+                                  "insecticide" = "Insecticide", 
+                                  "warmed_drought_insecticide" = "Insecticide +\n Warmed +\n Drought", 
+                                  "warmed_insecticide" = "Insecticide +\n Warmed",
+                                  "irrigated_control" = "Irrigated \n Control")) +
+        scale_fill_manual(values = c("ambient" = "darkblue",
+                                  "drought" = "gray58",
+                                  "warmed" = "red2",
+                                  "warmed_drought" = "darkred",
+                                  "drought_insecticide" = "dodgerblue4", 
+                                  "insecticide" = "sienna1", 
+                                  "warmed_drought_insecticide" = "orangered", 
+                                  'warmed_insecticide' = "salmon",
+                                  "irrigated_control" = "deepskyblue")) +
+        xlab("Treatment") +
+        ylab("Average Soil Moisture") +
+        theme(legend.position = "none")
+
+# boxplot
+soil_gwc_23 <- soil_gwc_1 %>% 
+        filter(Year == 2023)
+
+ggplot(soil_gwc_23, aes(x = factor(Subplot_Descriptions, levels = level_order), y = gwc, fill = Subplot_Descriptions)) +
+        geom_boxplot() +
+        facet_wrap(~time_of_sampling, scales = "free_x") +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought",
+                                  "drought_insecticide" = "Insecticide +\n Drought", 
+                                  "insecticide" = "Insecticide", 
+                                  "warmed_drought_insecticide" = "Insecticide +\n Warmed +\n Drought", 
+                                  "warmed_insecticide" = "Insecticide +\n Warmed",
+                                  "irrigated_control" = "Irrigated \n Control")) +
+        scale_fill_manual(values = c("ambient" = "darkblue",
+                                  "drought" = "gray58",
+                                  "warmed" = "red2",
+                                  "warmed_drought" = "darkred",
+                                  "drought_insecticide" = "dodgerblue4", 
+                                  "insecticide" = "sienna1", 
+                                  "warmed_drought_insecticide" = "orangered", 
+                                  'warmed_insecticide' = "salmon",
+                                  "irrigated_control" = "deepskyblue")) +
+        xlab("Treatment") +
+        ylab("Average Soil Moisture") +
+        theme(legend.position = "none")
+```
+
+2022
+```{r}
+soil_moisture_avg_22 <- soil_moisture_avg %>% 
+        filter(Year == 2022)
+
+ggplot(soil_moisture_avg_22, aes(x = factor(Subplot_Descriptions, levels = level_order), y = avg_soil_moisture, fill = Subplot_Descriptions)) +
+        geom_bar(stat = "identity") +
+        facet_wrap(~time_of_sampling, scales = "free_x") +
+        geom_errorbar(aes(ymin = avg_soil_moisture - se, ymax = avg_soil_moisture + se), width = 0.2,
+                         position = "identity") +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought",
+                                  "drought_insecticide" = "Insecticide +\n Drought", 
+                                  "insecticide" = "Insecticide", 
+                                  "warmed_drought_insecticide" = "Insecticide +\n Warmed +\n Drought", 
+                                  "warmed_insecticide" = "Insecticide +\n Warmed",
+                                  "irrigated_control" = "Irrigated \n Control")) +
+        scale_fill_manual(values = c("ambient" = "darkblue",
+                                  "drought" = "gray58",
+                                  "warmed" = "red2",
+                                  "warmed_drought" = "darkred",
+                                  "drought_insecticide" = "dodgerblue4", 
+                                  "insecticide" = "sienna1", 
+                                  "warmed_drought_insecticide" = "orangered", 
+                                  'warmed_insecticide' = "salmon",
+                                  "irrigated_control" = "deepskyblue")) +
+        xlab("Treatment") +
+        ylab("Average Soil Moisture") +
+        theme(legend.position = "none")
+```
+
+2021
+```{r}
+soil_moisture_avg_21 <- soil_moisture_avg %>% 
+        filter(Year == 2021)
+
+ggplot(soil_moisture_avg_21, aes(x = factor(Subplot_Descriptions, levels = level_order), y = avg_soil_moisture, fill = Subplot_Descriptions)) +
+        geom_bar(stat = "identity") +
+        facet_wrap(~time_of_sampling, scales = "free_x") +
+        geom_errorbar(aes(ymin = avg_soil_moisture - se, ymax = avg_soil_moisture + se), width = 0.2,
+                         position = "identity") +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought",
+                                  "drought_insecticide" = "Insecticide +\n Drought", 
+                                  "insecticide" = "Insecticide", 
+                                  "warmed_drought_insecticide" = "Insecticide +\n Warmed +\n Drought", 
+                                  "warmed_insecticide" = "Insecticide +\n Warmed",
+                                  "irrigated_control" = "Irrigated \n Control")) +
+        scale_fill_manual(values = c("ambient" = "darkblue",
+                                  "drought" = "gray58",
+                                  "warmed" = "red2",
+                                  "warmed_drought" = "darkred",
+                                  "drought_insecticide" = "dodgerblue4", 
+                                  "insecticide" = "sienna1", 
+                                  "warmed_drought_insecticide" = "orangered", 
+                                  'warmed_insecticide' = "salmon",
+                                  "irrigated_control" = "deepskyblue")) +
+        xlab("Treatment") +
+        ylab("Average Soil Moisture") +
+        theme(legend.position = "none")
+```
+
+
+
+
+
+
+
+# ARCHIVE BELOW
+```{r}
+soil_moisture_22 <- soil_gwc %>% 
+        filter(Year == 2022)
+
 # to get average soil moisture per treatment, first sum total soil moisture per plot
 # then, take the average of that
-soil_moisture_avg <- soil_moisture %>%
+soil_moisture_avg <- soil_moisture_22 %>%
   group_by(Unique_ID, Subplot_Description, time_of_sampling) %>% 
-  summarize(sum_soil_moisture = sum(grav_soil_moisture, na.rm = TRUE)) %>% # summing soil moisture per plot
+  summarize(sum_soil_moisture = sum(gwc, na.rm = TRUE)) %>% # summing soil moisture per plot
   group_by(Subplot_Description, time_of_sampling) %>%
   summarize(avg_soil_moisture = mean(sum_soil_moisture, na.rm = TRUE), # taking avg biomass of each treatment
             se = std.error(sum_soil_moisture, na.rm = TRUE))
