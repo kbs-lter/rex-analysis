@@ -1,18 +1,18 @@
 library(tidyverse)
 library(lubridate)
 
-data1 <- read_csv("~/Downloads/L0/REX_Microbial_Soil_GWC.csv")
+data1 <- read_csv("~/Downloads/L0/Falvo_REX_Microbial_Soil_GWC.csv")
 
 data1 = data1 %>%
   rename(grav_soil_moisture = gwc) %>%
   mutate(top_depth_cm = 0) %>%
-  mutate(bottom_depth_cm = 25) %>%
+  mutate(bottom_depth_cm = 10) %>%
   mutate(sample_event = 'monitor') %>%
   mutate(subsample = '') %>%
   mutate(notes = '') %>%
   select(date, Treatment, Replicate, Footprint, Subplot, subsample, Sample_ID, sample_event, top_depth_cm, bottom_depth_cm, grav_soil_moisture, notes)
 
-data2 <- read_csv("~/Downloads/L0/REX_Y2_Microbial soils_Soil moisture.csv",
+data2 <- read_csv("~/Downloads/L0/REX_Microbial_Soil_GWC_2022_L0.csv",
                   na =c( "#VALUE!",""),
                   col_types = cols(
                     Sample_Num = col_double(),
@@ -44,16 +44,16 @@ data2 <- read_csv("~/Downloads/L0/REX_Y2_Microbial soils_Soil moisture.csv",
   mutate(notes = paste(Notes, ' estimated top and bottom depth')) %>%
   select(date, Treatment, Replicate, Footprint, Subplot, subsample, Sample_ID, sample_event, top_depth_cm, bottom_depth_cm, grav_soil_moisture, notes)
 
-data3 <-  read_csv("~/Downloads/L0/T7_warmx_predrought_soil_moisture_2023.csv") %>%
+data3 <-  read_csv("~/Downloads/L0/T7_warmx_predrought_Microbial_Soil_GWC_2023_L0.csv") %>%
   separate(`Sample_ID`, 
            c('Treatment', 'Replicate', 'Footprint', 'Subplot' ,'subsample'),'_') %>%
   mutate(grav_soil_moisture = (`wet soil + tin` - `dry soil + tin` )/ (`dry soil + tin` - `tin_weight`)) %>%
   rename(Sample_ID = Plot_ID) %>%
   rename(sample_event = Sample_Event) %>%
-  mutate(date = '2023-08-01') %>%
-  mutate(notes = 'date and depth are estimated') %>%
+  mutate(date = '2023-05-16') %>%
+  mutate(notes = 'estimated top and bottom depth') %>%
   mutate(top_depth_cm = 0) %>%
-  mutate(bottom_depth_cm = 25) %>%
+  mutate(bottom_depth_cm = 10) %>%
   select(date, Treatment, Replicate, Footprint, Subplot, subsample, Sample_ID, sample_event, top_depth_cm, bottom_depth_cm, grav_soil_moisture, notes)
 
 
