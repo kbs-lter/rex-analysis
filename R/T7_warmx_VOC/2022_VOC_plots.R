@@ -123,9 +123,9 @@ ggplot() +
   #geom_point(data=centroids, aes(x=PCoA1,y=PCoA2),size=4.7,color="black",shape=16) + 
   geom_point(data=seg.data, aes(x=v.PCoA1,y=v.PCoA2, color=group),alpha=0.7,size=3,shape=16) +
   geom_point(data=centroids, aes(x=PCoA1,y=PCoA2, fill=group),color="black",size=5,shape=21) + 
-  scale_color_manual(labels=c("Ambient (A)", "Warmed (W)", "Drought (D)", "Warmed + Drought \n (WD)"),
+  scale_color_manual(labels=c("Ambient", "Warmed", "Drought", "Warmed + Drought"),
                      values=c('#2c7bb6',"khaki1","#fdae61","#d7191c"))+
-  scale_fill_manual(labels=c("Ambient (A)", "Warmed (W)", "Drought (D)", "Warmed + Drought \n (WD)"),
+  scale_fill_manual(labels=c("Ambient", "Warmed", "Drought", "Warmed + Drought"),
                     values=c('#2c7bb6',"khaki1","#fdae61","#d7191c"))+
   labs(x="PCoA 1",y="PCoA 2", color="Treatment", fill="Treatment") +
   annotate("text", x = -0.125, y=0.04, label = "A", size=5) +
@@ -475,7 +475,10 @@ ggplot(voc_long_cmpd3, aes(x = Treatment, y = full_name)) +
         axis.text.y = element_text(colour = "black", face = "bold", size = 11), 
         legend.text = element_text(size = 10, face ="bold", colour ="black"), 
         legend.title = element_text(size = 12, face = "bold"), 
-        panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2), 
+        panel.background = element_rect(fill = "white",colour = "black", size = 1, linetype = "solid"),
+        panel.grid.major = element_line(linewidth = 0.5, linetype = 'solid', colour = "grey92"), 
+        panel.grid.minor = element_line(linewidth = 0.5, linetype = 'solid', colour = "grey92"),
+        panel.border = element_rect(colour = "black", fill = NA, size = 1.2), 
         legend.position = "right") +
   scale_fill_manual(values = colours3, guide="none") +
   scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
