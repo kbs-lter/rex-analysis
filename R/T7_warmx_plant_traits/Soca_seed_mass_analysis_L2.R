@@ -91,8 +91,8 @@ car::Anova(full.model) # slight significance of interaction term, going to check
 # negative estimate (<0) means fewer 0's, positive estimate (>0) means more 0's
 # positive estimate means it is more likely to be zero (or, there is a reduced probability of of having a seed)
 # negative estimates means it is less likely to be zero (or, there is an increased probability of having a seed)
-emmeans(full.model, ~Climate_Treatment*Galling_Status, type = "response")
-emmeans(full.model, ~Climate_Treatment*Galling_Status, component = "zi", type = "response")
+emmeans(full.model, ~Climate_Treatment*Galling_Status, type = "response") # seed weight
+emmeans(full.model, ~Climate_Treatment*Galling_Status, component = "zi", type = "response") # probability
 
 contrast(emmeans(full.model, ~Climate_Treatment*Galling_Status), "pairwise", simple="each", combine = F, adjust="mvt")
 contrast(emmeans(full.model, ~Climate_Treatment*Galling_Status, component = "zi",), "pairwise", simple="each", combine = F, adjust="mvt")
