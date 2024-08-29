@@ -81,7 +81,7 @@ raw.data.test.sqrt <- lm(sqrt_biomass ~ Climate_Treatment * Galling_Status, data
 hist(resid(raw.data.test.sqrt)) # checking model residuals
 shapiro.test(resid(raw.data.test.sqrt))
 
-# going with log transformation
+# going with sqrt root transformation
 ```
 
 Assumption checking
@@ -90,9 +90,7 @@ Assumption checking
 # the model below is the model structure we can use for all response variables; its testing to see
 # if there is 1. an effect of climate treatment on biomass, 2. an effect of galling status on height, and 3. does the
 # effect of climate on height depend on galling status. Subplot nested within footprint nested within rep is used as our # random effect to account for variation between plots. Year is also included as a random effect to account for variation # between years.
-m1 <- lmer(log_biomass ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = biomass, REML=F)
-
-check_model(m1)
+m1 <- lmer(sqrt_biomass ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = biomass, REML=F)
 
 # Check Assumptions:
 # (1) Linearity: if covariates are not categorical
@@ -100,7 +98,7 @@ check_model(m1)
 plot(m1, main = "Soca Biomass")
 # Homogeneity of variance looks a bit off (increasing variance in resids does increase with fitted values)
 # Check for homogeneity of variances (true if p>0.05). If the result is not significant, the assumption of equal variances (homoscedasticity) is met (no significant difference between the group variances).
-leveneTest(residuals(m1) ~ biomass$Climate_Treatment) # met
+leveneTest(residuals(m1) ~ biomass$Climate_Treatment) # not met
 leveneTest(residuals(m1) ~ biomass$Galling_Status) # met
 # (3) Normality of error term: need to check by histogram, QQplot of residuals, could do Kolmogorov-Smirnov test.
 # Check for normal residuals
@@ -119,48 +117,63 @@ emmip(m1, Climate_Treatment~Galling_Status)
 
 # re-set the reference level for diff. comparisons
 biomass <- within(biomass, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Ambient"))
-m1 <- lmer(log_biomass ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = biomass, REML=F)
+m1 <- lmer(sqrt_biomass ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = biomass, REML=F)
 summary(m1)
+anova(m1)
 
 # Pairwise comparisons for climate treatments
 # back-transforming - A vs. W
-exp(1.38186)-exp(1.38186-0.39075) # 1.288078 - warmed plants weighed ~1.3 g more than ambient
+(2.02785)^2-((2.02785-0.42931)^2) # 1.556845 - warmed plants weighed ~1.56 g more than ambient
 # back-transforming - A vs. WD
-exp(1.38186)-exp(1.38186-0.43532) # 1.405523 - warmed + drought plants weighed ~1.4 g more than ambient
+(2.02785)^2-((2.02785-0.53658)^2) # 1.888289 - warmed + drought plants weighed ~1.89 g more than ambient
+
+biomass <- within(biomass, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Ambient Drought"))
+m1 <- lmer(sqrt_biomass ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = biomass, REML=F)
+summary(m1)
+anova(m1)
 
 # Pairwise comparisons for climate treatments
 # back-transforming - D vs. W
-exp(1.46130)-exp(1.46130-0.31131) # -1.1534 - warmed plants weighed ~1.2 g more than droughted plants
+(2.11198)^2-((2.11198-0.34518)^2) # 1.338877 - warmed plants weighed ~1.34 g more than droughted plants
 
 # Pairwise comparisons for climate treatments
 # back-transforming - D vs. WD
-exp(1.46130)-exp(1.46130-0.35589) # 1.291098 - warmed + drought plants weighed ~1.3 g more than drought plants
+(2.11198)^2-((2.11198-0.45245)^2) # 1.70642 - warmed + drought plants weighed ~1.71 g more than droughted plants
+
+biomass <- within(biomass, Climate_Treatment <- relevel(factor(Climate_Treatment), ref = "Ambient"))
+m1 <- lmer(sqrt_biomass ~ Climate_Treatment * Galling_Status + (1|Rep/Footprint/Subplot) + (1|Year), data = biomass, REML=F)
+summary(m1)
+anova(m1)
 
 # Pairwise comparisons for non-galled vs galled
 summary(m1)
 
 # back-transforming - galled vs. non-galled
-exp(1.42062)-exp(1.42062-(-0.04069)) # -0.1719178 - non-galled plants weighed 0.17 g less than non-galled plants
+(2.02785)^2-((2.02785-(-0.02733))^2) # -0.1115892 - non-galled plants weighed 0.11 g less than galled plants
 
-contrast(emmeans(m1, ~Climate_Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt", type = "response")
-contrast(emmeans(m1, ~Galling_Status), "pairwise", simple = "each", combine = F, adjust = "mvt")
+# contrasts for treatment
+contrast1 <- contrast(emmeans(m1, ~Climate_Treatment), "pairwise", simple = "each", combine = F, adjust = "mvt", type = "response")
+contrast1
+result1 = as.data.frame(contrast1)
+result1 <- result1 %>% mutate_if(is.numeric, round, digits=2)
+kable(result1) %>% kableExtra::kable_styling() # table
 
-# maybe delete 
-# calculating effect size of galling status - accounting for log transformation
-exp((1.38186) + (0.13)*0) # 3.982302
-exp((1.38186) + (0.13)*1) # 3.670728
-# effect:
-4.535158 - 3.982302 # 0.552856 grams
+# contrasts for galling status
+contrast2 <- contrast(emmeans(m1, ~Galling_Status), "pairwise", simple = "each", combine = F, adjust = "mvt")
+contrast2
+result2 = as.data.frame(contrast2)
+result2 <- result2 %>% mutate_if(is.numeric, round, digits=2)
+kable(result2) %>% kableExtra::kable_styling() # table
 
-# calculating effect size of warming - accounting for log transformation
-exp((1.38186) + (-0.367396)*0) # 3.982302
-exp((1.38186) + (-0.367396)*1) # 2.757885
-# effect:
-2.757885 - 3.982302 # -1.224417 grams
+# contrasts for interaction - treatment * galling status
+contrast3 <- contrast(emmeans(m1, ~Climate_Treatment*Galling_Status), "pairwise", simple = "each", combine = F, adjust = "mvt")
+contrast3
+result3 = as.data.frame(contrast3)
+result3 <- result3 %>% mutate_if(is.numeric, round, digits=2)
+kable(result3) %>% kableExtra::kable_styling() # table
 
-# make table for supp
-kable(anova(m1)) %>% kableExtra::kable_styling()
-
+# make model table for supp
+kable(anova(m1), digits = 3) %>% kableExtra::kable_styling()
 ```
 
 
