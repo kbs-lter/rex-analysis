@@ -447,8 +447,10 @@ voc_long_cmpd3$Treatment <- factor(voc_long_cmpd3$Treatment, levels=c("Ambient_C
 ggplot(voc_long_cmpd2, aes(x = Treatment, fill = compound, y = avg_abundance)) + 
   geom_bar(stat = "identity", colour = "black") + 
   theme(axis.text.x = element_text(angle = 90, size = 14, colour = "black", vjust = 0.5, hjust = 1, face= "bold"), 
-        axis.title.y = element_text(size = 16, face = "bold"), legend.title = element_text(size = 16, face = "bold"), 
+        axis.title.y = element_text(size = 16, face = "bold"),
+        legend.title = element_text(size = 16, face = "bold"), 
         legend.text = element_text(size = 12, face = "bold", colour = "black"), 
+        legend.position="none",
         axis.text.y = element_text(colour = "black", size = 12, face = "bold")) + 
   scale_y_continuous(expand = c(0,0)) + 
   labs(x = "", y = "Average VOC Abundance \n (peak area*10,000/g/hr)", fill = "Compound")
