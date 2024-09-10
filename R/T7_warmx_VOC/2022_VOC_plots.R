@@ -127,13 +127,22 @@ ggplot() +
                      values=c('#2c7bb6',"khaki1","#fdae61","#d7191c"))+
   scale_fill_manual(labels=c("Ambient", "Warmed", "Drought", "Warmed + Drought"),
                     values=c('#2c7bb6',"khaki1","#fdae61","#d7191c"))+
-  labs(x="PCoA 1",y="PCoA 2", color="Treatment", fill="Treatment") +
+  labs(x="PCoA 1 (19.5%)",y="PCoA 2 (15.4%)", color="Treatment", fill="Treatment") +
   annotate("text", x = -0.125, y=0.04, label = "A", size=5) +
   annotate("text", x = -0.07, y=0.06, label = "A", size=5) +
   annotate("text", x = 0.04, y=0.07, label = "B", size=5) +
   annotate("text", x = 0.1, y=0.09, label = "B", size=5) +
   theme_classic()
 dev.off()
+
+# finding variation explained by each axis
+total_eigenvalues <- sum(dispersion$eig)
+explained_variation_PCoA1 <- dispersion$eig[1] / total_eigenvalues
+explained_variation_PCoA2 <- dispersion$eig[2] / total_eigenvalues
+# Print the proportions of variation explained
+explained_variation_PCoA1
+explained_variation_PCoA2
+
 
 # rep w/ no irrigated
 ab = voc_transpose_rm5[,2:429]
