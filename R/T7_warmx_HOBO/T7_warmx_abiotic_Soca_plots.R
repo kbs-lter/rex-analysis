@@ -132,43 +132,46 @@ level_order2 <- c("irrigated_control","ambient", 'warmed', 'drought',"warmed_dro
 air_temp <- ggplot(hobo_temp_avg, aes(x = factor(Treatment, level = level_order1), y = avg_temp)) +
   geom_pointrange(aes(ymin=avg_temp-se, ymax=avg_temp+se),pch=21,size=1,fill="#AE1F00") +
   labs(y="Air temperature (°C)", x=NULL) +
-  scale_x_discrete(labels=c("Ambient" = "A", "Drought" = "D",
-                            "Warmed" = "W",
-                            "Warmed_Drought" = "WD")) +
+  scale_x_discrete(labels=c("Ambient" = "Ambient", "Drought" = "Drought",
+                            "Warmed" = "Warmed",
+                            "Warmed_Drought" = "Warmed &\nDrought")) +
   theme_bw() +
   #annotate("text", x = 0.6, y=23, label = "A", size=6) +
   theme(axis.title = element_text(size=17),
         axis.text = element_text(size=15),
         legend.title = element_text(size=17),
-        legend.text = element_text(size=15))
+        legend.text = element_text(size=15),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 soil_temp <- ggplot(soil_sampling_avg, aes(x = factor(Subplot_Descriptions, level=level_order2), y = avg_temp)) +
   geom_pointrange(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp), pch=21,size=1,fill="#AE1F00") +
   #geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp),width=0.1,color="black",linetype="solid") +
   #geom_point(size = 2) +
   labs(y="Soil temperature (°C)", x=NULL) +
-  scale_x_discrete(labels=c("ambient" = "A", "drought" = "D",
-                            "irrigated_control" = "I", "warmed" = "W",
-                            "warmed_drought" = "WD")) +
+  scale_x_discrete(labels=c("ambient" = "Ambient", "drought" = "Drought",
+                            "irrigated_control" = "Irrigated", "warmed" = "Warmed",
+                            "warmed_drought" = "Warmed &\nDrought")) +
   theme_bw() +
  # annotate("text", x = 0.7, y=21.3, label = "B", size=6) +
   theme(axis.title = element_text(size=17),
         axis.text = element_text(size=15),
         legend.title = element_text(size=17),
-        legend.text = element_text(size=15))
+        legend.text = element_text(size=15),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 soil_moist <- ggplot(soil_sampling_avg, aes(x = factor(Subplot_Descriptions, level=level_order2), y = avg_moist)) +
   geom_pointrange(aes(ymin=avg_moist-se_moist, ymax=avg_moist+se_moist),pch=21,size=1,fill="#AE1F00") +
   #geom_errorbar(aes(ymin=avg_moist-se_moist, ymax=avg_moist+se_moist),width=0.1,color="black",linetype="solid") +
   #geom_point(size = 2) +
   labs(y=bquote("Soil moisture " (m^3/m^3)), x=NULL) +
-  scale_x_discrete(labels=c("ambient" = "A", "drought" = "D",
-                            "irrigated_control" = "I", "warmed" = "W",
-                            "warmed_drought" = "WD")) +
+  scale_x_discrete(labels=c("ambient" = "Ambient", "drought" = "Drought",
+                            "irrigated_control" = "Irrigated", "warmed" = "Warmed",
+                            "warmed_drought" = "Warmed &\nDrought")) +
   theme_bw() +
   #annotate("text", x = 0.7, y=0.28, label = "C", size=6) +
   theme(axis.title = element_text(size=17),
         axis.text = element_text(size=15),
         legend.title = element_text(size=17),
-        legend.text = element_text(size=15))
+        legend.text = element_text(size=15),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 # combine plots
 abiotic_comb <- ggpubr::ggarrange(air_temp,soil_temp,soil_moist,
                                   ncol = 3,widths = c(0.9,0.9,1))
@@ -185,9 +188,9 @@ level_order2 <- c("irrigated_control","ambient", 'warmed', 'drought',"warmed_dro
 air_temp_yearly <- ggplot(hobo_temp_avg_year, aes(x = factor(Treatment, level = level_order1), y = avg_temp, fill=year)) +
   geom_pointrange(aes(ymin=avg_temp-se, ymax=avg_temp+se),pch=21,size=1,position=position_jitter(w=0.1)) +
   labs(y="Air temperature (°C)", x=NULL) +
-  scale_x_discrete(labels=c("Ambient" = "A", "Drought" = "D",
-                            "Warmed" = "W",
-                            "Warmed_Drought" = "WD")) +
+  scale_x_discrete(labels=c("Ambient" = "Ambient", "Drought" = "Drought",
+                            "Warmed" = "Warmed",
+                            "Warmed_Drought" = "Warmed &\nDrought")) +
   theme_bw() +
   #annotate("text", x = 0.6, y=23, label = "A", size=6) +
   scale_fill_manual(name="Year",
@@ -195,15 +198,16 @@ air_temp_yearly <- ggplot(hobo_temp_avg_year, aes(x = factor(Treatment, level = 
   theme(axis.title = element_text(size=17),
         axis.text = element_text(size=15),
         legend.title = element_text(size=17),
-        legend.text = element_text(size=15))
+        legend.text = element_text(size=15),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 soil_temp_yearly <- ggplot(soil_sampling_avg_year, aes(x = factor(Subplot_Descriptions, level=level_order2), y = avg_temp, fill=year)) +
   geom_pointrange(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp), pch=21,size=1,position=position_jitter(w=0.1)) +
   #geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp),width=0.1,color="black",linetype="solid") +
   #geom_point(size = 2) +
   labs(y="Soil temperature (°C)", x=NULL) +
-  scale_x_discrete(labels=c("ambient" = "A", "drought" = "D",
-                            "irrigated_control" = "I", "warmed" = "W",
-                            "warmed_drought" = "WD")) +
+  scale_x_discrete(labels=c("ambient" = "Ambient", "drought" = "Drought",
+                            "irrigated_control" = "Irrigated", "warmed" = "Warmed",
+                            "warmed_drought" = "Warmed &\nDrought")) +
   theme_bw() +
   # annotate("text", x = 0.7, y=21.3, label = "B", size=6) +
   scale_fill_manual(name="Year",
@@ -211,15 +215,16 @@ soil_temp_yearly <- ggplot(soil_sampling_avg_year, aes(x = factor(Subplot_Descri
   theme(axis.title = element_text(size=17),
         axis.text = element_text(size=15),
         legend.title = element_text(size=17),
-        legend.text = element_text(size=15))
+        legend.text = element_text(size=15),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 soil_moist_yearly <- ggplot(soil_sampling_avg_year, aes(x = factor(Subplot_Descriptions, level=level_order2), y = avg_moist, fill=year)) +
   geom_pointrange(aes(ymin=avg_moist-se_moist, ymax=avg_moist+se_moist),pch=21,size=1,position=position_jitter(w=0.1)) +
   #geom_errorbar(aes(ymin=avg_moist-se_moist, ymax=avg_moist+se_moist),width=0.1,color="black",linetype="solid") +
   #geom_point(size = 2) +
   labs(y=bquote("Soil moisture " (m^3/m^3)), x=NULL) +
-  scale_x_discrete(labels=c("ambient" = "A", "drought" = "D",
-                            "irrigated_control" = "I", "warmed" = "W",
-                            "warmed_drought" = "WD")) +
+  scale_x_discrete(labels=c("ambient" = "Ambient", "drought" = "Drought",
+                            "irrigated_control" = "Irrigated", "warmed" = "Warmed",
+                            "warmed_drought" = "Warmed &\nDrought")) +
   theme_bw() +
   #annotate("text", x = 0.7, y=0.28, label = "C", size=6) +
   scale_fill_manual(name="Year",
@@ -227,7 +232,8 @@ soil_moist_yearly <- ggplot(soil_sampling_avg_year, aes(x = factor(Subplot_Descr
   theme(axis.title = element_text(size=17),
         axis.text = element_text(size=15),
         legend.title = element_text(size=17),
-        legend.text = element_text(size=15))
+        legend.text = element_text(size=15),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 # combine plots
 abiotic_comb_yearly <- ggpubr::ggarrange(air_temp_yearly,soil_temp_yearly,soil_moist_yearly,
                                   ncol = 3,widths = c(1,1,1), common.legend=T, legend="right")
