@@ -270,6 +270,10 @@ dev.off()
 # plot - air temp, soil temp, and soil moisture during sampling period
 level_order1 <- c("Ambient", 'Warmed', 'Drought',"Warmed_Drought") 
 level_order2 <- c("irrigated_control","ambient", 'warmed', 'drought',"warmed_drought") 
+# removing ir control
+soil_sampling_avg2 <- soil_sampling_avg2 %>%
+  filter(!(Subplot_Descriptions == "irrigated_control"))
+
 air_temp <- ggplot(hobo_sampling_avg2, aes(x = factor(Treatment, level = level_order1), y = avg_temp)) +
   geom_pointrange(aes(ymin=avg_temp-se, ymax=avg_temp+se),pch=21,size=1,fill="lightsteelblue3") +
   #geom_errorbar(aes(ymin=avg_temp-se, ymax=avg_temp+se),width=0.1,color="black",linetype="solid") +

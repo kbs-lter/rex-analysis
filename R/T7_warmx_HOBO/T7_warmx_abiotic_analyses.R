@@ -66,8 +66,10 @@ soil_data$date <- format(soil_data$Date_Time, format="%m%d")
 # taking 2022 temps for july 11 - july 15 (VOC sampling period)
 hobo_sampling_VOC <- hobo_data %>%
   filter(year == 2022) %>%
-  filter(date > "710") %>%
-  filter(date < "716")
+  filter(hour > "06") %>%
+  filter(hour < "20") %>%
+  filter(date > "0710") %>%
+  filter(date < "0716")
 # limit to the reps I used
 hobo_sampling_VOC <- hobo_sampling_VOC %>%
   filter(Rep == 2 | Rep == 3 | Rep == 4 | Rep == 5)
@@ -76,8 +78,10 @@ hobo_sampling_VOC <- hobo_sampling_VOC %>%
 # taking 2022 soil for july 11 - july 15 (VOC sampling period)
 soil_sampling_VOC <- soil_data %>%
   filter(year == 2022) %>%
-  filter(date > "710") %>%
-  filter(date < "716")
+  filter(hour > "06") %>%
+  filter(hour < "20") %>%
+  filter(date > "0710") %>%
+  filter(date < "0716")
 # limit to the reps I used
 soil_sampling_VOC <- soil_sampling_VOC %>%
   filter(Rep == 2 | Rep == 3 | Rep == 4 | Rep == 5)
@@ -102,6 +106,9 @@ contrast(emmeans(m.hobo.test, ~Treatment), "pairwise", simple = "each", combine 
 
 
 # soil model exploration for soil temperature
+# removing IR treatment
+soil_sampling_VOC <- soil_sampling_VOC %>%
+  filter(!(Subplot_Descriptions == "irrigated_control"))
 descdist(soil_sampling_VOC$temperature, discrete = FALSE)
 hist(soil_sampling_VOC$temperature)
 qqnorm(soil_sampling_VOC$temperature)
