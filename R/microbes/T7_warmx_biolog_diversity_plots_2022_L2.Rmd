@@ -102,6 +102,7 @@ colnames(result)[4:5] <- c("avg_absorbence", "se")
 
 # carbon group plots
 ```{r}
+# setting up for plots
 carbon_groups1 <- c("amines" = "Amines",
                     "amino_acids" = "Amino Acids",
                     "carbohydrates" = "Carbohydrates",
@@ -112,7 +113,33 @@ carbon_groups1 <- c("amines" = "Amines",
 # Hour 168 - day 7
 biologHr168 <- result %>% filter(result$Hour == "168")
 
+# plot that shows average AWCD for each treatment faceted out by carbon group at hour 168
 ggplot(biologHr168, aes(x = Subplot_Descriptions, y = avg_absorbence, fill = Subplot_Descriptions)) +
+        geom_pointrange(aes(ymin=avg_absorbence-se, ymax=avg_absorbence+se), 
+                        pch=21,
+                        size=2,
+                        position=position_dodge(0.3)) + 
+        facet_wrap(~carbon_group, labeller = as_labeller(carbon_groups1)) +
+        labs(x = "Treatment", 
+             y = "Average AWCD", 
+             title = "Average AWCD, Day 7") + 
+        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15))
+
+# Hour 48 - day 2
+biologHr48 <- result %>% filter(result$Hour == "48")
+
+# plot that shows average AWCD for each treatment faceted out by carbon group at hour 168
+ggplot(biologHr48, aes(x = Subplot_Descriptions, y = avg_absorbence, fill = Subplot_Descriptions)) +
         geom_pointrange(aes(ymin=avg_absorbence-se, ymax=avg_absorbence+se), 
                         pch=21,
                         size=1,
@@ -120,7 +147,7 @@ ggplot(biologHr168, aes(x = Subplot_Descriptions, y = avg_absorbence, fill = Sub
         facet_wrap(~carbon_group, labeller = as_labeller(carbon_groups1)) +
         labs(x = "Treatment", 
              y = "Average AWCD", 
-             title = "Average AWCD, Day 7") + 
+             title = "Average AWCD, Day 2") + 
         scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
         scale_x_discrete(labels=c("ambient" = "Ambient",
                                   "drought" = "Drought",
@@ -572,11 +599,12 @@ pca_loadings$Substrate_Group <- rownames(pca_loadings)  # Add substrate group la
 
 # Plot the PCA results
 ggplot(pca_scores2, aes(x = PC1, y = PC2, color = Subplot_Descriptions)) +
-        geom_point(size = 3) +  # Points representing climate treatments
+        geom_point(size = 5) +  # Points representing climate treatments
         geom_segment(data = pca_loadings, aes(x = 0, y = 0, xend = PC1, yend = PC2),
                      arrow = arrow(length = unit(0.3, "cm")), color = "black") +  # Arrows for substrate groups
         geom_text(data = pca_loadings, aes(x = PC1, y = PC2, label = Substrate_Group), 
                   vjust = 1, hjust = 1, color = "black", size = 3.5) +  # Labels for the arrows
+        scale_color_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E", "forestgreen", "darkblue")) +
         labs(x = paste0("PC 1 (", round(summary(pca_result1)$importance[2, 1] * 100, 1), "%)"),
              y = paste0("PC 2 (", round(summary(pca_result1)$importance[2, 2] * 100, 1), "%)")) +
         theme_minimal() +
