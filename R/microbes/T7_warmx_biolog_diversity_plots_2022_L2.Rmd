@@ -1,7 +1,7 @@
 ---
 title: "Biolog 2022 Plots"
 author: "Adrian Noecker, Moriah Young"
-date: "September 2023, updated February 2024"
+date: "September 2023, updated October 2024"
 output: pdf_document
 editor_options: 
   chunk_output_type: console
@@ -532,7 +532,7 @@ ggplot(result168_relabun, aes(x = Subplot_Descriptions, y = Relative_Abundance, 
         labs(x = "Treatment", y = "SAWCD")
 ```
 
-PCA - in progress
+PCAs
 ```{r}
 biolog168 <- biolog %>% filter(Hour == 168)
 
@@ -549,9 +549,38 @@ ggplot(pca_scores1, aes(x = PC1, y = PC2, label = Subplot_Descriptions, color = 
   geom_point(size = 4) +
   geom_text(vjust = -1) +
   theme_minimal() +
-  labs(title = "PCA Plot of Biolog EcoPlate Data",
-       x = "PC1",
+  labs(x = "PC1",
        y = "PC2")
+```
+
+```{r}
+# Aggregate the carbon source data by Subplot_Descriptions
+biolog_agg <- biolog3 %>%
+  group_by(Subplot_Descriptions) %>%
+  summarise_if(is.numeric, mean, na.rm = TRUE)
+
+# Run the PCA on the substrate data
+pca_result1 <- prcomp(biolog_agg[, -c(1:5)], scale. = TRUE)  # Exclude the all columns except the subtrates
+
+# Extract PCA scores (for plotting points)
+pca_scores2 <- as.data.frame(pca_result1$x)
+pca_scores2$Subplot_Descriptions <- biolog_agg$Subplot_Descriptions  # Add climate treatment info
+
+# Extract PCA loadings (for plotting arrows)
+pca_loadings <- as.data.frame(pca_result1$rotation)
+pca_loadings$Substrate_Group <- rownames(pca_loadings)  # Add substrate group labels
+
+# Plot the PCA results
+ggplot(pca_scores2, aes(x = PC1, y = PC2, color = Subplot_Descriptions)) +
+        geom_point(size = 3) +  # Points representing climate treatments
+        geom_segment(data = pca_loadings, aes(x = 0, y = 0, xend = PC1, yend = PC2),
+                     arrow = arrow(length = unit(0.3, "cm")), color = "black") +  # Arrows for substrate groups
+        geom_text(data = pca_loadings, aes(x = PC1, y = PC2, label = Substrate_Group), 
+                  vjust = 1, hjust = 1, color = "black", size = 3.5) +  # Labels for the arrows
+        labs(x = paste0("PC 1 (", round(summary(pca_result1)$importance[2, 1] * 100, 1), "%)"),
+             y = paste0("PC 2 (", round(summary(pca_result1)$importance[2, 2] * 100, 1), "%)")) +
+        theme_minimal() +
+        theme(legend.position = "right")
 ```
 
 
