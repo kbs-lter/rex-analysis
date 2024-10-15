@@ -113,6 +113,27 @@ ggplot(biologHr168, aes(x = Subplot_Descriptions, y = avg_absorbence, fill = Sub
               axis.title.x = element_text(size = 20),
               axis.text.x = element_text(size = 15))
 
+# bar plot
+ggplot(biologHr168, aes(x = Subplot_Descriptions, y = avg_absorbence, fill = Subplot_Descriptions)) +
+        geom_bar(stat = "identity", width=0.8) + 
+        geom_errorbar(aes(ymin = avg_absorbence - se, ymax = avg_absorbence + se), width=0.2) +
+        facet_wrap(~carbon_group, labeller = as_labeller(carbon_groups1)) +
+        labs(x = "Treatment", 
+             y = "Average AWCD", 
+             title = "Average AWCD, Day 7") + 
+        scale_fill_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed +\n Drought")) +
+        theme(legend.position = "none",
+              plot.title = element_text(hjust = 0.5, size = 20),
+              axis.title.y = element_text(size = 20),
+              axis.text.y = element_text(size = 15),
+              axis.title.x = element_text(size = 20),
+              axis.text.x = element_text(size = 15),
+              strip.text.x = element_text(size = 10, face = "italic"))
+
 # Hour 48 - day 2
 biologHr48 <- result %>% filter(result$Hour == "48")
 
