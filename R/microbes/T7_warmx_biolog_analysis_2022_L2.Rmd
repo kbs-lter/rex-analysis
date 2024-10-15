@@ -46,16 +46,16 @@ library(vegan)
 # Set working directory from .Renviron
 dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
-setwd(dir)
 
 ## Read in data
-biolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/biolog_clean_wide_format_L1.csv"))
+# Adrian
+biolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/biolog_clean_wide_format_L1.csv")) 
+biolog2 <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/biolog_clean_L1.csv"))
+diversity <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/biolog_hill_diversity_L2.csv"))
+
 # Moriah's below (for some reason above wont work for me - not same file path)
 biolog <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L1/biolog_clean_wide_format_L1.csv"))
-
-# diversity data
-diversity <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates/T7_warmx/L1/biolog_hill_diversity_L2.csv"))
-# Moriah's below (for some reason above wont work for me - not same file path)
+biolog2 <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L1/biolog_clean_L1.csv"))
 diversity <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L2/biolog_hill_diversity_L2.csv"))
 ```
 
@@ -69,16 +69,17 @@ Notes from Moriah:
 # this section was taken from Tayler's code - can probably delete
 ```{r}
 ###Starting with final reading (hour=168) 
+biologHr168diversity <- diversity %>% filter(Hour == "168")
 
 # test for normal residuals and equal variances (ANOVA assumptions)
 # normal residuals?
-ggqqplot(biologHr168diversity$Richness)
-hist(biologHr168diversity$Richness) ##slightly skewed left
+ggqqplot(biologHr168diversity$H0)
+hist(biologHr168diversity$H0) ##slightly skewed left
 
 # Shapiro test - null hypothesis: residuals are normally distributed 
 require(lme4)
 require(lmerTest)
-model = lm(Richness ~ Subplot_Descriptions, data = biologHr168diversity)
+model = lm(H0 ~ Subplot_Descriptions, data = biologHr168diversity)
 res = model$residuals
 shapiro.test(res) 
 #p = 0.002237 so not normally distributed?
@@ -89,7 +90,7 @@ shapiro.test(res)
 # H0: The variance among each group is equal.
 # HA: At least one group has a variance that is not equal to the rest.
 
-bartlett.test(Richness ~ Subplot_Descriptions, data = biologHr168diversity) 
+bartlett.test(H0 ~ Subplot_Descriptions, data = biologHr168diversity) 
 # 0.6396 = we fail to reject the null hypothesis, so all groups have the same variance. This is what we want.
 
 #ANOVA
@@ -102,7 +103,7 @@ Anova(model, type = "III")
 #Residuals             938.3 20   
 
 # confidence intervals for every pairwise comparison
-tukey <- TukeyHSD(aov(Richness ~ Subplot_Descriptions, data = biologHr168diversity))
+tukey <- TukeyHSD(aov(H0 ~ Subplot_Descriptions, data = biologHr168diversity))
 tukey
 plot(tukey)
 
@@ -120,25 +121,25 @@ plot(tukey)
 Example script from other REX data on data analysis with steps for checking for assumption
 https://github.com/kbs-lter/rex-analysis/blob/main/R/T7_warmx_plant_traits/Soca_plant_height_analyses_L2.R
 
-# Checking Distribution of all reads across all hours
+# Data exploration
 ```{r}
-#calculate shannon diversity for all reads
-ShannonAll <- diversity(biologsamples2[,c(7:37)], index = "shannon")
+biolog168 <- filter(biolog2, Hour == 168)
+descdist(biolog168$Absorbence, discrete = FALSE)
+hist(biolog168$Absorbence)
+qqnorm(biolog168$Absorbence) # should be a straight diagonal line if normal
+shapiro.test(biolog168$Absorbence) # p > 0.05 if normal
 
-#histogram of shannon index for each sample each hour all reads-skewed right
-hist(ShannonAll)
+# need to do some sort of transformation
 
-#shapiro test
-# normal: p > 0.05
-# p=9.89e-5 - not normal
-shapiro.test(ShannonAll)
+# sqrt transformation
+biolog168$sqrt_Absorbence <- sqrt(biolog168$Absorbence)
+descdist(biolog168$sqrt_Absorbence, discrete = FALSE)
+hist(biolog168$sqrt_Absorbence)
+qqnorm(biolog168$sqrt_Absorbence)
+shapiro.test(biolog168$sqrt_Absorbence) # looks good
 
-#bind with rest of data
-biolog.shannon <- cbind(biologsamples2, ShannonAll)
-
-#look at final reads for lmer
-biologshannon168 <- filter(biolog.shannon, Hour == 168)
-
+anova_result <- aov(carbon_group ~ Subplot_Descriptions, data = biolog168)
+print(kruskal_test)
 ```
 
 # LMER for final reads
@@ -224,7 +225,7 @@ anova(m5)
 ## PCA with arrows
 ```{r}
 # select only for hour 168
-biolog.samples.Hr168 <- filter(biologsamples2, Hour == "168")
+biolog.samples.Hr168 <- filter(biolog2, Hour == "168")
 
 # make sample names the rownames so we keep them during ordination 
 biolog.matrix.Hr168 <- column_to_rownames(biolog.samples.Hr168, "Plot_ID")

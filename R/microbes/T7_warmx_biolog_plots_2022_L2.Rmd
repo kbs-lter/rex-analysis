@@ -53,30 +53,8 @@ biolog2 <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L1/b
 diversity <- read.csv(file.path(dir, "/microbes/Biolog EcoPlates (1)/T7_warmx/L2/biolog_hill_diversity_L2.csv"))
 ```
 
-Maybe move this to cleaning script
-Grouping carbon sources
+Calculate mean and se for absorbence by subplot descriptions, carbon group, and hour
 ```{r}
-carbon_groups <- list(
-        "amino_acids" = c("β-HydroxyGlycyl-L-Glutamic_Acid", "L-Threonine", "L-Serine", "L-Asparagine", "L-Phenylalanine", "L-Arginine"),
-        "amines" = c("Putrescine", "Phenylethylamine"),
-        "carbohydrates" = c("β-MethylD-Glucoside", "D-Xylose", "i-Erythritol", "D-Mannitol", "N-Acetyl-D-Glucosamine", "D-Cellobiose", "Glucose1-Phosphate", "α-D-Lactose", "D,L-α-Glycerol_Phosphate"),
-        "carboxylic_acids" = c("D-Malic_Acid", "α-Keto_Butyric_Acid", "Itaconic_Acid", "Pyruvic_Acid_Methyl_Ester", "γ-Amino_Butyric_Acid", "D-Galactonic_Acid_γ-Lactone", "D-Glucosaminic_Acid", "D-Galacturonic_Acid"),
-        "phenolic_acids" = c("4-Hydroxy_Benzoic_Acid", "2-Hydroxy_Benzoic_Acid"),
-        "polymers" = c("Glycogen", "Tween_40", "Tween_80", "α-Cyclodextrin")
-        )
-
-# Create the new column with broader group names based on the mapping
-biolog2$carbon_group <- unlist(sapply(biolog2$Well_C_Source, function(cs) {
-  group <- names(carbon_groups)[sapply(carbon_groups, function(x) cs %in% x)]
-  if (length(group) == 0) group <- "Unknown"
-  group
-}))
-
-# move Absorbence column to be the last column
-biolog2 <- biolog2 %>%
-  relocate(Absorbence, .after = last_col())
-
-# Calculate mean and se for absorbence by subplot descriptions, carbon group, and hour
 # Define a custom function to calculate mean and standard error
 calculate_mean_se <- function(x) {
   mean_val <- mean(x, na.rm = TRUE)
@@ -100,7 +78,7 @@ colnames(result)[4:5] <- c("avg_absorbence", "se")
 #avg_biolog <- aggregate(Absorbence ~ Subplot_Descriptions + carbon_group + Hour, data = biolog2, FUN = mean)
 ```
 
-# carbon group plots
+# carbon group plots 1
 ```{r}
 # setting up for plots
 carbon_groups1 <- c("amines" = "Amines",
@@ -159,7 +137,10 @@ ggplot(biologHr48, aes(x = Subplot_Descriptions, y = avg_absorbence, fill = Subp
               axis.text.y = element_text(size = 15),
               axis.title.x = element_text(size = 20),
               axis.text.x = element_text(size = 15))
+```
 
+# carbon group plots 2
+```{r}
 #Filtering for Each Subplot Description
 ambient=as.data.frame(filter(result, Subplot_Descriptions=="ambient"))
 
@@ -372,7 +353,6 @@ ggplot(polymers, aes(x = Hour, y = avg_absorbence, color = Subplot_Descriptions)
 
 ```
 
-
 Diversity plots
 ```{r}
 # Hour 168 - day 7
@@ -462,11 +442,11 @@ dev.off()
 Plots - looking at individual carbon sources and plotting absorbency levels across time (from time 0 - hr 168)
 ```{r}
 #group by hour and sample for average
-biolog2 <- biolog[,!(names(biolog) %in% c("Plot_ID", "SampleID_Hour", "Sample_ID", "Biolog_column_ID"))]
+biolog3 <- biolog[,!(names(biolog) %in% c("Plot_ID", "SampleID_Hour", "Sample_ID", "Biolog_column_ID"))]
 
 ##X2.Hydroxybenzoic Acid
 #take average of each treatment per hour 
-X2HydroxyBen_mean <- aggregate(biolog2$X2.Hydroxy_Benzoic_Acid, by=list(biolog2$Hour,biolog2$Subplot_Descriptions), FUN=mean)
+X2HydroxyBen_mean <- aggregate(biolog3$X2.Hydroxy_Benzoic_Acid, by=list(biolog3$Hour,biolog3$Subplot_Descriptions), FUN=mean)
 
 #Plotting avg absorbance of each treatment across time
 png("X2HydroxyBen_mean_L2.png", units="in", width=7, height=6, res=300)
@@ -481,7 +461,7 @@ dev.off()
 
 ##X4.Hydroxybenzoic Acid
 #take average of each treatment per hour 
-X4HydroxyBen_mean <- aggregate(biolog2$X4.Hydroxy_Benzoic_Acid, by=list(biolog2$Hour,biolog2$Subplot_Descriptions), FUN=mean)
+X4HydroxyBen_mean <- aggregate(biolog3$X4.Hydroxy_Benzoic_Acid, by=list(biolog3$Hour,biolog3$Subplot_Descriptions), FUN=mean)
 
 #Plotting avg absorbance of each treatment across time
 png("X4HydroxyBen_mean_L2.png", units="in", width=7, height=6, res=300)
@@ -496,7 +476,7 @@ dev.off()
 
 ##D.Cellobiose 
 #take average of each treatment per hour 
-DCell_mean <- aggregate(biolog2$D.Cellobiose, by=list(biolog2$Hour,biolog2$Subplot_Descriptions), FUN=mean)
+DCell_mean <- aggregate(biolog3$D.Cellobiose, by=list(biolog3$Hour,biolog3$Subplot_Descriptions), FUN=mean)
 
 #Plotting avg absorbance of each treatment across time
 png("DCell_mean_L2.png", units="in", width=7, height=6, res=300)
@@ -540,6 +520,42 @@ ggplot(DGalacturonic_mean, aes(x = Group.1, y = x, group = Group.2, color = Grou
 dev.off()
 
 ```
+
+Line plot showing average AWCD over time for the different treatments
+```{r}
+# Apply the custom function with aggregate for mean
+mean_result_1 <- aggregate(Absorbence ~ Subplot_Descriptions + Hour, data = biolog2, FUN = function(x) mean(x, na.rm = TRUE))
+
+# Apply the custom function with aggregate for standard error
+se_result_1 <- aggregate(Absorbence ~ Subplot_Descriptions + Hour, data = biolog2, FUN = function(x) sd(x, na.rm = TRUE) / sqrt(length(x)))
+
+# Merge the results based on the grouping variables
+result_1 <- merge(mean_result_1, se_result_1, by = c("Subplot_Descriptions", "Hour"))
+
+# Rename the columns
+colnames(result_1)[3:4] <- c("avg_absorbence", "se")
+
+# plot
+ggplot(result_1, aes(x = Hour, y = avg_absorbence, group = Subplot_Descriptions, color = Subplot_Descriptions)) +
+        geom_line(linewidth = 1) +
+        geom_point(position=position_dodge(0.1)) + # "position = position_dodge()" is the code used to dodge overlapping points
+        geom_errorbar(aes(ymin = avg_absorbence - se, ymax = avg_absorbence + se), 
+                      width = 0.2,
+                      position = position_dodge(width = 0.4)) +  # Error bars
+        scale_color_manual(values = c("#a6bddb", "#2F4F4f", "#8B6914", "#9D422E"),
+                           labels = c("ambient" = "Ambient",
+                                "drought" = "Drought",
+                                "warmed" = "Warmed",
+                                "warmed_drought" = "Warmed + Drought")) +
+        labs(y="Average AWCD", x="Hour", color = "Treatment") +
+        scale_x_continuous(breaks = unique(result_1$Hour)) +
+        theme_bw() +
+        theme(axis.title = element_text(size=17),
+              axis.text = element_text(size=15),
+              legend.position = c(0.1, 0.9),
+              legend.justification = c(0, 1))
+```
+
 
 Stacked bar plot showing Substrate average well color development (SAWCD) at hour 168
 ```{r}
