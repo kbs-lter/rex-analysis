@@ -393,6 +393,68 @@ voc_long$climate_group[voc_long$compound == ".alpha..Bourbonene"] <- "Ambient & 
 voc_long$climate_group[voc_long$compound == "X2.Hexene..2.5.dimethyl."] <- "Drought & Warmed & Warmed Drought"
 voc_long$climate_group[voc_long$compound == "X3.Hexen.1.ol"] <- "Drought & Warmed & Warmed Drought"
 voc_long$climate_group[voc_long$compound == "Butane..1.ethoxy."] <- "Drought & Warmed & Warmed Drought"
+# adding in compound type
+voc_long$compound_type <- NA
+voc_long$compound_type[voc_long$compound == "Ethanone..1..4.ethylphenyl.."] <- "Ambient"
+voc_long$compound_type[voc_long$compound == "Salicylic.acid..tert..butyl.ester"] <- "Ambient"
+voc_long$compound_type[voc_long$compound == "Butanenitrile..2.hydroxy.3.methyl."] <- "Ambient"
+voc_long$compound_type[voc_long$compound == "X1.3.Bis.cyclopentyl..1.cyclopentanone"] <- "Warmed"
+voc_long$compound_type[voc_long$compound == "Propanoic.acid..2.methyl...3.hydroxy.2.2.4.trimethylpentyl.ester"] <- "Warmed Drought"
+voc_long$compound_type[voc_long$compound == "X1.7.Nonadiene..4.8.dimethyl."] <- "Warmed Drought"
+voc_long$compound_type[voc_long$compound == "X5.Hepten.2.one..6.methyl."] <- "Warmed Drought"
+voc_long$compound_type[voc_long$compound == "dl.Menthol"] <- "Warmed Drought"
+voc_long$compound_type[voc_long$compound == "Pentane..2.bromo."] <- "Warmed Drought"
+voc_long$compound_type[voc_long$compound == "X3.Heptanone..2.methyl."] <- "Warmed Drought"
+voc_long$compound_type[voc_long$compound == "Benzoic.acid..2.ethylhexyl.ester"] <- "Warmed Drought"
+voc_long$compound_type[voc_long$compound == "X3.Butenoic.acid..ethyl.ester"] <- "Warmed Drought"
+voc_long$compound_type[voc_long$compound == "Acetic.acid..1.1.dimethylethyl.ester"] <- "Warmed Drought"
+voc_long$compound_type[voc_long$compound == "Decane..2.4.dimethyl."] <- "Ambient & Drought"
+voc_long$compound_type[voc_long$compound == "endo.Borneol"] <- "Ambient & Warmed"
+voc_long$compound_type[voc_long$compound == "X.Z.Z...alpha..Farnesene"] <- "Ambient & Warmed"
+voc_long$compound_type[voc_long$compound == "p.Cymene"] <- "Ambient & Warmed"
+voc_long$compound_type[voc_long$compound == "X.....beta..Bourbonene"] <- "Ambient & Warmed"
+voc_long$compound_type[voc_long$compound == "X4.tert.Butylcyclohexyl.acetate"] <- "Drought & Warmed Drought"
+voc_long$compound_type[voc_long$compound == "X6.10.Dimethyl.3..1.methylethylidene..1.cyclodecene"] <- "Drought & Warmed Drought"
+voc_long$compound_type[voc_long$compound == "X2.Ethylhexyl.salicylate"] <- "Drought & Warmed Drought"
+voc_long$compound_type[voc_long$compound == "Diisopropyl.adipate"] <- "Drought & Warmed Drought"
+voc_long$compound_type[voc_long$compound == "X2.Cyclohexen.1.one"] <- "Drought & Warmed Drought"
+voc_long$compound_type[voc_long$compound == "o.Xylene"] <- "Warmed & Warmed Drought"
+voc_long$compound_type[voc_long$compound == "Styrene"] <- "Warmed & Warmed Drought"
+voc_long$compound_type[voc_long$compound == ".alpha..Bourbonene"] <- "Ambient & Drought & Warmed"
+voc_long$compound_type[voc_long$compound == "X2.Hexene..2.5.dimethyl."] <- "Drought & Warmed & Warmed Drought"
+voc_long$compound_type[voc_long$compound == "X3.Hexen.1.ol"] <- "Drought & Warmed & Warmed Drought"
+voc_long$compound_type[voc_long$compound == "Butane..1.ethoxy."] <- "Drought & Warmed & Warmed Drought"
+# adding in compound classification - from databases
+voc_long$class <- NA
+voc_long$class[voc_long$compound == "Ethanone..1..4.ethylphenyl.."] <- "Ketone"
+voc_long$class[voc_long$compound == "Salicylic.acid..tert..butyl.ester"] <- "Unavailable"
+voc_long$class[voc_long$compound == "Butanenitrile..2.hydroxy.3.methyl."] <- "Unavailable"
+voc_long$class[voc_long$compound == "X1.3.Bis.cyclopentyl..1.cyclopentanone"] <- "Unavailable"
+voc_long$class[voc_long$compound == "Propanoic.acid..2.methyl...3.hydroxy.2.2.4.trimethylpentyl.ester"] <- "Ester"
+voc_long$class[voc_long$compound == "X1.7.Nonadiene..4.8.dimethyl."] <- "Unavailable"
+voc_long$class[voc_long$compound == "X5.Hepten.2.one..6.methyl."] <- "Ketone"
+voc_long$class[voc_long$compound == "dl.Menthol"] <- "Terpenoid"
+voc_long$class[voc_long$compound == "Pentane..2.bromo."] <- "Unavailable"
+voc_long$class[voc_long$compound == "X3.Heptanone..2.methyl."] <- "Unavailable"
+voc_long$class[voc_long$compound == "Benzoic.acid..2.ethylhexyl.ester"] <- "Ester"
+voc_long$class[voc_long$compound == "X3.Butenoic.acid..ethyl.ester"] <- "Unavailable"
+voc_long$class[voc_long$compound == "Acetic.acid..1.1.dimethylethyl.ester"] <- "Ester"
+voc_long$class[voc_long$compound == "Decane..2.4.dimethyl."] <- "Unavailable"
+voc_long$class[voc_long$compound == "endo.Borneol"] <- "Terpenoid"
+voc_long$class[voc_long$compound == "X.Z.Z...alpha..Farnesene"] <- "Terpenoid"
+voc_long$class[voc_long$compound == "p.Cymene"] <- "Terpenoid"
+voc_long$class[voc_long$compound == "X.....beta..Bourbonene"] <- "Terpenoid"
+voc_long$class[voc_long$compound == "X4.tert.Butylcyclohexyl.acetate"] <- "Unavailable"
+voc_long$class[voc_long$compound == "X6.10.Dimethyl.3..1.methylethylidene..1.cyclodecene"] <- "Unavailable"
+voc_long$class[voc_long$compound == "X2.Ethylhexyl.salicylate"] <- "Unavailable"
+voc_long$class[voc_long$compound == "Diisopropyl.adipate"] <- "Unavailable"
+voc_long$class[voc_long$compound == "X2.Cyclohexen.1.one"] <- "Ketone"
+voc_long$class[voc_long$compound == "o.Xylene"] <- "Benzenoid"
+voc_long$class[voc_long$compound == "Styrene"] <- "Benzenoid"
+voc_long$class[voc_long$compound == ".alpha..Bourbonene"] <- "Unavailable"
+voc_long$class[voc_long$compound == "X2.Hexene..2.5.dimethyl."] <- "Unavailable"
+voc_long$class[voc_long$compound == "X3.Hexen.1.ol"] <- "Alcohol"
+voc_long$class[voc_long$compound == "Butane..1.ethoxy."] <- "Unavailable"
 
 # selecting compounds that popped up in indicator species analysis
 # focusing on these compounds because including all of them would be too confusing on a fig
@@ -443,7 +505,7 @@ voc_long_cmpd2 <- voc_long %>%
 # third, all compounds associated with 1, 2, or 3 treatments (allowing grouping) * using this one *
 voc_long_cmpd3 <- voc_long %>%
   drop_na(full_name) %>%
-  group_by(Treatment, full_name, climate_group) %>%
+  group_by(Treatment, full_name, climate_group, class) %>%
   summarize(avg_abundance = mean(avg_abun*10000))
 # custom axis order
 voc_long_cmpd2$Treatment <- factor(voc_long_cmpd2$Treatment, levels=c("Ambient_Control","Warmed",
@@ -466,8 +528,7 @@ ggplot(voc_long_cmpd2, aes(x = Treatment, fill = compound, y = avg_abundance)) +
 
 # bubble plot
 # https://jkzorz.github.io/2019/06/05/Bubble-plots.html
-colours = c( "#fe0000",  "#800001", "#fe6a00", "#803400","#ffd800","#806b00", "#00fe21", "#007f0e", "#0094fe",
-             "#00497e","#0026ff","#001280","#b100fe","#590080")
+colours = c( '#648FFF', '#785EF0', '#DC267F', '#FE6100', '#FFB000', '#BBBBBB')
 colours2 = c("#771155", "#AA4488", "#CC99BB", "#114477", "#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC",
              "#117744", "#44AA77", "#88CCAA", "#777711", "#AAAA44", "#DDDD77", "#774411", "#AA7744", "#DDAA77",
              "#771122", "#AA4455", "#DD7788")
@@ -478,9 +539,9 @@ voc_long_cmpd3$full_name = reorder(voc_long_cmpd3$full_name, voc_long_cmpd3$avg_
 # plot
 png("bubble_vocs.png", units="in", width=13, height=7, res=300)
 ggplot(voc_long_cmpd3, aes(x = Treatment, y = full_name)) + 
-  geom_point(aes(size = avg_abundance, fill = full_name), alpha = 0.75, shape = 21) + 
+  geom_point(aes(size = avg_abundance, fill = class), alpha = 0.75, shape = 21) + 
   #scale_size_continuous(limits = c(0.000001, 100), range = c(1,17), breaks = c(1,10,50,75)) + 
-  labs( x= "", y = "", size = "Average VOC Abundance \n (peak area*10,000/g/hr)", fill = "")  + 
+  labs( x= "", y = "", size = "Average VOC abundance \n (peak area*10,000/g/hr)", fill = "")  + 
   theme(legend.key=element_blank(), 
         axis.text.x = element_text(colour = "black", size = 12, face = "bold", angle = 90, vjust = 0.3, hjust = 1), 
         axis.text.y = element_text(colour = "black", face = "bold", size = 11), 
@@ -491,11 +552,12 @@ ggplot(voc_long_cmpd3, aes(x = Treatment, y = full_name)) +
         panel.grid.minor = element_line(linewidth = 0.5, linetype = 'solid', colour = "grey92"),
         panel.border = element_rect(colour = "black", fill = NA, size = 1.2), 
         legend.position = "right") +
-  scale_fill_manual(values = colours3, guide="none") +
+  scale_fill_manual(values = colours, name = "Compound classification") +
   scale_x_discrete(labels=c("Ambient_Control" = "Ambient",
                             "Warmed" = "Warmed",
                             "Drought" = "Drought",
-                            "Warmed_Drought" = "Warmed\nDrought"))
+                            "Warmed_Drought" = "Warmed\nDrought")) +
+  guides(fill = guide_legend(override.aes = list(size=3)))
 dev.off()
   #scale_y_discrete(labels=c("Acetic.acid..1.1.dimethylethyl.ester" = "Acetic acid, 1,1-dimethylethyl ester",
   #                          "Acetyl.valeryl" = "Acetyl valeryl",
