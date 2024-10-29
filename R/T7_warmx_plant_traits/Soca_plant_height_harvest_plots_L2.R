@@ -86,7 +86,7 @@ ggplot(height_avg3, aes(x = Climate_Treatment, y = avg_height, fill=Galling_Stat
   geom_errorbar(aes(ymin = avg_height - se, ymax = avg_height + se), width = 0.2,
                 position = position_dodge(0.85)) +
   labs(x = "Treatment", y = "Height (g)") +
-  scale_fill_manual(values = c("olivedrab4", "darkseagreen2"), name="Gall Presence",labels=c("Gall","No Gall")) +
+  scale_fill_manual(values = c("purple4", "plum1"), name="Gall Presence",labels=c("Gall","No Gall")) +
   scale_x_discrete(limits = c("Irrigated Control", "Ambient", "Ambient Drought", "Warm", "Warm Drought"),
                    labels=c("Ambient" = "Ambient",
                             "Ambient Drought" = "Drought",
