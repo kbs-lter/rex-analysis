@@ -64,7 +64,7 @@ ggplot(height_avg, aes(x = Climate_Treatment, y = avg_height)) +
 dev.off()
 
 
-#barplot of galling X mass
+#barplot of galling X height
 png("height_harv_galling_bar.png", units="in", width=10, height=6, res=300)
 ggplot(height_avg2, aes(x = Galling_Status, y = avg_height)) +
   geom_bar(position = "identity", stat = "identity", color = "black",fill = "olivedrab") +
@@ -94,5 +94,20 @@ ggplot(height_avg3, aes(x = Climate_Treatment, y = avg_height, fill=Galling_Stat
                             "Warm" = "Warmed",
                             "Warm Drought" = "Warmed & \n Drought")) +
   theme(legend.position = "right")
+dev.off()
+
+#pointrange
+## I think this is right - quickly wrote up
+png("height_harv_overall_point.png", units="in", width=9, height=6, res=300)
+ggplot(height_avg3, aes(x = Climate_Treatment, y = avg_height, fill=Galling_Status)) +
+geom_pointrange(aes(ymin = avg_height - se, ymax = avg_height + se),pch=21,size=1,position=position_dodge(0.2)) +
+  labs(x = NULL, y = "Height (cm)", title=NULL) +
+  scale_x_discrete(limits = c("Irrigated Control", "Ambient", "Ambient Drought", "Warm", "Warm Drought"),
+                   labels=c("Ambient" = "Ambient", "Warm" = "Warmed",
+                            "Ambient Drought" = "Drought", "Irrigated Control" = "Irrigated\nControl",
+                            "Warm Drought" = "Warmed\nDrought")) +
+  scale_fill_manual(name="Galling Status",
+                    values = c("purple4", "plum1"))
+  
 dev.off()
 
