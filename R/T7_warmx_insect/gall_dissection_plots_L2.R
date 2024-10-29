@@ -46,23 +46,23 @@ weight_avg <- weight %>%
 # Boxplot of chamber counts
 png("gall_chamber_count_box.png", units="in", width=8, height=6, res=300)
 ggplot(count, aes(x = treatment, y = num_of_chambers)) +
-  geom_boxplot(color = "black", outlier.shape = NA, fill = "olivedrab") +
+  geom_boxplot(color = "black", outlier.shape = NA, fill = "purple4") +
   labs(x = "Treatment", y = "Number of Chambers per Gall") +
-  #scale_fill_manual(values = c("olivedrab")) +
+  #scale_fill_manual(values = c("purple4")) +
   scale_x_discrete(limits = c("Irrigated Control", "Ambient", "Ambient Drought", "Warm", "Warm Drought"),
                    labels=c("Ambient" = "Ambient",
                             "Ambient Drought" = "Drought",
                             "Irrigated Control" = "Irrigated \n Control",
                             "Warm" = "Warmed",
                             "Warm Drought" = "Warmed & \n Drought")) +
-  geom_jitter(aes(alpha=0.8), color="olivedrab", fill="olivedrab", shape=16, size=2) +
+  geom_jitter(aes(alpha=0.8), color="purple4", fill="purple4", shape=16, size=2) +
   theme(legend.position = "none")
 dev.off()
 
 # Barplot of chamber counts
 png("gall_chamber_count_bar.png", units="in", width=8, height=6, res=300)
 ggplot(count_avg, aes(x = treatment, y = avg_count)) +
-  geom_bar(position = "identity", stat = "identity", color = "black",fill = "olivedrab") +
+  geom_bar(position = "identity", stat = "identity", color = "black",fill = "purple4") +
   geom_errorbar(aes(ymin = avg_count - se, ymax = avg_count + se), width = 0.2,
                 position = "identity") +
   labs(x = "Treatment", y = "Number of Chambers per Gall") +
@@ -79,23 +79,23 @@ dev.off()
 # Boxplot of chamber volumne
 png("gall_chamber_vol_box.png", units="in", width=8, height=6, res=300)
 ggplot(vol, aes(x = treatment, y = chamber_volume_mm3)) +
-  geom_boxplot(color = "black", outlier.shape = NA, fill = "olivedrab") +
+  geom_boxplot(color = "black", outlier.shape = NA, fill = "purple4") +
   labs(x = "Treatment", y = "Gall chamber volume (mm^3)") +
-  #scale_fill_manual(values = c("olivedrab")) +
+  #scale_fill_manual(values = c("purple4")) +
   scale_x_discrete(limits = c("Irrigated Control", "Ambient", "Ambient Drought", "Warm", "Warm Drought"),
                    labels=c("Ambient" = "Ambient",
                             "Ambient Drought" = "Drought",
                             "Irrigated Control" = "Irrigated \n Control",
                             "Warm" = "Warmed",
                             "Warm Drought" = "Warmed & \n Drought")) +
-  geom_jitter(aes(alpha=0.8), color="olivedrab", fill="olivedrab", shape=16, size=2) +
+  geom_jitter(aes(alpha=0.8), color="purple4", fill="purple4", shape=16, size=2) +
   theme(legend.position = "none")
 dev.off()
 
 # Barplot of chamber counts
 png("gall_chamber_vol_bar.png", units="in", width=8, height=6, res=300)
 ggplot(vol_avg, aes(x = treatment, y = avg_vol)) +
-  geom_bar(position = "identity", stat = "identity", color = "black",fill = "olivedrab") +
+  geom_bar(position = "identity", stat = "identity", color = "black",fill = "purple4") +
   geom_errorbar(aes(ymin = avg_vol - se, ymax = avg_vol + se), width = 0.2,
                 position = "identity") +
   labs(x = "Treatment", y = "Gall chamber volume (mm^3)") +
@@ -112,9 +112,9 @@ dev.off()
 
 # Plot of means for gall weight
 ggplot(weight_avg, aes(x = Climate_Treatment, y = avg_weight)) +
-  geom_pointrange(aes(ymin = avg_weight - se, ymax = avg_weight + se),pch=21,size=1, fill = "olivedrab4") +
+  geom_pointrange(aes(ymin = avg_weight - se, ymax = avg_weight + se),pch=21,size=1, fill = "purple44") +
   labs(x = "Treatment", y = "Gall Weight (g)") +
-  #scale_fill_manual(values = c("olivedrab4", "darkseagreen2"), name="Gall Presence",labels=c("Gall","No Gall")) +
+  #scale_fill_manual(values = c("purple44", "darkseagreen2"), name="Gall Presence",labels=c("Gall","No Gall")) +
   scale_x_discrete(limits = c("Irrigated Control", "Ambient", "Ambient Drought", "Warm", "Warm Drought"),
                    labels=c("Ambient" = "Ambient",
                             "Ambient Drought" = "Drought",
