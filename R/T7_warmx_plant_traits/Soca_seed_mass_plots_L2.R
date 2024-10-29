@@ -89,7 +89,7 @@ ggplot(seeds_avg3, aes(x = Climate_Treatment, y = avg_mass, fill=Galling_Status)
   geom_errorbar(aes(ymin = avg_mass - se, ymax = avg_mass + se), width = 0.2,
                 position = position_dodge(0.85)) +
   labs(x = "Treatment", y = "Seeds Mass (cm)") +
-  scale_fill_manual(values = c("olivedrab4", "darkseagreen2"), name="Gall Presence",labels=c("Gall","No Gall")) +
+  scale_fill_manual(values = c("purple4", "plum1"), name="Gall Presence",labels=c("Gall","No Gall")) +
   scale_x_discrete(limits = c("Irrigated Control", "Ambient", "Ambient Drought", "Warm", "Warm Drought"),
                    labels=c("Ambient" = "Ambient",
                             "Ambient Drought" = "Drought",
@@ -126,7 +126,7 @@ binom_plot <- ggplot(mass_binom_seed, aes(x = factor(Climate_Treatment, level = 
                             "Ambient Drought" = "Drought", "Irrigated Control" = "Irrigated\nControl",
                             "Warm Drought" = "Warmed\nDrought")) +
   scale_fill_manual(name="Treatment",
-                    values = c("olivedrab4", "darkseagreen2")) +
+                    values = c("purple4", "plum1")) +
   theme_bw() +
   theme(plot.title = element_text(size = 20),
         axis.text.y = element_text(size=17),
@@ -148,7 +148,7 @@ cond_plot <- ggplot(mass_cond, aes(x = factor(Climate_Treatment, level = level_o
                             "Ambient Drought" = "Drought", "Irrigated Control" = "Irrigated\nControl",
                             "Warm Drought" = "Warmed\nDrought")) +
   scale_fill_manual(name="Treatment",
-                    values = c("olivedrab4", "darkseagreen2")) +
+                    values = c("purple4", "plum1")) +
 
   theme_bw() +
   theme(plot.title = element_text(size = 20),
