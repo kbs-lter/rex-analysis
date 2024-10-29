@@ -95,3 +95,18 @@ ggplot(mass_avg3, aes(x = Climate_Treatment, y = avg_mass, fill=Galling_Status))
   theme(legend.position = "right")
 dev.off()
 
+#pointrange
+## I think this is right - quickly wrote up
+png("biomass_overall_point.png", units="in", width=9, height=6, res=300)
+ggplot(mass_avg3, aes(x = Climate_Treatment, y = avg_mass, fill=Galling_Status)) +
+geom_pointrange(aes(ymin = avg_mass - se, ymax = avg_mass + se),pch=21,size=1,position=position_dodge(0.2)) +
+  labs(x = NULL, y = "Stem biomass (g)", title=NULL) +
+  scale_x_discrete(limits = c("Irrigated Control", "Ambient", "Ambient Drought", "Warm", "Warm Drought"),
+                   labels=c("Ambient" = "Ambient", "Warm" = "Warmed",
+                            "Ambient Drought" = "Drought", "Irrigated Control" = "Irrigated\nControl",
+                            "Warm Drought" = "Warmed\nDrought")) +
+  scale_fill_manual(name="Galling Status",
+                    values = c("purple4", "plum1"))
+  
+dev.off()
+
