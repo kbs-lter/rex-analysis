@@ -49,3 +49,18 @@ dir <- Sys.getenv("DATA_DIR")
 list.files(dir)
 ```
 
+```{r}
+# Create phyloseq objects of filtered data (ITS)
+phyloseq <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-2021-merged-table-filtered.csv",
+                                       taxonomy.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-2021-taxonomy-filtered.csv",
+                                       metadata.file = "/Users/moriahyoung/Desktop/phyloseq_object/bacterial_2021_metadata.csv")
+summarize_phyloseq(phyloseq_2021)
+```
+
+# FUNGuild
+https://search.r-project.org/CRAN/refmans/MiscMetabar/html/add_funguild_info.html
+https://github.com/brendanf/FUNGuildR/tree/master
+```{r}
+
+```
+
