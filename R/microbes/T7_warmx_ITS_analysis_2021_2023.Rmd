@@ -1,0 +1,51 @@
+---
+title: "T7 warmx ITS Analysis 2021 & 2023"
+author: "Moriah Young"
+date: "2024-11-11"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE, message=FALSE}
+rm(list = ls()) # clear working environment
+
+# load packages
+library(compositions)
+library(cowplot)
+library(cluster)
+library(data.table)
+library(devtools)
+library(plyr)
+library(dplyr)
+library(doParallel)
+library(factoextra)
+library(ggplot2)
+library(ggsignif)
+library(gridExtra)
+library(hillR)
+library(microbiome)
+library(multcomp)
+library(nlme)
+library(phyloseq)
+library(qiime2R)
+library(tidyverse)
+library(vegan)
+library(zCompositions)
+library(permute)
+library(pheatmap)
+library(plotrix)
+library(microViz)
+#library(phylosmith)
+#library(DESeq2)
+#library(ANCOMBC)
+
+# Set working directory from .Renviron
+dir <- Sys.getenv("DATA_DIR")
+list.files(dir)
+```
+
