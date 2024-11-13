@@ -74,7 +74,8 @@ hobo_temp_rep_avg <- hobo_season_sum %>%
 hobo_temp_avg <- hobo_temp_rep_avg %>%
   group_by(Treatment) %>%
   summarize(avg_temp = mean(average_temp, na.rm = TRUE),
-            se = std.error(average_temp, na.rm = TRUE))
+            se = std.error(average_temp, na.rm = TRUE),
+            count=n())
 
 # take average temp per rep, per treatment, per year
 hobo_temp_rep_avg_year <- hobo_season_sum %>%
@@ -84,7 +85,8 @@ hobo_temp_rep_avg_year <- hobo_season_sum %>%
 hobo_temp_avg_year <- hobo_temp_rep_avg_year %>%
   group_by(Treatment, year) %>%
   summarize(avg_temp = mean(average_temp, na.rm = TRUE),
-            se = std.error(average_temp, na.rm = TRUE))
+            se = std.error(average_temp, na.rm = TRUE),
+            count=n())
 
 
 
@@ -100,7 +102,8 @@ soil_sampling_avg <- soil_sampling_avg_rep %>%
   summarize(avg_temp = mean(average_temp, na.rm = TRUE),
             se_temp = std.error(average_temp, na.rm = TRUE),
             avg_moist = mean(average_moist, na.rm=T),
-            se_moist = std.error(average_moist, na.rm=T))
+            se_moist = std.error(average_moist, na.rm=T),
+            count=n())
 
 # take average per rep, per treatment, per year
 soil_sampling_avg_rep_year <- soil_season_sum %>%
@@ -135,6 +138,7 @@ air_temp <- ggplot(hobo_temp_avg, aes(x = factor(Treatment, level = level_order1
   scale_x_discrete(labels=c("Ambient" = "Ambient", "Drought" = "Drought",
                             "Warmed" = "Warmed",
                             "Warmed_Drought" = "Warmed &\nDrought")) +
+  annotate("text", x = 0.6, y=23, label = "A", size=5) +
   theme_bw() +
   #annotate("text", x = 0.6, y=23, label = "A", size=6) +
   theme(axis.title = element_text(size=17),
@@ -150,6 +154,7 @@ soil_temp <- ggplot(soil_sampling_avg, aes(x = factor(Subplot_Descriptions, leve
   scale_x_discrete(labels=c("ambient" = "Ambient", "drought" = "Drought",
                             "irrigated_control" = "Irrigated", "warmed" = "Warmed",
                             "warmed_drought" = "Warmed &\nDrought")) +
+  annotate("text", x = 0.6, y=18.7, label = "B", size=5) +
   theme_bw() +
  # annotate("text", x = 0.7, y=21.3, label = "B", size=6) +
   theme(axis.title = element_text(size=17),
@@ -165,6 +170,7 @@ soil_moist <- ggplot(soil_sampling_avg, aes(x = factor(Subplot_Descriptions, lev
   scale_x_discrete(labels=c("ambient" = "Ambient", "drought" = "Drought",
                             "irrigated_control" = "Irrigated", "warmed" = "Warmed",
                             "warmed_drought" = "Warmed &\nDrought")) +
+  annotate("text", x = 0.6, y=0.25, label = "C", size=5) +
   theme_bw() +
   #annotate("text", x = 0.7, y=0.28, label = "C", size=6) +
   theme(axis.title = element_text(size=17),

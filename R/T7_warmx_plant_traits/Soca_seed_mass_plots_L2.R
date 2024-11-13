@@ -14,6 +14,7 @@ rm(list=ls())
 #install.packages("plotrix") #Emily
 library(tidyverse)
 library(plotrix)
+library(ggpubr)
 
 # Set ggplot2 plotting
 # This code for ggplot2 sets the theme to mostly black and white 
@@ -118,20 +119,21 @@ mass_binom_sum <- mass_binom %>%
 mass_binom_seed <- mass_binom_sum %>%
   filter(Seeds_Mass == "Seed")
 # plot
-level_order <- c("Ambient","Irrigated Control","Ambient Drought","Warm","Warm Drought") 
+level_order <- c("Irrigated Control","Ambient","Ambient Drought","Warm","Warm Drought") 
 binom_plot <- ggplot(mass_binom_seed, aes(x = factor(Climate_Treatment, level = level_order), y = mean_n, fill=Galling_Status)) +
   geom_pointrange(aes(ymin = mean_n - se, ymax = mean_n + se), ,pch=21,size=1,position=position_dodge(0.2)) +
   labs(x = NULL, y = "Probability of having a seed") +
   scale_x_discrete(labels=c("Ambient" = "Ambient", "Warm" = "Warmed",
                             "Ambient Drought" = "Drought", "Irrigated Control" = "Irrigated\nControl",
                             "Warm Drought" = "Warmed\nDrought")) +
-  scale_fill_manual(name="Treatment",
+  scale_fill_manual(name="Gall Presence",
                     values = c("purple4", "plum1")) +
+  annotate("text", x = 0.6, y=0.95, label = "A", size=7) +
   theme_bw() +
   theme(plot.title = element_text(size = 20),
         axis.text.y = element_text(size=17),
         axis.text.x = element_text(size=17),
-        axis.title.y=element_text(size=17),
+        axis.title.y=element_text(size=17, face="bold"),
         legend.title=element_text(size=17), 
         legend.text=element_text(size=17))
 
@@ -143,18 +145,18 @@ mass_cond <- mass %>%
 # plot
 cond_plot <- ggplot(mass_cond, aes(x = factor(Climate_Treatment, level = level_order), y = avg_weight, fill=Galling_Status)) +
   geom_pointrange(aes(ymin = avg_weight - se, ymax = avg_weight + se),pch=21,size=1,position=position_dodge(0.2)) +
-  labs(x = NULL, y = "Seed weight (g)", title=NULL) +
+  labs(x = NULL, y = "Seed mass (g)", title=NULL) +
   scale_x_discrete(labels=c("Ambient" = "Ambient", "Warm" = "Warmed",
                             "Ambient Drought" = "Drought", "Irrigated Control" = "Irrigated\nControl",
                             "Warm Drought" = "Warmed\nDrought")) +
-  scale_fill_manual(name="Treatment",
+  scale_fill_manual(name="Gall Presence",
                     values = c("purple4", "plum1")) +
-
+  annotate("text", x = 0.6, y=0.55, label = "B", size=7) +
   theme_bw() +
   theme(plot.title = element_text(size = 20),
         axis.text.y = element_text(size=17),
         axis.text.x = element_text(size=17),
-        axis.title.y=element_text(size=17),
+        axis.title.y=element_text(size=17, face="bold"),
         legend.title=element_text(size=17), 
         legend.text=element_text(size=17))
 

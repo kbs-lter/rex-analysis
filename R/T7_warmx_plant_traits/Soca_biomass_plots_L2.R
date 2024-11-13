@@ -25,9 +25,11 @@ theme_update(axis.text.x = element_text(size = 12),
 
 # Set working directory
 dir <- setwd("/Users/emilyparker/Documents/R/Goldenrod Project 2022")
+dir<-Sys.getenv("DATA_DIR") # Kara
 
 # Read in data
 mass <- read.csv(file.path(dir, "L1/T7_warmx_soca_biomass_L1.csv"))
+mass <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_soca_biomass_L1.csv")) # Kara
 
 # Take averages
 mass_avg <- mass %>%
