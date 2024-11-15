@@ -58,6 +58,93 @@ phyloseq <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/phyloseq_ob
 summarize_phyloseq(phyloseq)
 ```
 
+# Rarefaction Curves
+```{r}
+sum(colSums(otu_table(phyloseq)))
+sort(colSums(otu_table(phyloseq)))
+# min = 115
+# max = 121,206
+
+# https://github.com/joey711/phyloseq/issues/143
+# Rarefaction Curve Function
+calculate_rarefaction_curves <- function(psdata, measures, depths, parallel=T) {
+        require('plyr') # ldply
+        require('reshape2') # melt
+        require('doParallel')
+  
+# set parallel options if required
+if (parallel) {
+        paropts  <- list(.packages=c("phyloseq", "reshape2"))
+        } else {
+                paropts  <- NULL
+                }
+  
+estimate_rarified_richness <- function(psdata, measures, depth) {
+    if(max(sample_sums(psdata)) < depth) return()
+    psdata <- prune_samples(sample_sums(psdata) >= depth, psdata)
+    
+    rarified_psdata <- rarefy_even_depth(psdata, depth, verbose = FALSE)
+    
+    alpha_diversity <- estimate_richness(rarified_psdata, measures = measures)
+    
+    # as.matrix forces the use of melt.array, which includes the Sample names (rownames)
+    molten_alpha_diversity <- melt(as.matrix(alpha_diversity), varnames = c('Sample', 'Measure'), value.name = 'Alpha_diversity')
+    
+    molten_alpha_diversity
+  }
+  
+  names(depths) <- depths # this enables automatic addition of the Depth to the output by ldply
+  rarefaction_curve_data <- ldply(depths, estimate_rarified_richness, psdata = psdata, measures = measures, .id = 'Depth', .progress = ifelse(interactive() && ! parallel, 'text', 'none'), .parallel=parallel, .paropts=paropts)
+  
+  # convert Depth from factor to numeric
+  rarefaction_curve_data$Depth <- as.numeric(levels(rarefaction_curve_data$Depth))[rarefaction_curve_data$Depth]
+  
+  rarefaction_curve_data
+}
+
+# Summarize alpha diversity
+rarefaction_curve_data <- calculate_rarefaction_curves(phyloseq, c('Observed', 'Shannon'), 
+                                                       rep(c(1, 10, 100, 1000, 1:100 * 10000), each = 10))
+
+rarefaction_curve_data_summary <- ddply(rarefaction_curve_data, c('Depth', 'Sample', 'Measure'), summarise, Alpha_diversity_mean = mean(Alpha_diversity), Alpha_diversity_sd = sd(Alpha_diversity))
+
+# Add sample data
+rarefaction_curve_data_summary_verbose <-  merge(rarefaction_curve_data_summary %>% mutate(Sample = gsub("[.]", "-", Sample)),
+                                                 data.frame(sample_data(phyloseq)) %>% 
+                                                         rownames_to_column(var = "rowname"),
+                                                 by.x = 'Sample', by.y = 'rowname')
+
+discrete_palettes <- list(RColorBrewer::brewer.pal(3, "Set2"))
+
+rarefaction_curve_data_summary_verbose$Subplot_Descriptions <- factor(rarefaction_curve_data_summary_verbose$Subplot_Descriptions)
+
+# plot
+curve_its_facet <- 
+        ggplot(rarefaction_curve_data_summary_verbose %>% filter(Measure == "Observed"), aes(x = Depth, y = Alpha_diversity_mean,  ymin = Alpha_diversity_mean - Alpha_diversity_sd, ymax = Alpha_diversity_mean + Alpha_diversity_sd, colour = Subplot_Descriptions, group = Sample)) + 
+        geom_line(alpha=1) + 
+        geom_pointrange() + 
+        scale_x_continuous(trans = "log10", name = "Sequence Depth") +
+        ylab("Richness") +
+        facet_wrap(~Subplot_Descriptions, scales = 'free') +
+        theme(legend.text = element_text(hjust = 0)) +
+        labs(title = "16S Rarefaction Curves") +
+        theme_bw()
+
+curve_its_facet
+
+curve_its <- ggplot(rarefaction_curve_data_summary_verbose %>% filter(Measure == "Observed"), aes(x = Depth, y = Alpha_diversity_mean,  ymin = Alpha_diversity_mean - Alpha_diversity_sd, ymax = Alpha_diversity_mean + Alpha_diversity_sd, colour = Subplot_Descriptions, group = Sample)) + 
+        geom_line(alpha=1) + 
+        geom_pointrange() + 
+        scale_x_continuous(trans = "log10", name = "Sequence Depth") +
+        ylab("Richness") +
+        #facet_wrap(~Subplot_Descriptions, scales = 'free') +
+        theme(legend.text = element_text(hjust = 0)) +
+        labs(title = "16S Rarefaction Curves") +
+        theme_bw()
+
+curve_its
+```
+
 #Filter data and rarefy data
 ```{r}
 # filter data
@@ -552,4 +639,270 @@ ggplot(sum4, aes(x = sampling_period, y = means, fill = Genus)) +
               title = element_text(size = 12))
 #dev.off()
 ```
+
+#Subsetting phyloseq object
+```{r}
+# no insecticide treatment and no irrigated control
+data_rare_noinsect <- subset_samples(rare_its, Subplot_Descriptions%in%c("ambient", "warmed_drought", "drought", "warmed"))
+
+# peak drought only
+data_rare_noinsect_nona <- subset_samples(data_rare_noinsect, !is.na(sampling_period))
+data_rare_noinsect_peak <- subset_samples(data_rare_noinsect_nona, sampling_period == "Peak-Drought")
+summarize_phyloseq(data_rare_noinsect_peak)
+```
+
+#Alpha Diversity
+# Peak drought
+```{r}
+# order sample data - "sampling_period" and "Subplot_Descriptions"
+sample_data(data_rare_noinsect_peak)$sampling_period <- ordered(sample_data(data_rare_noinsect_peak)$sampling_period, c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"))
+sample_data(data_rare_noinsect_peak)$Subplot_Descriptions <- ordered(sample_data(data_rare_noinsect_peak)$Subplot_Descriptions, c( "ambient", "warmed","drought", "warmed_drought"))
+
+# Plotting Alpha Diversity
+treatment_names <- c("ambient" = "Ambient",
+                     "drought" = "Drought",
+                     "warmed" = "Warmed",
+                     "warmed_drought" = "Warmed + Drought")
+
+plot_richness(data_rare_noinsect_peak, x="Year", color="Subplot_Descriptions", measures=c("Observed"))
+plot_richness(data_rare_noinsect_peak, x="Year", measures=c("Observed", "Shannon")) + geom_boxplot()
+plot_richness(data_rare_noinsect_peak, x="Subplot_Descriptions", measures=c("Observed")) + geom_boxplot() + facet_grid(.~Year)
+plot_richness(data_rare_noinsect_peak, x="Subplot_Descriptions", measures=c("Shannon")) + geom_boxplot() + facet_grid(.~Year)
+
+
+png("T7_warmx_16S_observed_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
+plot_richness(data_rare_noinsect_peak, x="Year", measures=c("Observed")) + 
+        geom_boxplot(aes(fill = Subplot_Descriptions)) + 
+        labs(y = "Observed OTUs", x = "Time of Sampling") +
+        facet_grid(.~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        theme(legend.position = "none", 
+              axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 15),
+              axis.text.y = element_text(size = 12),
+              axis.title.x = element_text(size=12),
+              axis.title.y = element_text(size=12),
+              strip.text.x = element_text(size = 12, face = "italic"))
+dev.off()
+
+#png("T7_warmx_16S_shannon_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
+plot_richness(data_rare_noinsect_peak, x="Year", measures=c("Shannon")) + 
+        geom_boxplot(aes(fill = Subplot_Descriptions)) + 
+        labs(x = "Time of Sampling", y = "Shannon Index") +
+        facet_grid(.~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+#dev.off()
+
+# analysis of alpha diversity
+richness <- estimate_richness(data_rare_noinsect_peak)
+head(richness)
+kruskal.test(richness$Shannon ~ sample_data(data_rare_noinsect_peak)$Subplot_Descriptions)
+pairwise.wilcox.test(richness$Shannon, sample_data(data_rare_noinsect_peak)$Subplot_Descriptions, p.adj = "bonf")
+
+kruskal.test(richness$Shannon ~ sample_data(data_rare_noinsect_peak)$Year)
+pairwise.wilcox.test(richness$Shannon, sample_data(data_rare_noinsect_peak)$Year, p.adj = "bonf")
+```
+
+# all samples minus insecticide
+```{r}
+# no insecticide treatment
+rare_its_noinsect <- subset_samples(rare_its, Subplot_Descriptions%in%c("ambient", "irrigated_control", "warmed_drought", "drought", "warmed"))
+summarize_phyloseq(rare_its_noinsect)
+
+# order sample data - "sampling_period" and "Subplot_Descriptions"
+sample_data(rare_its_noinsect)$sample_period <- ordered(sample_data(rare_its_noinsect)$sampling_period, c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"))
+sample_data(rare_its_noinsect)$Subplot_Descriptions <- ordered(sample_data(rare_its_noinsect)$Subplot_Descriptions, c("irrigated_control", "ambient", "warmed", "warmed_insecticide", "insecticide", "drought", "warmed_drought", "drought_insecticide", "warmed_drought_insecticide"))
+
+# Plotting Alpha Diversity
+treatment_names <- c("ambient" = "Ambient",
+                     "drought" = "Drought",
+                     "irrigated_control" = "Irrigated Control",
+                     "warmed" = "Warmed",
+                     "warmed_drought" = "Warmed + Drought")
+
+plot_richness(rare_its_noinsect, x="sampling_period", color="Subplot_Descriptions", measures=c("Observed"))
+plot_richness(rare_its_noinsect, x="sampling_period", measures=c("Observed", "Shannon")) + geom_boxplot()
+plot_richness(rare_its_noinsect, x="Subplot_Descriptions", measures=c("Observed")) + geom_boxplot() + facet_grid(.~sampling_period)
+plot_richness(rare_its_noinsect, x="Subplot_Descriptions", measures=c("Shannon")) + geom_boxplot() + facet_grid(.~sampling_period)
+
+
+png("T7_warmx_its_observed_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
+plot_richness(rare_its_noinsect, x="sampling_period", measures=c("Observed")) + 
+        geom_boxplot(aes(fill = Subplot_Descriptions)) + 
+        labs(y = "Observed OTUs", x = "Time of Sampling") +
+        facet_grid(.~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        theme(legend.position = "none", 
+              axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 15),
+              axis.text.y = element_text(size = 12),
+              axis.title.x = element_text(size=12),
+              axis.title.y = element_text(size=12),
+              strip.text.x = element_text(size = 12, face = "italic"))
+dev.off()
+
+#png("T7_warmx_its_shannon_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
+plot_richness(rare_its_noinsect, x="sampling_period", measures=c("Shannon")) + 
+        geom_boxplot(aes(fill = Subplot_Descriptions)) + 
+        labs(x = "Time of Sampling", y = "Shannon Index") +
+        facet_grid(.~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names)) +
+        scale_fill_manual(values = c("ambient" = "darkblue", "drought" = "gray58", 
+        "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        theme(legend.position = "none", axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+#dev.off()
+
+richness <- estimate_richness(rare_its_noinsect)
+head(richness)
+kruskal.test(richness$Shannon ~ sample_data(rare_its_noinsect)$Subplot_Descriptions)
+pairwise.wilcox.test(richness$Shannon, sample_data(rare_its_noinsect)$Subplot_Descriptions, p.adj = "bonf")
+
+kruskal.test(richness$Shannon ~ sample_data(rare_its_noinsect)$sampling_period)
+pairwise.wilcox.test(richness$Shannon, sample_data(rare_its_noinsect)$sampling_period, p.adj = "bonf")
+
+kruskal.test(richness$Shannon ~ sample_data(rare_its_noinsect)$Drought)
+pairwise.wilcox.test(richness$Shannon, sample_data(rare_its_noinsect)$Drought, p.adj = "bonf")
+```
+
+#Beta Diversity
+# peak drought
+```{r}
+# PCoA plot using bray-curtis as distance
+bray_dist = phyloseq::distance(data_rare_noinsect_peak, method="bray")
+ordination_pcoa = ordinate(data_rare_noinsect_peak, method="PCoA", distance=bray_dist)
+
+# https://stackoverflow.com/questions/76465183/plot-ordination-function-of-phyloseq-plots-shapes-double-within-itself
+# Save the PCoA vectors data from your ordinated object
+vectors_peak <- as.data.frame(ordination_pcoa$vectors)
+values_peak <- as.data.frame(ordination_pcoa$values)
+
+library(tibble)
+vectors_peak <- rownames_to_column(vectors_peak, "SampleID")
+
+metadata_peak <- rownames_to_column(data.frame(data_rare_noinsect_peak@sam_data), "SampleID")
+vectors_metadata_peak <- dplyr::inner_join(vectors_peak, metadata_peak, by = "SampleID")
+
+ggplot(vectors_metadata_peak, aes(x = Axis.1, y = Axis.2, color = Year)) + geom_point()
+
+p1 <- plot_ordination(data_rare_noinsect_peak, ordination_pcoa, color="Subplot_Descriptions") + 
+        geom_point(size=5, alpha=0.90) +
+        stat_ellipse(aes(fill = Subplot_Descriptions), geom = "polygon", alpha = .1) +
+        #labs(x="Axis 1",
+        #     y="Axis 2") +
+        theme(aspect.ratio=1)
+png("16S_peak_drought_2021_2023.png", units="in", width=8, height=6, res=300)
+p1
+
+dev.off()
+
+p2 <- plot_ordination(data_rare_noinsect_peak, ordination_pcoa, axes = c(1, 3), color="Year") + 
+        geom_point(size=5, alpha=0.80) +
+        #stat_ellipse(aes(fill = Drought), geom = "polygon", alpha = .5) +
+        #labs(x="Axis 1",
+        #     y="Axis 2") +
+        theme(aspect.ratio=1)
+p2
+
+# Extract sample data
+sample_data_df <- as.data.frame(sample_data(data_rare_noinsect_drought_peak))
+
+# Extract site scores from the ordination object
+site_scores <- ordination_pcoa$vectors
+
+# Combine scores with sample data
+ordination_df <- data.frame(site_scores, sample_data_df)
+
+# Plot the ordination using ggplot2
+p <- ggplot(ordination_df, aes_string(x = "Axis.1", y = "Axis.2", color = "Year", shape = "Subplot_Descriptions")) +
+  geom_point(size = 4) +
+  stat_ellipse(aes(group = Year), type = "norm") + # Add ellipses
+  theme_minimal()
+p
+
+# Test whether the sampling periods differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
+set.seed(22)
+adonis2(bray_dist ~ sample_data(data_rare_noinsect_peak)$Subplot_Description)
+
+# setting up the permutation object
+perm1 <- with(sample_data(data_rare_noinsect_peak), how(blocks = Rep_Footprint, plots = Plots(strata=Footprint, type="free"), within=Within(type="free"), nperm = 9999))
+
+perm2 <- with(sample_data(data_rare_noinsect_peak), how(blocks = Rep_Footprint), within=Within(type="free"), nperm = 9999)
+
+adonis2(bray_dist ~ sample_data(data_rare_noinsect_peak)$Subplot_Descriptions, by = "margin", permutations = perm1)
+adonis2(bray_dist ~ sample_data(data_rare_noinsect_peak)$Subplot_Descriptions, by = "margin", permutations = perm2)
+```
+
+# all samples minus irrigated control
+```{r}
+# Weighted-Unifrac takes into account the relative abundance of species/taxa shared between samples, whereas 
+# unweighted-Unifrac only considers presence/absence
+
+# PCoA plot using bray curtis UniFrac as distance
+bray_dist = phyloseq::distance(data_rare_noinsect, method="bray")
+ordination = ordinate(data_rare_noinsect, method="PCoA", distance=bray_dist)
+
+#png("T7_warmx_16S_pcoa_no_insects.png", units="in", width=10, height=6, res=300)
+plot_ordination(data_rare_noinsect, ordination, color="Subplot_Descriptions", shape = "sampling_period") + 
+        geom_point(aes(color = Subplot_Descriptions, shape = sampling_period), size=4, alpha=0.75) +
+        #stat_ellipse(aes(fill = Drought), geom = "polygon", alpha = .5) +
+        scale_colour_manual(name = "Subplot Descriptions", 
+                          breaks = c("ambient", "warmed", "drought", "warmed_drought"),
+                          labels = c("Ambient", "Warmed", "Drought", "Warmed + Drought"),
+                          values = c("ambient" = "darkblue", "drought" = "gray58", "warmed" = "red2", "warmed_drought" = "darkred")) +
+        #labs(x="Axis 1",
+        #     y="Axis 2") +
+        theme(aspect.ratio=1)
+#dev.off()
+
+# Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
+set.seed(22)
+adonis2(bray_dist ~ sample_data(data_rare_noinsect)$Subplot_Descriptions + sample_data(data_rare_noinsect)$sampling_period)
+
+# Test whether the treatments ("Subplot_Descriptions") differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
+set.seed(22)
+adonis2(bray_dist ~ sample_data(data_rare_noinsect)$Subplot_Descriptions + sample_data(data_rare_noinsect)$sampling_period)
+
+# trying Jennifer's code below:
+#bray.dist <- phyloseq::distance(ps.rarefied, method = "bray”)
+
+#set.seed(53)
+
+# setting up the permutation object
+#perm1 <- with(sample_data(ps.rarefied), how(blocks = Replicate, plots = Plots(strata = Footprint, #type="free”), nperm = 9999))
+
+#adonis2(wunifrac_dist ~ sample_data(ps.rarefied)$Footprint*sample_data(ps.rarefied)$Subplot, by = #"margin”, permutations = #perm1) 
+#If the interaction is not significant, you should rerun the model without the interaction. For this code, if the interaction is not significant, it won’t show you if the main effects are significant. 
+
+data_rare_noinsect_nona <- subset_samples(data_rare_noinsect, !is.na(sampling_period))
+
+perm1 <- with(sample_data(data_rare_noinsect_nona), how(blocks = Replicate, plots = Plots(strata=Footprint, type="free"), within=Within(type="free"), nperm = 9999))
+
+# no footprint
+perm2 <- with(sample_data(data_rare_noinsect_nona), how(blocks = Replicate, within=Within(type="free"), nperm = 9999))
+
+adonis2(bray_dist ~ sample_data(data_rare_noinsect_nona)$Subplot_Descriptions * sample_data(data_rare_noinsect_nona)$sampling_period, by = "margin", permutations = perm1)
+
+adonis2(bray_dist ~ sample_data(rare_its_noinsect)$Subplot_Descriptions + sample_data(rare_its_noinsect)$sampling_period, by = "margin", permutations = perm2)
+
+adonis2(bray_dist ~ sample_data(rare_its_noinsect)$Drought + sample_data(rare_its_noinsect)$Warming + sample_data(rare_its_noinsect)$Insecticide + sample_data(rare_its_noinsect)$sampling_period, by = "margin", permutations = perm2)
+
+adonis2(bray_dist ~ sample_data(rare_its_noinsect)$Drought + sample_data(rare_its_noinsect)$Warming + sample_data(rare_its_noinsect)$sampling_period, by = "margin", permutations = perm2)
+
+# if you need to change a phyloseq "slot" to a factor:
+# Access sample data slot
+sample_data <- sample_data(rare_its_noinsect)
+
+# Convert the slot to a factor (assuming 'Drought' is not already a factor)
+sample_data$Drought <- as.factor(sample_data$Drought)
+sample_data$Insecticide <- as.factor(sample_data$Insecticide)
+
+# Assign the modified slot back to the Phyloseq object
+sample_data(rare_its_noinsect) <- sample_data
+
+# Verify the change
+sample_data(rare_its_noinsect)
+```
+
+
 
