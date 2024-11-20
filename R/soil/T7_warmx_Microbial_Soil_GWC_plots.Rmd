@@ -1,7 +1,7 @@
 ---
 title: "T7 warmx Microbial Soil GWC plots"
 author: "Moriah Young"
-date: "`r format(Sys.time(), '%B %d, %Y')`"
+date: August 20, 2024, updated November 20, 2024
 output: pdf_document
 editor_options: 
   chunk_output_type: console
