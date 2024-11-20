@@ -53,8 +53,6 @@ soil_data$sample_datetime <- format(as.POSIXct(soil_data$sample_datetime, format
 hobo_data$Date_Time <- as.POSIXct(hobo_data$Date_Time, format = "%Y-%m-%d %H:%M:%S")
 soil_data$Date_Time <- as.POSIXct(soil_data$sample_datetime, format = "%Y-%m-%d %H:%M:%S")
 
-
-
 ```
 
 ### subsetting data ###
@@ -87,6 +85,7 @@ soil_season$month_year <- format(soil_season$Date_Time, format="%m-%Y")
 soil_season$week_month <- format(soil_season$Date_Time, format = "%U-%m")
 soil_season$monthday <- format(soil_season$Date_Time, format="%m%d")
 soil_season$month_day <- format(soil_season$Date_Time, format="%m-%d")
+soil_season$year_month_day <- format(soil_season$Date_Time, format="%Y-%m-%d")
 soil_season_sum <- soil_season %>%
   filter(!(year == "2022" | year == "2024")) %>%
   filter(month >= "04") %>%
@@ -268,7 +267,7 @@ avg_soilmoist_month_plot <- ggplot(avg_soilmoist_month, aes(x = month, y = avg_m
         scale_color_manual(name="Treatment", 
                            values = c("blue","#a6bddb", "#687689", "#fb6a4a", "#9D422E"), 
                            labels=c("Irrigated Control","Ambient","Drought","Warmed", "Warmed Drought")) +
-        labs(y="Soil Moisture", x="Month") +
+        labs(y=bquote("Soil moisture " (m^3/m^3)), x="Month") +
         theme_bw() +
         theme(axis.title = element_text(size=12),
         axis.text = element_text(size=12),
@@ -355,7 +354,7 @@ avg_soilmoist_week_plot <- ggplot(avg_soilmoist_week, aes(x = week, y = avg_mois
          scale_x_discrete(name = "Month", 
                        breaks = avg_soilmoist_week$week, 
                        labels = avg_soilmoist_week$month) +
-        labs(y="Soil Moisture", x="Month") +
+        labs(y=bquote("Soil moisture " (m^3/m^3)), x="Month") +
         theme_bw() +
         theme(axis.title = element_text(size=12),
         axis.text.y = element_text(size=12),
@@ -371,6 +370,191 @@ week_plot
 png("rex_air_soil_temp_moist_weekly_growing_season.png", units="in", width=10, height=6, res=300)
 ggpubr::ggarrange(avg_airtemp_week_plot, avg_soiltemp_week_plot, avg_soilmoist_week_plot,
                                 nrow = 3, ncol = 1, common.legend = T, legend = "right", align = "hv")
+dev.off()
+```
+
+# monthly averages by treatment for the entire year
+```{r}
+hobo_season_yr <- hobo_season %>%
+  filter(!(year == "2022" | year == "2024"))
+
+soil_season_yr <- soil_season %>%
+  filter(!(year == "2022" | year == "2024"))
+
+# take average by month by treatment
+avg_airtemp_yr <- hobo_season_yr %>%
+  group_by(month, year, month_year, Treatment) %>%
+  summarise(avg_temp = mean(Temperature_C, na.rm = TRUE),
+            se_temp = std.error(Temperature_C, na.rm = TRUE))
+
+avg_soiltemp_yr <- soil_season_yr %>%
+  group_by(month, year, month_year, Subplot_Descriptions) %>%
+  summarise(avg_temp = mean(temperature, na.rm = TRUE),
+            se_temp = std.error(temperature, na.rm = TRUE))
+
+avg_soilmoist_yr <- soil_season_yr %>%
+  group_by(month, year, month_year, Subplot_Descriptions) %>%
+  summarise(avg_moist = mean(vwc, na.rm = TRUE),
+            se_moist = std.error(vwc, na.rm = TRUE))
+
+# plot - weekly
+# air temp
+avg_airtemp_yr_plot <- ggplot(avg_airtemp_yr, aes(x = month, y = avg_temp, group = Treatment, color = Treatment)) +
+        geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp),width=0.1,color="black",linetype="solid") +
+        geom_line(linewidth = 0.8) +
+        facet_grid(~year) +
+        scale_color_manual(name="Treatment", 
+                           values = c("#a6bddb", "#687689", "#fb6a4a", "#9D422E"), 
+                           labels=c("Ambient","Drought","Warmed", "Warmed Drought")) +
+        labs(y="Air Temperature (°C)") +
+        theme_bw() +
+        theme(axis.title.x = element_blank(),
+        axis.text.y = element_text(size=12),
+        axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+avg_airtemp_yr_plot
+
+# soil temp
+avg_soiltemp_yr_plot <- ggplot(avg_soiltemp_yr, aes(x = month, y = avg_temp, group = Subplot_Descriptions, color = Subplot_Descriptions)) +
+        geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp),width=0.1,color="black",linetype="solid") +
+        geom_line(linewidth = 0.8) +
+        facet_grid(~year) +
+        scale_color_manual(name="Subplot_Descriptions", 
+                           values = c("blue", "#a6bddb", "#687689", "#fb6a4a", "#9D422E"), 
+                           labels=c("Irrigated Control", "Ambient","Drought","Warmed", "Warmed Drought")) +
+        labs(y="Soil Temperature (°C)") +
+        theme_bw() +
+        theme(axis.title.x = element_blank(),
+        axis.text.y = element_text(size=12),
+        axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+avg_soiltemp_yr_plot
+
+# soil moisture
+avg_soilmoist_yr_plot <- ggplot(avg_soilmoist_yr, aes(x = month, y = avg_moist, group = Subplot_Descriptions, color = Subplot_Descriptions)) +
+        geom_errorbar(aes(ymin=avg_moist-se_moist, ymax=avg_moist+se_moist),width=0.1,color="black",linetype="solid") +
+        geom_line(linewidth = 0.8) +
+        facet_grid(~year) +
+        scale_color_manual(name="Subplot_Descriptions", 
+                           values = c("blue", "#a6bddb", "#687689", "#fb6a4a", "#9D422E"), 
+                           labels=c("Irrigated Control", "Ambient","Drought","Warmed", "Warmed Drought")) +
+        labs(y=bquote("Soil moisture " (m^3/m^3)), x="Month") +
+        theme_bw() +
+        theme(axis.title = element_text(size=12),
+        axis.text.y = element_text(size=12),
+        axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+avg_soilmoist_yr_plot
+
+# combine plots
+yr_plot <- ggarrange(avg_airtemp_yr_plot, avg_soiltemp_yr_plot, avg_soilmoist_yr_plot,
+                    ncol = 1, nrow = 3)
+
+yr_plot
+
+png("rex_air_soil_temp_moist_year_plot.png", units="in", width=10, height=6, res=300)
+ggpubr::ggarrange(avg_airtemp_yr_plot, avg_soiltemp_yr_plot, avg_soilmoist_yr_plot,
+                                nrow = 3, ncol = 1, common.legend = T, legend = "right", align = "hv")
+dev.off()
+```
+
+# only during drought
+2021: July 12th - August 27th
+2023: July 10th - August 18th
+```{r}
+# select for 6 week drought period in 2021
+hobo_drought_21 <- hobo_season %>%
+        filter(year_month_day >= "2021-07-12" & year_month_day <= "2021-08-27")
+
+soil_drought_21 <- soil_season %>%
+  filter(year_month_day >= "2021-07-12" & year_month_day <= "2021-08-27")
+
+# select for 6 week drought period in 2023
+hobo_drought_23 <- hobo_season %>%
+        filter(year_month_day >= "2023-07-10" & year_month_day <= "2023-08-18")
+
+soil_drought_23 <- soil_season %>%
+  filter(year_month_day >= "2023-07-10" & year_month_day <= "2023-08-18")
+
+# merge data frames
+hobo_drought <- full_join(hobo_drought_21, hobo_drought_23)
+soil_drought <- full_join(soil_drought_21, soil_drought_23)
+
+# average over the 6 weeks by treatment
+# take average by month by treatment
+avg_airtemp_drought <- hobo_drought %>%
+  group_by(year, Treatment) %>%
+  summarise(avg_temp = mean(Temperature_C, na.rm = TRUE),
+            se_temp = std.error(Temperature_C, na.rm = TRUE))
+
+avg_soiltemp_drought <- soil_drought %>%
+  group_by(year, Subplot_Descriptions) %>%
+  summarise(avg_temp = mean(temperature, na.rm = TRUE),
+            se_temp = std.error(temperature, na.rm = TRUE))
+
+avg_soilmoist_drought <- soil_drought %>%
+  group_by(year, Subplot_Descriptions) %>%
+  summarise(avg_moist = mean(vwc, na.rm = TRUE),
+            se_moist = std.error(vwc, na.rm = TRUE))
+
+# dot plots
+
+# air temp
+avg_airtemp_dr_plot <- ggplot(avg_airtemp_drought, aes(x = factor(Treatment, level = level_order1), y = avg_temp)) +
+        geom_pointrange(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp),pch=21,size=1,fill="darkblue") +
+        labs(y="Air temperature (°C)", x=NULL) +
+        facet_grid(~year) +
+        scale_x_discrete(labels=c("Ambient" = "Ambient", "Drought" = "Drought",
+                                  "Warmed" = "Warmed",
+                                  "Warmed_Drought" = "Warmed &\nDrought")) +
+        #annotate("text", x = 0.6, y=23, label = "A", size=5) +
+        theme_bw() +
+        theme(axis.title = element_text(size=12),
+              axis.text = element_text(size=12),
+              axis.ticks.x = element_blank(),
+              axis.text.x = element_blank())
+avg_airtemp_dr_plot
+
+# soil temp
+avg_soiltemp_dr_plot <- ggplot(avg_soiltemp_drought, aes(x = factor(Subplot_Descriptions, level = level_order2), y = avg_temp)) +
+        geom_pointrange(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp),pch=21,size=1,fill="darkblue") +
+        labs(y="Soil temperature (°C)", x=NULL) +
+        facet_grid(~year) +
+        #annotate("text", x = 0.6, y=23, label = "A", size=5) +
+        scale_x_discrete(labels=c("irrigated_control" = "Irrigated Control",
+                                  "ambient" = "Ambient", 
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed &\nDrought")) +
+        theme_bw() +
+        theme(axis.title = element_text(size=12),
+              axis.text = element_text(size=12),
+              axis.ticks.x = element_blank(),
+              axis.text.x = element_blank())
+avg_soiltemp_dr_plot
+
+# soil moisture
+avg_soilmoist_dr_plot <- ggplot(avg_soilmoist_drought, aes(x = factor(Subplot_Descriptions, level = level_order2), y = avg_moist)) +
+        geom_pointrange(aes(ymin=avg_moist-se_moist, ymax=avg_moist+se_moist),pch=21,size=1,fill="darkblue") +
+        labs(y=bquote("Soil moisture " (m^3/m^3)), x=NULL) +
+        facet_grid(~year) +
+        #annotate("text", x = 0.6, y=23, label = "A", size=5) +
+        scale_x_discrete(labels=c("irrigated_control" = "Irrigated \n Control",
+                                  "ambient" = "Ambient", 
+                                  "drought" = "Drought",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed &\n Drought")) +
+        theme_bw() +
+        theme(axis.title = element_text(size=12),
+              axis.text = element_text(size=12))
+avg_soilmoist_dr_plot
+
+# combine plots
+dr_plot <- ggarrange(avg_airtemp_dr_plot, avg_soiltemp_dr_plot, avg_soilmoist_dr_plot,
+                    ncol = 1, nrow = 3)
+
+dr_plot
+
+png("rex_air_soil_temp_moist_drought_plot.png", units="in", width=10, height=8, res=300)
+ggpubr::ggarrange(avg_airtemp_dr_plot, avg_soiltemp_dr_plot, avg_soilmoist_dr_plot,
+                                nrow = 3, ncol = 1, align = "hv")
 dev.off()
 ```
 
