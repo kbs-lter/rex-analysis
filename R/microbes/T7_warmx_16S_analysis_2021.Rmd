@@ -59,14 +59,14 @@ physeq_tree
 
 ```{r}
 
-taxonomy <- read.csv("/Users/moriahyoung/Desktop/phyloseq_object/16S-taxonomy-filtered.csv")
-otu <- read.csv("/Users/moriahyoung/Desktop/phyloseq_object/16S-merged-table-filtered.csv")
-metadata <- read.csv("/Users/moriahyoung/Desktop/phyloseq_object/16S_2021_metadata.csv")
+taxonomy <- read.csv("/Users/moriahyoung/Desktop/phyloseq_object/16S-2021-taxonomy-filtered-noncontam.csv")
+otu <- read.csv("/Users/moriahyoung/Desktop/phyloseq_object/16S-2021-table-filtered-noncontam.csv")
+metadata <- read.csv("/Users/moriahyoung/Desktop/phyloseq_object/bacterial_2021_metadata.csv")
 
 # Create phyloseq objects of filtered data (16S)
-data_16S_filtered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-merged-table-filtered.csv",
-                                       taxonomy.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-taxonomy-filtered.csv",
-                                       metadata.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S_2021_metadata.csv")
+data_16S_filtered <- read_csv2phyloseq(otu.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-2021-table-filtered-noncontam.csv",
+                                       taxonomy.file = "/Users/moriahyoung/Desktop/phyloseq_object/16S-2021-taxonomy-filtered-noncontam.csv",
+                                       metadata.file = "/Users/moriahyoung/Desktop/phyloseq_object/bacterial_2021_metadata.csv")
 summarize_phyloseq(data_16S_filtered)
 
 # merge the phyloseq object with the phylogenetic tree with the other phyloseq object
@@ -816,7 +816,7 @@ summarize_phyloseq(data_16S_noIRC)
 data_16S_filtered_peak_noIRC <- subset_samples(data_16S_filtered_noIRC, sampling_period == "Peak-Drought")
 ```
 
-#Alpha Diversity
+#ALPHA DIVERSITY
 # consider not using rarefied data or untrimmed data for alpha diversity?
 ```{r}
 # no insecticide treatment
@@ -879,7 +879,7 @@ pairwise.wilcox.test(richness$Shannon, sample_data(rare_16S_noinsect)$Drought, p
 
 ```
 
-#Beta Diversity
+#BETA DIVERSITY
 
 Working outside of a phyloseq object
 ```{r}

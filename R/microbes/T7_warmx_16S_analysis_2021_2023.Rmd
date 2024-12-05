@@ -1,7 +1,7 @@
 ---
 title: "T7 warmx 16S Analysis 2021 & 2023"
 author: "Moriah Young"
-date: "2024-07-02"
+date: "2024-07-02; updated 2024-12-04"
 output: pdf_document
 editor_options: 
   chunk_output_type: console
@@ -114,6 +114,400 @@ summarize_phyloseq(rare_16S)
 sample_data(rare_16S)
 ```
 
+# STACKED BAR PLOTS
+Taxonomy
+Setting up to make stacked bar plots
+```{r}
+data_16S_rel <- transform_sample_counts(rare_16S, function(x) x/sum(x))
+
+# order sample data - "Drought" and "Subplot_Descriptions"
+sample_data(data_16S_rel)$sampling_period <- ordered(sample_data(data_16S_rel)$sampling_period, c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"))
+sample_data(data_16S_rel)$Subplot_Descriptions <- ordered(sample_data(data_16S_rel)$Subplot_Descriptions, c("irrigated_control", "ambient", "warmed", "warmed_insecticide", "insecticide", "drought", "warmed_drought", "drought_insecticide", "warmed_drought_insecticide"))
+
+# subset to non insecticide plots
+data_16S_rel_noinsect <- subset_samples(data_16S_rel, Subplot_Descriptions%in%c("ambient", "irrigated_control", "warmed_drought", "drought", "warmed"))
+summarize_phyloseq(data_16S_rel_noinsect)
+
+treatment_names <- c("ambient" = "Ambient",
+                     "drought" = "Drought",
+                     "irrigated_control" = "Irrigated \n Control",
+                     "warmed" = "Warmed",
+                     "warmed_drought" = "Warmed \n Drought", 
+                     "drought_insecticide" = "Drought \n Insecticide", 
+                     "insecticide" = "Insecticide", 
+                     'warmed_drought_insecticide' = "Warmed \n Drought \n Insecticide", 
+                     'warmed_insecticide' = "Warmed \n Insecticide")
+
+treatment_names_noinsect <- c("ambient" = "Ambient",
+                     "drought" = "Drought",
+                     "irrigated_control" = "Irrigated \n Control",
+                     "warmed" = "Warmed",
+                     "warmed_drought" = "Warmed \n Drought")
+
+# for faceting by treatment and year
+treatment_names_year_noinsect <- c("ambient" = "Ambient",
+                     "drought" = "Drought",
+                     "irrigated_control" = "Irrigated \n Control",
+                     "warmed" = "Warmed",
+                     "warmed_drought" = "Warmed \n Drought",
+                     "2021" = "2021",
+                     "2023" = "2023")
+
+custom_colors_15 <- c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1", "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4", "cyan2", "deeppink3", "goldenrod1", "aquamarine3", "darkviolet", "darkseagreen3")
+
+custom_colors_10 <- c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1", "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")
+```
+
+# Phylum
+Phylum Level - non insecticide plots
+```{r}
+phylum_sum_16S_noinsect <- tapply(taxa_sums(data_16S_rel_noinsect), 
+                         tax_table(data_16S_rel_noinsect)[, "Phylum"], sum, na.rm=TRUE)
+top10phylum_16S_noinsect <- names(sort(phylum_sum_16S_noinsect, TRUE))[1:15]
+
+abundant_16S_phylum_noinsect <- subset_taxa(data_16S_rel_noinsect, Phylum %in% top10phylum_16S_noinsect)
+abundant_16S_phylum_glom_noinsect <- tax_glom(abundant_16S_phylum_noinsect, taxrank = "Phylum")
+abundant_16S_phylum_melt_noinsect <- psmelt(abundant_16S_phylum_glom_noinsect)
+
+sum2_noinsect <- abundant_16S_phylum_melt_noinsect %>% 
+  group_by(Subplot_Descriptions, sampling_period, Year, Phylum) %>%
+  summarise(means = mean(Abundance))
+
+#Everything that's left is considered rare  
+rare <- sum2_noinsect %>%
+  group_by(Subplot_Descriptions, sampling_period, Year) %>%
+  summarise(means = 1- sum(means)) %>%
+  mutate(Phylum = "Rare Taxa")
+
+#concatenate the datasets
+sum2_noinsect = rbind(sum2_noinsect, rare)
+
+#order groups
+sum2_noinsect$Phylum <- forcats::fct_relevel(sum2_noinsect$Phylum, "Rare Taxa", after = Inf)
+
+# Stacked bar plot for top phylas
+# facet by timing of soil collection (aka "Drought")
+png("T7_warmx_ITS_order_stackedbarplot_by_samplingpoint.png", units="in", width=10, height=6, res=300)
+ggplot(sum2_noinsect, aes(x = Subplot_Descriptions, y = means, fill = Phylum)) +
+        geom_bar(position = "stack", stat = "identity", col = "black") +
+        facet_grid(Year~sampling_period, scale="free") +
+        theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
+        scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
+                                     "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4", "yellow", "gray20", "green", "purple", "pink")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed Drought")) +
+        #scale_y_continuous(name = NULL, breaks = NULL) +
+        panel_border() +
+        theme_bw() +
+        ggtitle("") +
+        theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+        theme(strip.text = element_text(size = 12, face = "italic"), axis.text.x = element_text(size = 10),
+              axis.title = element_blank(),
+              title = element_text(size = 12))
+dev.off()
+
+# facet by treatment
+
+png("T7_warmx_16S_phylum_stackedbarplot_by_treatment_year_noinsect.png", units="in", width=8, height=6, res=300)
+ggplot(sum2_noinsect, aes(x = sampling_period, y = means, fill = Phylum)) +
+        geom_bar(position = "stack", stat = "identity", col = "black") +
+        facet_grid(Year~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names_year_noinsect)) +
+        scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1", "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
+         scale_x_discrete(labels=c("Pre-Drought" = "T1",
+                                 "Peak-Drought" = "T2",
+                                 "Post-Drought" = "T3",
+                                 "Recovery" = "T4")) +
+        #scale_y_continuous(name = NULL, breaks = NULL) +
+        panel_border() +
+        theme_bw() +
+        ggtitle("") +
+        theme(axis.text.x = element_text(size = 12),
+              strip.text = element_text(size = 12, face = "italic"), 
+              axis.title = element_blank(),
+              title = element_text(size = 12),
+              legend.position = "right", 
+              legend.title = element_text(size = 12),
+              legend.text = element_text(size = 12),
+              axis.line = element_blank(),
+              axis.text.y=element_text(size=12)) +
+        theme(strip.text.y = element_text(size = 12, face = "italic", color = "black"))
+dev.off()
+```
+
+# Order
+Order Level - non insecticide plots
+```{r}
+order_sum_16S_noinsect <- tapply(taxa_sums(data_16S_rel_noinsect), 
+                         tax_table(data_16S_rel_noinsect)[, "Order"], sum, na.rm=TRUE)
+top10order_16S_noinsect <- names(sort(order_sum_16S_noinsect, TRUE))[1:15]
+
+abundant_16S_order_noinsect <- subset_taxa(data_16S_rel_noinsect, Order %in% top10order_16S_noinsect)
+abundant_16S_order_glom_noinsect <- tax_glom(abundant_16S_order_noinsect, taxrank = "Order")
+abundant_16S_order_melt_noinsect <- psmelt(abundant_16S_order_glom_noinsect)
+
+sum2_noinsect <- abundant_16S_order_melt_noinsect %>% 
+  group_by(Subplot_Descriptions, sampling_period, Year, Order) %>%
+  summarise(means = mean(Abundance))
+
+#Everything that's left is considered rare  
+rare <- sum2_noinsect %>%
+  group_by(Subplot_Descriptions, sampling_period, Year) %>%
+  summarise(means = 1- sum(means)) %>%
+  mutate(Order = "Rare Taxa")
+
+#concatenate the datasets
+sum2_noinsect = rbind(sum2_noinsect, rare)
+
+#order groups
+sum2_noinsect$Order <- forcats::fct_relevel(sum2_noinsect$Order, "Rare Taxa", after = Inf)
+
+# Stacked bar plot for top phylas
+# facet by timing of soil collection (aka "Drought")
+png("T7_warmx_ITS_order_stackedbarplot_by_samplingpoint.png", units="in", width=10, height=6, res=300)
+ggplot(sum2_noinsect, aes(x = Subplot_Descriptions, y = means, fill = Order)) +
+        geom_bar(position = "stack", stat = "identity", col = "black") +
+        facet_grid(Year~sampling_period, scale="free") +
+        theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
+        scale_fill_manual(values = custom_colors) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed Drought")) +
+        #scale_y_continuous(name = NULL, breaks = NULL) +
+        panel_border() +
+        theme_bw() +
+        ggtitle("") +
+        theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+        theme(strip.text = element_text(size = 12, face = "italic"), axis.text.x = element_text(size = 10),
+              axis.title = element_blank(),
+              title = element_text(size = 12))
+dev.off()
+
+# facet by treatment
+png("T7_warmx_phylum_order_stackedbarplot_by_treatment_noinsect.png", units="in", width=8, height=8, res=300)
+ggplot(sum2_noinsect, aes(x = sampling_period, y = means, fill = Order)) +
+        geom_bar(position = "stack", stat = "identity", col = "black") +
+        facet_grid(Year~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names_year_noinsect)) +
+        scale_fill_manual(values = custom_colors_15) +
+         scale_x_discrete(labels=c("Pre-Drought" = "T1",
+                                 "Peak-Drought" = "T2",
+                                 "Post-Drought" = "T3",
+                                 "Recovery" = "T4")) +
+        #scale_y_continuous(name = NULL, breaks = NULL) +
+        panel_border() +
+        theme_bw() +
+        ggtitle("") +
+        theme(axis.text.x = element_text(size = 12),
+              strip.text = element_text(size = 12, face = "italic"), 
+              axis.title = element_blank(),
+              title = element_text(size = 12),
+              legend.position = "right", 
+              legend.title = element_text(size = 12),
+              legend.text = element_text(size = 12),
+              axis.line = element_blank(),
+              axis.text.y=element_text(size=12))
+dev.off()
+
+```
+
+# Testing rel abun differences
+```{r}
+# Aggregate Data at the order Level
+physeq_order <- tax_glom(rare_16S, taxrank = "Order")
+
+# transform to relative abundance
+physeq_order_rel <- transform_sample_counts(physeq_order, function(x) x / sum(x))
+
+physeq_order_rel_noinsect <- subset_samples(physeq_order_rel, Subplot_Descriptions%in%c("ambient", "irrigated_control", "warmed_drought", "drought", "warmed"))
+
+# Convert the phyloseq object into a data frame for statistical analysis
+physeq_order_df <- psmelt(physeq_order_rel_noinsect)
+
+# are there differences in rel abun based on sampling period?
+kruskal.test(Abundance ~ sampling_period, data = physeq_order_df)
+# Kruskal-Wallis chi-squared = 19.991, df = 3, p-value = 0.0001704
+
+kruskal.test(Abundance ~ Subplot_Descriptions, data = physeq_order_df)
+# Kruskal-Wallis chi-squared = 6.4644, df = 4, p-value = 0.167
+
+kruskal.test(Abundance ~ Year, data = physeq_order_df)
+# Kruskal-Wallis chi-squared = 11.047, df = 1, p-value = 0.0008883
+
+# Filter for Specific Phylum (Optional)
+physeq_df_filtered <- subset(physeq_order_df, Order == "Pezizales")
+
+kruskal.test(Abundance ~ sampling_period, data = physeq_df_filtered)
+# KKruskal-Wallis chi-squared = 4.8517, df = 3, p-value = 0.183
+kruskal.test(Abundance ~ Subplot_Descriptions, data = physeq_df_filtered)
+# Kruskal-Wallis chi-squared = 3.711, df = 4, p-value = 0.4465
+
+physeq_df_filtered_1 <- subset(physeq_order_df, Order == "Agaricales")
+kruskal.test(Abundance ~ sampling_period, data = physeq_df_filtered_1) # NS
+kruskal.test(Abundance ~ Drought, data = physeq_df_filtered_1) # NS
+
+# test sampling periods within specific treatments
+physeq_df_filtered_wd <- subset(physeq_order_df, Subplot_Descriptions == "warmed_drought")
+kruskal.test(Abundance ~ sampling_period, data = physeq_df_filtered_wd)
+```
+
+# Family
+Family Level - non insecticide plots
+```{r}
+family_sum_16S_noinsect <- tapply(taxa_sums(data_16S_rel_noinsect), 
+                         tax_table(data_16S_rel_noinsect)[, "Family"], sum, na.rm=TRUE)
+top10family_16S_noinsect <- names(sort(family_sum_16S_noinsect, TRUE))[1:15]
+
+abundant_16S_family_noinsect <- subset_taxa(data_16S_rel_noinsect, Family %in% top10family_16S_noinsect)
+abundant_16S_family_glom_noinsect <- tax_glom(abundant_16S_family_noinsect, taxrank = "Family")
+abundant_16S_family_melt_noinsect <- psmelt(abundant_16S_family_glom_noinsect)
+
+sum2_noinsect <- abundant_16S_family_melt_noinsect %>% 
+  group_by(Subplot_Descriptions, sampling_period, Year, Family) %>%
+  summarise(means = mean(Abundance))
+
+#Everything that's left is considered rare  
+rare <- sum2_noinsect %>%
+  group_by(Subplot_Descriptions, sampling_period, Year) %>%
+  summarise(means = 1- sum(means)) %>%
+  mutate(Family = "Rare Taxa")
+
+#concatenate the datasets
+sum2_noinsect = rbind(sum2_noinsect, rare)
+
+#order groups
+sum2_noinsect$Family <- forcats::fct_relevel(sum2_noinsect$Family, "Rare Taxa", after = Inf)
+
+# Stacked bar plot for top phylas
+# facet by timing of soil collection (aka "Drought")
+png("T7_warmx_ITS_order_stackedbarplot_by_samplingpoint.png", units="in", width=10, height=6, res=300)
+ggplot(sum2_noinsect, aes(x = Subplot_Descriptions, y = means, fill = Family)) +
+        geom_bar(position = "stack", stat = "identity", col = "black") +
+        facet_grid(Year~sampling_period, scale="free") +
+        #theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
+        #scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
+#                                     "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed Drought")) +
+        #scale_y_continuous(name = NULL, breaks = NULL) +
+        panel_border() +
+        theme_bw() +
+        ggtitle("") +
+        theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+        theme(strip.text = element_text(size = 12, face = "italic"), axis.text.x = element_text(size = 10),
+              axis.title = element_blank(),
+              title = element_text(size = 12))
+dev.off()
+
+# facet by treatment
+png("T7_warmx_ITS_order_stackedbarplot_by_treatment_noinsect.png", units="in", width=8, height=6, res=300)
+ggplot(sum2_noinsect, aes(x = sampling_period, y = means, fill = Family)) +
+        geom_bar(position = "stack", stat = "identity", col = "black") +
+        facet_grid(Year~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names_noinsect)) +
+        scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1", "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
+         scale_x_discrete(labels=c("Pre-Drought" = "T1",
+                                 "Peak-Drought" = "T2",
+                                 "Post-Drought" = "T3",
+                                 "Recovery" = "T4")) +
+        #scale_y_continuous(name = NULL, breaks = NULL) +
+        panel_border() +
+        theme_bw() +
+        ggtitle("") +
+        theme(axis.text.x = element_text(size = 12),
+              strip.text = element_text(size = 12, face = "italic"), 
+              axis.title = element_blank(),
+              title = element_text(size = 12),
+              legend.position = "right", 
+              legend.title = element_text(size = 12),
+              legend.text = element_text(size = 12),
+              axis.line = element_blank(),
+              axis.text.y=element_text(size=12))
+dev.off()
+```
+
+# Genus
+Genus Level - non insecticide plots
+```{r}
+genus_sum_16S_noinsect <- tapply(taxa_sums(data_16S_rel_noinsect), 
+                         tax_table(data_16S_rel_noinsect)[, "Genus"], sum, na.rm=TRUE)
+top10genus_16S_noinsect <- names(sort(genus_sum_16S_noinsect, TRUE))[1:10]
+
+abundant_16S_genus_noinsect <- subset_taxa(data_16S_rel_noinsect, Genus %in% top10genus_16S_noinsect)
+abundant_16S_genus_glom_noinsect <- tax_glom(abundant_16S_genus_noinsect, taxrank = "Genus")
+abundant_16S_genus_melt_noinsect <- psmelt(abundant_16S_genus_glom_noinsect)
+
+sum2_noinsect <- abundant_16S_genus_melt_noinsect %>% 
+  group_by(Subplot_Descriptions, sampling_period, Year, Genus) %>%
+  summarise(means = mean(Abundance))
+
+#Everything that's left is considered rare  
+rare <- sum2_noinsect %>%
+  group_by(Subplot_Descriptions, sampling_period, Year) %>%
+  summarise(means = 1- sum(means)) %>%
+  mutate(Genus= "Rare Taxa")
+
+#concatenate the datasets
+sum2_noinsect = rbind(sum2_noinsect, rare)
+
+#order groups
+sum2_noinsect$Genus <- forcats::fct_relevel(sum2_noinsect$Genus, "Rare Taxa", after = Inf)
+
+# Stacked bar plot for top phylas
+# facet by timing of soil collection (aka "Drought")
+png("T7_warmx_ITS_order_stackedbarplot_by_samplingpoint.png", units="in", width=10, height=6, res=300)
+ggplot(sum2_noinsect, aes(x = Subplot_Descriptions, y = means, fill = Genus)) +
+        geom_bar(position = "stack", stat = "identity", col = "black") +
+        facet_grid(Year~sampling_period, scale="free") +
+        theme(legend.position = "right", legend.title = element_blank(), axis.line = element_blank()) +
+        scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1",
+                                     "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
+        scale_x_discrete(labels=c("ambient" = "Ambient",
+                                  "drought" = "Drought",
+                                  "irrigated_control" = "Irrigated Control",
+                                  "warmed" = "Warmed",
+                                  "warmed_drought" = "Warmed Drought")) +
+        #scale_y_continuous(name = NULL, breaks = NULL) +
+        panel_border() +
+        theme_bw() +
+        ggtitle("") +
+        theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+        theme(strip.text = element_text(size = 12, face = "italic"), axis.text.x = element_text(size = 10),
+              axis.title = element_blank(),
+              title = element_text(size = 12))
+dev.off()
+
+# facet by treatment
+png("T7_warmx_ITS_order_stackedbarplot_by_treatment_noinsect.png", units="in", width=8, height=6, res=300)
+ggplot(sum2_noinsect, aes(x = sampling_period, y = means, fill = Genus)) +
+        geom_bar(position = "stack", stat = "identity", col = "black") +
+        facet_grid(Year~Subplot_Descriptions, scale="free", labeller = as_labeller(treatment_names_noinsect)) +
+        scale_fill_manual(values = c("firebrick4","tomato", "darkorange3", "orange1" ,"goldenrod4", "khaki1", "forestgreen", "olivedrab1", "midnightblue", "powderblue", "mediumorchid4")) +
+         scale_x_discrete(labels=c("Pre-Drought" = "T1",
+                                 "Peak-Drought" = "T2",
+                                 "Post-Drought" = "T3",
+                                 "Recovery" = "T4")) +
+        #scale_y_continuous(name = NULL, breaks = NULL) +
+        panel_border() +
+        theme_bw() +
+        ggtitle("") +
+        theme(axis.text.x = element_text(size = 12),
+              strip.text = element_text(size = 12, face = "italic"), 
+              axis.title = element_blank(),
+              title = element_text(size = 12),
+              legend.position = "right", 
+              legend.title = element_text(size = 12),
+              legend.text = element_text(size = 12),
+              axis.line = element_blank(),
+              axis.text.y=element_text(size=12))
+dev.off()
+```
+
 # 2023 
 ```{r}
 # subset for 2023 data
@@ -126,22 +520,24 @@ bray_dist <- phyloseq::distance(data_rare_2023, method="bray", weighted=T)
 ordination <- ordinate(data_rare_2023, method="PCoA", distance=bray_dist)
 
 png("16S_pcoa_no_insects.png", units="in", width=8, height=6, res=300)
-plot_ordination(data_rare_2023, ordination, color="Subplot_Descriptions", shape = "sampling_period") + 
+plot_ordination(data_rare_2023, ordination) + 
         geom_point(aes(color = Subplot_Descriptions, shape = sampling_period), size=4, alpha=0.75) +
-        #stat_ellipse() +
+        stat_ellipse(aes(color = Subplot_Descriptions), geom = "polygon", alpha = .1) +
             scale_colour_manual(name = "Subplot Descriptions", 
                           breaks = c("irrigated_control", "ambient", "warmed", "drought", "warmed_drought"),
                           labels = c("Irrigated Control", "Ambient", "Warmed", "Drought", "Warmed + Drought"),
-                          values = c("ambient" = "darkblue", "drought" = "gray58", "irrigated_control" = "deepskyblue", "warmed" = "red2", "warmed_drought" = "darkred")) +
-        labs(shape = "Sampling Period") +
-        #labs(x="Axis 1",
-        #     y="Axis 2") +
+                          values = c("ambient" = "#a6bddb", "drought" = "#687689", "warmed" = "#fb6a4a", "warmed_drought" = "#9D422E")) +
+        scale_shape_manual(name = "Sampling Time", 
+                       breaks = c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"),
+                       labels = c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"),
+                       values = c(16, 17, 15, 18)) +
         theme(aspect.ratio=1)
 dev.off()
 
 # Test whether the sampling periods differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
 set.seed(22)
 adonis2(bray_dist ~ sample_data(data_rare_2023)$Subplot_Descriptions)
+adonis2(bray_dist ~ sample_data(data_rare_2023)$sampling_period)
 
 # setting up the permutation object
 perm1 <- with(sample_data(data_rare_2023), how(blocks = Rep_Footprint, plots = Plots(strata=Footprint, type="free"), within=Within(type="free"), nperm = 9999))
@@ -426,7 +822,7 @@ data_rare_noinsect_2023 <- subset_samples(data_rare_noinsect_nona, Year == "2023
 summarize_phyloseq(data_rare_noinsect_2023)
 ```
 
-#Alpha Diversity
+#Alpha diversity
 ```{r}
 # order sample data - "Subplot_Descriptions"
 sample_data(data_rare_noinsect_2023)$Subplot_Descriptions <- ordered(sample_data(data_rare_noinsect_2023)$Subplot_Descriptions, c( "ambient", "warmed","drought", "warmed_drought"))
@@ -547,8 +943,8 @@ adonis2(bray_dist ~ sample_data(data_rare_noinsect_2023)$sampling_period, by = "
 ```
 
 # USE FOR KBS LTER FELLOWS PRESENTATION
-# DROUGHT @ peak drought 2021 & 2023
-#Subsetting phyloseq object
+DROUGHT @ peak drought 2021 & 2023
+Subsetting phyloseq object
 ```{r}
 data_rare_noinsect_drought <- subset_samples(data_rare_noinsect_nona, Subplot_Descriptions == "drought")
 summarize_phyloseq(data_rare_noinsect_drought)
@@ -592,7 +988,10 @@ kruskal.test(richness$Shannon ~ sample_data(data_rare_noinsect_drought_peak)$Yea
 #pairwise.wilcox.test(richness$Shannon, sample_data(data_rare_noinsect_drought_peak)$Year, p.adj = "bonf")
 ```
 
-#Beta Diversity
+
+
+
+#Beta diversity
 ```{r}
 # PCoA plot using bray-curtis as distance
 bray_dist = phyloseq::distance(data_rare_noinsect_drought_peak, method="bray")
@@ -912,7 +1311,7 @@ adonis2(bray_dist ~ sample_data(data_rare_noinsect_wd)$Year*sample_data(data_rar
 adonis2(bray_dist ~ sample_data(data_rare_noinsect_wd)$Year + sample_data(data_rare_noinsect_wd)$sampling_period, by = "margin", permutations = perm1)
 ```
 
-# WARMED2021 & 2023
+# WARMED 2021 & 2023
 #Subsetting phyloseq object
 ```{r}
 data_rare_noinsect_warm <- subset_samples(data_rare_noinsect_nona, Subplot_Descriptions == "warmed")
@@ -1051,3 +1450,144 @@ plot_ordination(
         theme(legend.title = element_blank())                                      #removes legend title
 #dev.off()
 ```
+
+
+# 2021 & 2023
+# Alpha Diversity
+```{r}
+#png("T7_warmx_16S_observed_alpha_diversity_no_insects.png", units="in", width=10, height=6, res=300)
+plot_richness(rare_16S_noinsect, x="sampling_period", measures=c("Observed")) + 
+        geom_boxplot(aes(fill = sampling_period)) + 
+        labs(y = "Observed OTUs", x = "Time of Sampling") +
+        facet_grid(Subplot_Descriptions~Year, scale="free") +
+        theme(legend.position = "none", 
+              axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 15),
+              axis.text.y = element_text(size = 12),
+              axis.title.x = element_text(size=12),
+              axis.title.y = element_text(size=12),
+              strip.text.x = element_text(size = 12, face = "italic"))
+#dev.off()
+```
+
+# Beta Diversity
+```{r}
+# PCoA plot using bray-curtis as distance
+bray_dist = phyloseq::distance(rare_16S_noinsect, method="bray")
+ordination_pcoa = ordinate(rare_16S_noinsect, method="PCoA", distance=bray_dist)
+
+p1 <- plot_ordination(rare_16S_noinsect, ordination_pcoa, color="Year") + 
+        geom_point(size=5, alpha=0.90) +
+        stat_ellipse(aes(fill = Year), geom = "polygon", alpha = .1) +
+        #labs(x="Axis 1",
+        #     y="Axis 2") +
+        scale_color_manual(values = c("2021" = "lightsalmon", "2023" = "red2")) +
+        scale_fill_manual(values = c("2021" = "lightsalmon", "2023" = "red2"))
+        theme(aspect.ratio=1)
+p1
+```
+
+
+# no insect samples - order level
+```{r}
+# rare_16S_noinsect
+# class
+order <- aggregate_taxa(rare_16S_noinsect, 'Order', verbose = FALSE)
+
+# PCoA plot using bray-curtis as distance
+bray_dist = phyloseq::distance(order, method="bray")
+ordination = ordinate(order, method="PCoA", distance=bray_dist)
+
+png("T7_warmx_16S_PCOA_order_noinsects_year.png", units="in", width=9, height=6, res=300)
+plot_ordination(order, ordination) + 
+        geom_point(aes(color = Year), size=4, alpha=0.90) +
+        stat_ellipse(aes(color = Year), geom = "polygon", alpha = .1) +
+        scale_colour_manual(name = "Year", 
+                          breaks = c("2021", "2023"),
+                          labels = c("2021", "2023"),
+                          values = c("2021" = "#a6bddb", "2023" = "#fb6a4a")) +
+        #scale_shape_manual(name = "Sampling Time", 
+        #               breaks = c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"),
+        #               labels = c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"),
+        #               values = c(16, 17, 15, 18)) + 
+        theme(aspect.ratio=1)
+dev.off()
+
+adonis2(bray_dist ~ sample_data(order)$Subplot_Descriptions + sample_data(order)$sampling_period + sample_data(order)$Year) 
+
+# this works
+perm1 <- with(sample_data(order), how(blocks=Rep, plots=Plots(strata=Rep_Footprint, type="free"), within=Within(type="free"), nperm = 999))
+
+# drops footprint - we don't need to include this (based on conversations with Phoebe) - but do we need this when we are looking at multiple years?
+perm2 <- with(sample_data(order), how(blocks=Rep, within=Within(type="free"), nperm = 999))
+
+# doesn't work with perm1 - needs a balanced design
+adonis2(bray_dist ~ sample_data(order)$Subplot_Descriptions + sample_data(order)$sampling_period, by = "margin", permutations = perm1)
+
+adonis2(bray_dist ~ sample_data(order)$Subplot_Descriptions + sample_data(order)$sampling_period + sample_data(order)$Year, by = "margin", permutations = perm2)
+
+adonis2(bray_dist ~ sample_data(order)$Drought + sample_data(order)$Warming + sample_data(order)$sampling_period, by = "margin", permutations = perm2)
+
+# thoughts - if i have missing samples, for example here with pre drought, maybe make it so all time points have the same amount of samples, but will lose some statistical power by dropping one of my replicates
+
+# betadisper
+# betadisper tests whether the dispersion (variability) of samples within groups is similar across groups. If the p-value from the anova test is low (typically <0.05), it suggests that there are significant differences in dispersion between groups. If the dispersion differs significantly between groups, this suggests that group differences in community composition may be driven by more than just differences in group centroids (the average composition of each group). 
+
+# Step 1: Generate Bray-Curtis distance matrix
+# generated above:
+# bray_dist
+
+# Step 2: Extract the grouping variable from sample_data
+group_factor <- sample_data(phylum)$Year  # Ensure 'Subplot_Descriptions' is a column in sample_data
+
+# If it's not a factor, convert it
+# group_factor <- as.factor(group_factor)
+
+# Step 3: Run betadisper
+betadisper_result <- betadisper(bray_dist, group_factor)
+
+# Step 4: Run ANOVA to check for significant dispersion differences
+anova(betadisper_result)
+```
+
+# 2021
+```{r}
+# subset for 2021 data
+data_rare_2021 <- subset_samples(data_rare_noinsect, Year%in%c("2021"))
+data_rare_2021 <- subset_samples(data_rare_2021, !is.na(sampling_period))
+order <- aggregate_taxa(data_rare_2021, 'Order', verbose = FALSE)
+data_rare_2021_sample <- sample_data(order)
+
+# PCoA plot using bray-curtis as distance
+bray_dist <- phyloseq::distance(data_rare_2021, method="bray", weighted=T)
+ordination <- ordinate(data_rare_2021, method="PCoA", distance=bray_dist)
+
+png("16S_pcoa_orderlevel_no_insects.png", units="in", width=8, height=6, res=300)
+plot_ordination(data_rare_2021, ordination) + 
+        geom_point(aes(color = Subplot_Descriptions, shape = sampling_period), size=4, alpha=0.75) +
+        stat_ellipse(aes(color = Subplot_Descriptions), geom = "polygon", alpha = .1) +
+            scale_colour_manual(name = "Treatment", 
+                          breaks = c("irrigated_control", "ambient", "warmed", "drought", "warmed_drought"),
+                          labels = c("Irrigated Control", "Ambient", "Warmed", "Drought", "Warmed + Drought"),
+                          values = c("ambient" = "#a6bddb", "drought" = "#687689", "warmed" = "#fb6a4a", "warmed_drought" = "#9D422E")) +
+        scale_shape_manual(name = "Sampling Time", 
+                       breaks = c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"),
+                       labels = c("Pre-Drought", "Peak-Drought", "Post-Drought", "Recovery"),
+                       values = c(16, 17, 15, 18))
+        #labs(x="Axis 1",
+        #     y="Axis 2") +
+        theme(aspect.ratio=1)
+dev.off()
+
+# Test whether the sampling periods differ significantly from each other using the permutational ANOVA (PERMANOVA) analysis:
+set.seed(22)
+adonis2(bray_dist ~ sample_data(data_rare_2021)$Subplot_Descriptions)
+
+# setting up the permutation object
+perm1 <- with(sample_data(data_rare_2021), how(blocks = Rep_Footprint, plots = Plots(strata=Footprint, type="free"), within=Within(type="free"), nperm = 9999))
+
+perm2 <- with(sample_data(data_rare_2021), how(blocks = Rep_Footprint), within=Within(type="free"), nperm = 9999)
+
+adonis2(bray_dist ~ sample_data(data_rare_2021)$sampling_period, by = "margin", permutations = perm1)
+adonis2(bray_dist ~ sample_data(data_rare_2021)$Subplot_Descriptions*sample_data(data_rare_2021)$sampling_period, by = "margin", permutations = perm2) # interaction not significant
+adonis2(bray_dist ~ sample_data(data_rare_2021)$Subplot_Descriptions + sample_data(data_rare_2021)$sampling_period, by = "margin", permutations = perm2)
+
