@@ -39,18 +39,22 @@ height_avg <- height2 %>%
             se = std.error(Height_cm, na.rm = TRUE))
 
 # plot of means for climate treatment x galling status
-png("height_galling_point.png", units="in", width=9, height=6, res=300)
+png("height_galling_point.png", units="in", width=7, height=5, res=300)
 ggplot(height_avg, aes(x = Climate_Treatment, y = avg_height, fill=Galling_Status)) +
   geom_pointrange(aes(ymin = avg_height - se, ymax = avg_height + se),pch=21,size=1,position=position_dodge(0.2)) +
-  labs(x = "Treatment", y = "Plant Height (cm)") +
-  scale_fill_manual(values = c("olivedrab4", "darkseagreen2"), name="Gall Presence",labels=c("Gall","No Gall")) +
+  labs(x = NULL, y = "Plant height (cm)") +
+  scale_fill_manual(values = c("purple4", "plum2"),
+                    name="Galling status",
+                    labels=c("Galled","Non-galled")) +
   scale_x_discrete(limits = c("Irrigated Control", "Ambient", "Ambient Drought", "Warm", "Warm Drought"),
                    labels=c("Ambient" = "Ambient",
                             "Ambient Drought" = "Drought",
                             "Irrigated Control" = "Irrigated \n Control",
                             "Warm" = "Warmed",
                             "Warm Drought" = "Warmed & \n Drought")) +
-  theme(legend.position = "right")
+  theme_bw(14) +
+  theme(legend.position = "right",
+        axis.title = element_text(face = "bold"))
 dev.off()
 
 # barplot of climate treatment + galling status

@@ -120,20 +120,18 @@ mass_binom_sum <- mass_binom %>%
 mass_binom_seed <- mass_binom_sum %>%
   filter(Seeds_Mass == "Seed")
 # plot
-level_order <- c("Ambient","Irrigated Control","Ambient Drought","Warm","Warm Drought") 
+level_order <- c("Irrigated Control","Ambient","Ambient Drought","Warm","Warm Drought") 
 binom_plot <- ggplot(mass_binom_seed, aes(x = factor(Climate_Treatment, level = level_order), y = mean_n, fill=Galling_Status)) +
   geom_pointrange(aes(ymin = mean_n - se, ymax = mean_n + se), ,pch=21,size=1,position=position_dodge(0.2)) +
   labs(x = NULL, y = "Probability of having a seed") +
   scale_x_discrete(labels=c("Ambient" = "Ambient", "Warm" = "Warmed",
                             "Ambient Drought" = "Drought", "Irrigated Control" = "Irrigated\nControl",
                             "Warm Drought" = "Warmed &\nDrought")) +
-  scale_fill_manual(name="Treatment",
+  scale_fill_manual(name="Galling status",
+                    labels=c("Galled","Non-galled"),
                     values = c("purple4", "plum2")) +
-  theme_set(theme_bw(14))+
-theme_update(axis.text.x = element_text(size = 12),
-             axis.text.y = element_text(size = 16),
-             axis.title = element_text(size=16,face="bold"))
-
+  theme_bw(14) +
+  theme(axis.title = element_text(face="bold"))
 
 
 ## seed weight
@@ -148,16 +146,14 @@ cond_plot <- ggplot(mass_cond, aes(x = factor(Climate_Treatment, level = level_o
   scale_x_discrete(labels=c("Ambient" = "Ambient", "Warm" = "Warmed",
                             "Ambient Drought" = "Drought", "Irrigated Control" = "Irrigated\nControl",
                             "Warm Drought" = "Warmed &\nDrought")) +
-  scale_fill_manual(name="Treatment",
+  scale_fill_manual(name="Galling status",
+                    labels=c("Galled","Non-galled"),
                     values = c("purple4", "plum2")) +
-
-  theme_set(theme_bw(14))+
-theme_update(axis.text.x = element_text(size = 12),
-             axis.text.y = element_text(size = 16),
-             axis.title = element_text(size=16,face="bold"))
+  theme_bw(14) +
+  theme(axis.title = element_text(face="bold"))
 
 # plotting binary & conditional plot on same figure
-png("seed_weight.png", units="in", width=14, height=7, res=300)
+png("seed_weight.png", units="in", width=11, height=5, res=300)
 ggarrange(binom_plot,cond_plot,
           ncol = 2, common.legend = T, legend="right",widths = c(1, 1))
 dev.off()

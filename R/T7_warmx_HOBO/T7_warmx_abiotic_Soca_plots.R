@@ -132,58 +132,47 @@ dr_check <- soil_drought_check %>%
 # plot - air temp, soil temp, and soil moisture averaged over both years
 level_order1 <- c("Ambient", 'Warmed', 'Drought',"Warmed_Drought") 
 level_order2 <- c("irrigated_control","ambient", 'warmed', 'drought',"warmed_drought") 
+
 air_temp <- ggplot(hobo_temp_avg, aes(x = factor(Treatment, level = level_order1), y = avg_temp)) +
-  geom_pointrange(aes(ymin=avg_temp-se, ymax=avg_temp+se),pch=21,size=1,fill="#AE1F00") +
+  geom_pointrange(aes(ymin=avg_temp-se, ymax=avg_temp+se),pch=21,size=1,fill="purple4") +
   labs(y="Air temperature (°C)", x=NULL) +
   scale_x_discrete(labels=c("Ambient" = "Ambient", "Drought" = "Drought",
                             "Warmed" = "Warmed",
                             "Warmed_Drought" = "Warmed &\nDrought")) +
   annotate("text", x = 0.6, y=23, label = "A", size=5) +
   theme_bw() +
-  #annotate("text", x = 0.6, y=23, label = "A", size=6) +
-  theme(axis.title = element_text(size=17),
+  theme(axis.title = element_text(size=17, face="bold"),
         axis.text = element_text(size=15),
-        legend.title = element_text(size=17),
-        legend.text = element_text(size=15),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
 soil_temp <- ggplot(soil_sampling_avg, aes(x = factor(Subplot_Descriptions, level=level_order2), y = avg_temp)) +
-  geom_pointrange(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp), pch=21,size=1,fill="#AE1F00") +
-  #geom_errorbar(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp),width=0.1,color="black",linetype="solid") +
-  #geom_point(size = 2) +
+  geom_pointrange(aes(ymin=avg_temp-se_temp, ymax=avg_temp+se_temp), pch=21,size=1,fill="purple4") +
   labs(y="Soil temperature (°C)", x=NULL) +
   scale_x_discrete(labels=c("ambient" = "Ambient", "drought" = "Drought",
                             "irrigated_control" = "Irrigated", "warmed" = "Warmed",
                             "warmed_drought" = "Warmed &\nDrought")) +
   annotate("text", x = 0.6, y=18.7, label = "B", size=5) +
   theme_bw() +
- # annotate("text", x = 0.7, y=21.3, label = "B", size=6) +
-  theme(axis.title = element_text(size=17),
+  theme(axis.title = element_text(size=17, face="bold"),
         axis.text = element_text(size=15),
-        legend.title = element_text(size=17),
-        legend.text = element_text(size=15),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
 soil_moist <- ggplot(soil_sampling_avg, aes(x = factor(Subplot_Descriptions, level=level_order2), y = avg_moist)) +
-  geom_pointrange(aes(ymin=avg_moist-se_moist, ymax=avg_moist+se_moist),pch=21,size=1,fill="#AE1F00") +
-  #geom_errorbar(aes(ymin=avg_moist-se_moist, ymax=avg_moist+se_moist),width=0.1,color="black",linetype="solid") +
-  #geom_point(size = 2) +
-  labs(y=bquote("Soil moisture " (m^3/m^3)), x=NULL) +
+  geom_pointrange(aes(ymin=avg_moist-se_moist, ymax=avg_moist+se_moist),pch=21,size=1,fill="purple4") +
+  labs(y=bquote(bold("Soil moisture " (m^3/m^3))), x=NULL) +
   scale_x_discrete(labels=c("ambient" = "Ambient", "drought" = "Drought",
                             "irrigated_control" = "Irrigated", "warmed" = "Warmed",
                             "warmed_drought" = "Warmed &\nDrought")) +
   annotate("text", x = 0.6, y=0.25, label = "C", size=5) +
   theme_bw() +
-  #annotate("text", x = 0.7, y=0.28, label = "C", size=6) +
-  theme(axis.title = element_text(size=17),
+  theme(axis.title = element_text(size=17, face="bold"),
         axis.text = element_text(size=15),
-        legend.title = element_text(size=17),
-        legend.text = element_text(size=15),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
 # combine plots
-abiotic_comb <- ggpubr::ggarrange(air_temp,soil_temp,soil_moist,
-                                  ncol = 3,widths = c(0.9,0.9,1))
 png("rex_abiotic.png", units="in", width=12, height=5, res=300)
-annotate_figure(abiotic_comb,
-                bottom = text_grob("Treatment", color = "black", size=17))
+ggpubr::ggarrange(air_temp,soil_temp,soil_moist,
+                                  ncol = 3,widths = c(0.9,0.9,1))
 dev.off()
 
 

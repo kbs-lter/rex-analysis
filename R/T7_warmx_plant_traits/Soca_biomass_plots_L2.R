@@ -31,6 +31,7 @@ getwd()
 
 # Read in data
 mass <- read.csv(file.path(dir, "L1/T7_warmx_soca_biomass_L1.csv"))
+mass <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_soca_biomass_L1.csv")) # Kara
 
 # Take averages
 mass_avg <- mass %>%
@@ -98,19 +99,20 @@ ggplot(mass_avg3, aes(x = Climate_Treatment, y = avg_mass, fill=Galling_Status))
   theme(legend.position = "right")
 dev.off()
 
-#pointrange
-## I think this is right - quickly wrote up
-png("biomass_overall_point.png", units="in", width=9, height=6, res=300)
+# Point range
+png("biomass_overall_point.png", units="in", width=7, height=5, res=300)
 ggplot(mass_avg3, aes(x = Climate_Treatment, y = avg_mass, fill=Galling_Status)) +
-geom_pointrange(aes(ymin = avg_mass - se, ymax = avg_mass + se),pch=21,size=1,position=position_dodge(0.2)) +
+  geom_pointrange(aes(ymin = avg_mass - se, ymax = avg_mass + se),pch=21,size=1,position=position_dodge(0.2)) +
   labs(x = NULL, y = "Stem biomass (g)", title=NULL) +
   scale_x_discrete(limits = c("Irrigated Control", "Ambient", "Ambient Drought", "Warm", "Warm Drought"),
                    labels=c("Ambient" = "Ambient", "Warm" = "Warmed",
                             "Ambient Drought" = "Drought", "Irrigated Control" = "Irrigated\nControl",
                             "Warm Drought" = "Warmed &\nDrought")) +
-  scale_fill_manual(name="Galling Status",
-                    values = c("purple4", "plum2"))
-  
+  scale_fill_manual(name="Galling status",
+                    labels=c("Galled","Non-galled"),
+                    values = c("purple4", "plum2")) +
+  theme_bw(14) +
+  theme(axis.title = element_text(face = "bold"))
 dev.off()
   
 

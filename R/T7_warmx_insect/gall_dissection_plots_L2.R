@@ -111,14 +111,16 @@ dev.off()
 
 
 # Plot of means for gall weight
+png("gall_vol_bar.png", units="in", width=6, height=5, res=300)
 ggplot(weight_avg, aes(x = Climate_Treatment, y = avg_weight)) +
-  geom_pointrange(aes(ymin = avg_weight - se, ymax = avg_weight + se),pch=21,size=1, fill = "purple44") +
-  labs(x = "Treatment", y = "Gall Weight (g)") +
-  #scale_fill_manual(values = c("purple44", "darkseagreen2"), name="Gall Presence",labels=c("Gall","No Gall")) +
+  geom_pointrange(aes(ymin = avg_weight - se, ymax = avg_weight + se),pch=21,size=1, fill = "purple4") +
+  labs(x = NULL, y = "Gall dried biomass (g)") +
   scale_x_discrete(limits = c("Irrigated Control", "Ambient", "Ambient Drought", "Warm", "Warm Drought"),
                    labels=c("Ambient" = "Ambient",
                             "Ambient Drought" = "Drought",
                             "Irrigated Control" = "Irrigated \n Control",
                             "Warm" = "Warmed",
                             "Warm Drought" = "Warmed & \n Drought")) +
-  theme(legend.position = "right")
+  theme_bw(14) +
+  theme(axis.title.y = element_text(face = "bold"))
+dev.off()
