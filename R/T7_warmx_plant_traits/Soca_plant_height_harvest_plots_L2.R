@@ -105,9 +105,9 @@ geom_pointrange(aes(ymin = avg_height - se, ymax = avg_height + se),pch=21,size=
   scale_x_discrete(limits = c("Irrigated Control", "Ambient", "Ambient Drought", "Warm", "Warm Drought"),
                    labels=c("Ambient" = "Ambient", "Warm" = "Warmed",
                             "Ambient Drought" = "Drought", "Irrigated Control" = "Irrigated\nControl",
-                            "Warm Drought" = "Warmed\nDrought")) +
+                            "Warm Drought" = "Warmed &\nDrought")) +
   scale_fill_manual(name="Galling Status",
-                    values = c("purple4", "plum1"))
+                    values = c("purple4", "plum2"))
   
 dev.off()
 
