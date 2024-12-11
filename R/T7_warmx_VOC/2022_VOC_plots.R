@@ -117,7 +117,7 @@ names(seg.data)<-c("group","v.PCoA1","v.PCoA2","PCoA1","PCoA2")
 seg.data$group <- factor(seg.data$group, levels = c("Ambient_Control","Warmed","Drought","Warmed_Drought"))
 levels(seg.data$group)
 # make figure
-png("climate_pcoa_no_ir.png", units="in", width=6.5, height=5, res=300)
+tiff("Figure_2.png", units="in", width=6.5, height=5, res=300)
 ggplot() + 
   stat_ellipse(data=seg.data,aes(x=v.PCoA1,y=v.PCoA2,fill=group), alpha=.4,type='t',size =0.5, level=0.95, geom="polygon")+
   #geom_point(data=centroids, aes(x=PCoA1,y=PCoA2),size=4.7,color="black",shape=16) + 
@@ -537,7 +537,7 @@ colours3 = paletteer_c("ggthemes::Sunset-Sunrise Diverging", 30)
 voc_long_cmpd2$compound = reorder(voc_long_cmpd2$compound, voc_long_cmpd2$avg_abundance, FUN = mean)
 voc_long_cmpd3$full_name = reorder(voc_long_cmpd3$full_name, voc_long_cmpd3$avg_abundance, FUN = mean)
 # plot
-png("bubble_vocs.png", units="in", width=13, height=7, res=300)
+tiff("Figure_3.png", units="in", width=13, height=7, res=300)
 ggplot(voc_long_cmpd3, aes(x = Treatment, y = full_name)) + 
   geom_point(aes(size = avg_abundance, fill = class), alpha = 0.75, shape = 21) + 
   #scale_size_continuous(limits = c(0.000001, 100), range = c(1,17), breaks = c(1,10,50,75)) + 

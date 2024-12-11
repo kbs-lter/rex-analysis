@@ -141,7 +141,7 @@ plot(dispersion, hull=F, ellipse=T)
 ### VOC composition - ANOSIM (analysis of similarity) ###
 ab = voc_transpose[,2:429]
 mat_ab = as.matrix(ab)
-ano = anosim(mat_ab, voc_transpose$Treatment, distance = "bray", permutations = 999)
+ano = anosim(mat_ab, voc_transpose$Treatment, distance = "bray")
 ano
 
 
