@@ -14,6 +14,7 @@ rm(list=ls())
 #install.packages("plotrix") #Emily
 library(tidyverse)
 library(plotrix)
+library(ggplot2)
 
 # Set ggplot2 plotting
 # This code for ggplot2 sets the theme to mostly black and white 
@@ -24,12 +25,12 @@ theme_update(axis.text.x = element_text(size = 12),
              axis.title = element_text(size=16,face="bold"))
 
 # Set working directory
-dir <- setwd("/Users/emilyparker/Documents/R/Goldenrod Project 2022")
-dir<-Sys.getenv("DATA_DIR") # Kara
+dir <- setwd("C:/Users/Emily/Documents/R/Goldenrod Project")
+getwd()
+
 
 # Read in data
 mass <- read.csv(file.path(dir, "L1/T7_warmx_soca_biomass_L1.csv"))
-mass <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_soca_biomass_L1.csv")) # Kara
 
 # Take averages
 mass_avg <- mass %>%
@@ -106,9 +107,10 @@ geom_pointrange(aes(ymin = avg_mass - se, ymax = avg_mass + se),pch=21,size=1,po
   scale_x_discrete(limits = c("Irrigated Control", "Ambient", "Ambient Drought", "Warm", "Warm Drought"),
                    labels=c("Ambient" = "Ambient", "Warm" = "Warmed",
                             "Ambient Drought" = "Drought", "Irrigated Control" = "Irrigated\nControl",
-                            "Warm Drought" = "Warmed\nDrought")) +
+                            "Warm Drought" = "Warmed &\nDrought")) +
   scale_fill_manual(name="Galling Status",
-                    values = c("purple4", "plum1"))
+                    values = c("purple4", "plum2"))
   
 dev.off()
+  
 

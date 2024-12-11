@@ -25,11 +25,12 @@ theme_update(axis.text.x = element_text(size = 12),
              axis.title = element_text(size=16,face="bold"))
 
 # Set working directory
-dir <- setwd("/Users/emilyparker/Documents/R/Goldenrod Project 2022")
+dir <- setwd("/Users/Emily/Documents/R/Goldenrod Project")
 dir<-Sys.getenv("DATA_DIR") # Kara
 
+
 # Read in data
-mass <- read.csv(file.path(dir, "L1/T7_warmx_soca_infl_mass_L1.csv"))
+mass <- read.csv(file.path(dir, "L1/T7_warmx_soca_seeds_mass_L1.csv"))
 mass <- read.csv(file.path(dir, "T7_warmx_plant_traits/L1/T7_warmx_soca_seeds_mass_L1.csv")) # Kara
 
 
@@ -119,23 +120,21 @@ mass_binom_sum <- mass_binom %>%
 mass_binom_seed <- mass_binom_sum %>%
   filter(Seeds_Mass == "Seed")
 # plot
-level_order <- c("Irrigated Control","Ambient","Ambient Drought","Warm","Warm Drought") 
+level_order <- c("Ambient","Irrigated Control","Ambient Drought","Warm","Warm Drought") 
 binom_plot <- ggplot(mass_binom_seed, aes(x = factor(Climate_Treatment, level = level_order), y = mean_n, fill=Galling_Status)) +
   geom_pointrange(aes(ymin = mean_n - se, ymax = mean_n + se), ,pch=21,size=1,position=position_dodge(0.2)) +
   labs(x = NULL, y = "Probability of having a seed") +
   scale_x_discrete(labels=c("Ambient" = "Ambient", "Warm" = "Warmed",
                             "Ambient Drought" = "Drought", "Irrigated Control" = "Irrigated\nControl",
-                            "Warm Drought" = "Warmed\nDrought")) +
-  scale_fill_manual(name="Gall Presence",
-                    values = c("purple4", "plum1")) +
-  annotate("text", x = 0.6, y=0.95, label = "A", size=7) +
-  theme_bw() +
-  theme(plot.title = element_text(size = 20),
-        axis.text.y = element_text(size=17),
-        axis.text.x = element_text(size=17),
-        axis.title.y=element_text(size=17, face="bold"),
-        legend.title=element_text(size=17), 
-        legend.text=element_text(size=17))
+                            "Warm Drought" = "Warmed &\nDrought")) +
+  scale_fill_manual(name="Treatment",
+                    values = c("purple4", "plum2")) +
+  theme_set(theme_bw(14))+
+theme_update(axis.text.x = element_text(size = 12),
+             axis.text.y = element_text(size = 16),
+             axis.title = element_text(size=16,face="bold"))
+
+
 
 ## seed weight
 mass_cond <- mass %>%
@@ -145,20 +144,17 @@ mass_cond <- mass %>%
 # plot
 cond_plot <- ggplot(mass_cond, aes(x = factor(Climate_Treatment, level = level_order), y = avg_weight, fill=Galling_Status)) +
   geom_pointrange(aes(ymin = avg_weight - se, ymax = avg_weight + se),pch=21,size=1,position=position_dodge(0.2)) +
-  labs(x = NULL, y = "Seed mass (g)", title=NULL) +
+  labs(x = NULL, y = "Seed weight (g)", title=NULL) +
   scale_x_discrete(labels=c("Ambient" = "Ambient", "Warm" = "Warmed",
                             "Ambient Drought" = "Drought", "Irrigated Control" = "Irrigated\nControl",
-                            "Warm Drought" = "Warmed\nDrought")) +
-  scale_fill_manual(name="Gall Presence",
-                    values = c("purple4", "plum1")) +
-  annotate("text", x = 0.6, y=0.55, label = "B", size=7) +
-  theme_bw() +
-  theme(plot.title = element_text(size = 20),
-        axis.text.y = element_text(size=17),
-        axis.text.x = element_text(size=17),
-        axis.title.y=element_text(size=17, face="bold"),
-        legend.title=element_text(size=17), 
-        legend.text=element_text(size=17))
+                            "Warm Drought" = "Warmed &\nDrought")) +
+  scale_fill_manual(name="Treatment",
+                    values = c("purple4", "plum2")) +
+
+  theme_set(theme_bw(14))+
+theme_update(axis.text.x = element_text(size = 12),
+             axis.text.y = element_text(size = 16),
+             axis.title = element_text(size=16,face="bold"))
 
 # plotting binary & conditional plot on same figure
 png("seed_weight.png", units="in", width=14, height=7, res=300)
