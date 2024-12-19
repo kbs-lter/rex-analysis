@@ -1590,4 +1590,4 @@ perm2 <- with(sample_data(data_rare_2021), how(blocks = Rep_Footprint), within=W
 adonis2(bray_dist ~ sample_data(data_rare_2021)$sampling_period, by = "margin", permutations = perm1)
 adonis2(bray_dist ~ sample_data(data_rare_2021)$Subplot_Descriptions*sample_data(data_rare_2021)$sampling_period, by = "margin", permutations = perm2) # interaction not significant
 adonis2(bray_dist ~ sample_data(data_rare_2021)$Subplot_Descriptions + sample_data(data_rare_2021)$sampling_period, by = "margin", permutations = perm2)
-
+```
