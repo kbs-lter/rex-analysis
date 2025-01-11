@@ -118,6 +118,165 @@ plot(tukey)
 
 ```
 
+Help from stack exchange - cross validated
+https://stats.stackexchange.com/questions/659832/how-to-analyze-a-dataset-with-a-response-variable-thats-continuous-and-has-a-lo
+```{r}
+biolog168 <- filter(biolog2, Hour == 168)
+library(gamlss)
+
+# create function that normalizes data
+normalize <- function(x) (x - min(x)) / (max(x) - min(x))
+# run data through the function
+biolog168$Absorbence <- normalize(biolog168$Absorbence)
+
+# set up the model
+mod <- gamlss(
+  Absorbence ~ Subplot_Descriptions + # fixed effect
+    re(random = ~ 1 | Rep / Footprint_Location), # random effects
+  family = BEINF(), # zero- and one-inflated distribution
+  data = biolog168 
+)
+
+plot(mod)
+
+summary(mod)
+
+# calculate effect size
+# Coefficients
+intercept <- -0.83045
+drought_coeff <- -0.28444
+
+# Calculate mu for control
+mu_control <- exp(intercept) / (1 + exp(intercept))
+
+# Calculate mu for drought
+mu_drought <- exp(intercept + drought_coeff) / (1 + exp(intercept + drought_coeff))
+
+# Effect size
+effect_size <- mu_control - mu_drought
+effect_size #0.05658956
+# This means the drought treatment reduced mean Absorbance by approximately 5.7% compared to the control.
+
+ggplot(biolog168, aes(x = Subplot_Descriptions, y = Absorbence)) +
+        geom_violin()
+```
+We analyzed the effects of subplot treatments on Absorbance using a generalized additive model for location, scale, and shape (GAMLSS) with a Beta Inflated (BEINF) distribution. This distribution was appropriate given the response variable's bounded nature (0–1) and potential for inflation at 0 or 1. Fixed effects included subplot treatment (Subplot_Descriptions), and random effects accounted for nested structure within replicates (Rep / Footprint_Location).
+
+The mean Absorbance (μ) was significantly affected by treatment (p=0.0337for drought). Compared to the control, drought treatments reduced Absorbance (Estimate = -0.284, p=0.0337). In contrast, warmed and warmed_drought treatments did not significantly differ from the control (Estimate = -0.039, p=0.7796; Estimate = 0.180, p=0.1821, respectively).
+
+The dispersion (σ) parameter, which captures variability in Absorbance around the mean, was significant overall (Intercept Estimate = 0.504, p<0.001), indicating moderate variability under the reference condition. However, treatment effects on dispersion were not modeled directly.
+
+Probabilities of zero-inflation (ν) and one-inflation (τ) were both low under the reference condition, as indicated by negative intercept estimates (ν: Estimate = -1.170, p<0.001; τ: Estimate = -6.340, p<0.001).
+
+The inclusion of random effects accounted for variability among replicates and within footprints, improving model fit and addressing non-independence in the data. The model explained the data well, as evidenced by a Global Deviance of 191.89 and an AIC of 223.20.
+
+Interpretation
+These results suggest that drought treatments significantly reduced mean Absorbance compared to control subplots, while other treatments (warmed and warmed_drought) had no detectable effect. This indicates a specific sensitivity of the system to drought conditions. Variability in Absorbance was moderate but consistent across treatments, and the probabilities of 0 or 1-inflation in Absorbance were negligible under all conditions.
+
+```{r}
+mod2 <- gamlss(
+  Absorbence ~ Subplot_Descriptions * carbon_group + # fixed effect
+    re(random = ~ 1 | Rep / Footprint_Location), # random effects
+  family = BEINF(), # zero- and one-inflated distribution
+  data = biolog168 
+)
+plot(mod2)
+summary(mod2)
+```
+
+diversity
+
+richness - H0
+```{r}
+descdist(diversity$H0, discrete = FALSE)
+hist(diversity$H0)
+qqnorm(diversity$H0) # should be a straight diagonal line if normal
+shapiro.test(diversity$H0) # p > 0.05 if normal
+
+# test for normal residuals and equal variances (ANOVA assumptions)
+# normal residuals?
+ggqqplot(diversity$H0)
+hist(diversity$H0) ##slightly skewed left
+
+# Shapiro test - null hypothesis: residuals are normally distributed 
+require(lme4)
+require(lmerTest)
+model = lm(H0 ~ Subplot_Descriptions, data = diversity)
+res = model$residuals
+shapiro.test(res) 
+# not normally distributed
+
+bartlett.test(H0 ~ Subplot_Descriptions, data = diversity) 
+
+# try some transformations
+# sqrt transformation
+diversity$sqrt_H0 <- sqrt(diversity$H0)
+descdist(diversity$sqrt_H0, discrete = FALSE)
+hist(diversity$sqrt_H0)
+qqnorm(diversity$sqrt_H0)
+shapiro.test(diversity$sqrt_H0) 
+
+# log transformation
+diversity$log_H0 <- log(diversity$H0)
+descdist(diversity$log_H0, discrete = FALSE)
+hist(diversity$log_H0)
+qqnorm(diversity$log_H0)
+shapiro.test(diversity$log_H0) 
+
+# no transformations look the best
+```
+
+shannon diversity - H1
+```{r}
+descdist(diversity$H1, discrete = FALSE)
+hist(diversity$H1)
+qqnorm(diversity$H1) # should be a straight diagonal line if normal
+shapiro.test(diversity$H1) # p > 0.05 if normal
+
+# log transformation
+diversity$log_H1 <- log(diversity$H1)
+descdist(diversity$log_H1, discrete = FALSE)
+hist(diversity$log_H1)
+qqnorm(diversity$log_H1)
+shapiro.test(diversity$log_H1) 
+```
+
+
+
+
+
+
+
+# can ignore below
+
+non parametric test but no random effects
+```{r}
+kruskal.test(Absorbence ~ Subplot_Descriptions, data = biolog168)
+
+library(dunn.test)
+
+# Perform Dunn's Test for a post-hoc analysis
+dunn_result <- dunn.test(biolog168$Absorbence, biolog168$Subplot_Descriptions, method = "bonferroni")
+```
+
+```{r}
+# Rank-transform the response variable
+biolog168$RankAbsorbence <- rank(biolog168$Absorbence)
+
+ggqqplot(biolog168$RankAbsorbence)
+descdist(biolog168$RankAbsorbencee, discrete = FALSE)
+hist(biolog168$RankAbsorbence)
+qqnorm(biolog168$RankAbsorbence) # should be a straight diagonal line if normal
+shapiro.test(biolog168$RankAbsorbence) # p > 0.05 if normal
+
+# Fit a mixed-effects model with the rank-transformed response
+lmm <- lmer(RankAbsorbence ~ Subplot_Descriptions + (1|Rep/Footprint_Location), data = biolog168)
+
+# Summary of the model
+anova(lmm)
+summary(lmm)
+```
+
 Example script from other REX data on data analysis with steps for checking for assumption
 https://github.com/kbs-lter/rex-analysis/blob/main/R/T7_warmx_plant_traits/Soca_plant_height_analyses_L2.R
 
@@ -136,10 +295,21 @@ biolog168$sqrt_Absorbence <- sqrt(biolog168$Absorbence)
 descdist(biolog168$sqrt_Absorbence, discrete = FALSE)
 hist(biolog168$sqrt_Absorbence)
 qqnorm(biolog168$sqrt_Absorbence)
-shapiro.test(biolog168$sqrt_Absorbence) # looks good
+shapiro.test(biolog168$sqrt_Absorbence) 
 
-anova_result <- aov(carbon_group ~ Subplot_Descriptions, data = biolog168)
-print(kruskal_test)
+# log transformation
+biolog168$log_Absorbence <- log(biolog168$Absorbence + 1)
+descdist(biolog168$log_Absorbence, discrete = FALSE)
+hist(biolog168$log_Absorbence)
+qqnorm(biolog168$log_Absorbence)
+shapiro.test(biolog168$log_Absorbence) 
+
+biolog168$inverse_Absorbence <- 1 / (biolog168$Absorbence + 1e-6)
+descdist(biolog168$inverse_Absorbence, discrete = FALSE)
+hist(biolog168$inverse_Absorbence)
+qqnorm(biolog168$inverse_Absorbence)
+shapiro.test(biolog168$inverse_Absorbence) 
+
 ```
 
 # LMER for final reads
@@ -214,48 +384,6 @@ shapiro.test(resid(m5)) #p=0.2366
 
 #anova
 anova(m5)
-
-```
-
-# this is an example:
-# m3 <- lmer(Shannon ~ Subplot_Descriptions + hour + (1|Rep/Footprint_Location), data = biolog_diversity, REML=F)
-
-## WORK IN PROGRESS!!
-# Need to go back to when the matrices were made for each our and make sure the "subplot_descriptions" are included
-## PCA with arrows
-```{r}
-# select only for hour 168
-biolog.samples.Hr168 <- filter(biolog2, Hour == "168")
-
-# make sample names the rownames so we keep them during ordination 
-biolog.matrix.Hr168 <- column_to_rownames(biolog.samples.Hr168, "Plot_ID")
-
-
-############ Multivariate analysis ##################
-map<-biolog.matrix.Hr168[,1:5] #Converting  data to two matrices: Mapping and substrate (Comm)
-comm<-biolog.matrix.Hr168[,6:35]
-comm<-comm/rowSums(comm) #Relative abundance
-
-# distance of rel. abund. matrix
-dist<-vegdist(comm, method='bray', na.rm=TRUE)
-
-#Principal component analysis
-apcoa<-cmdscale(dist, k=2, eig=FALSE, add=FALSE, x.ret=FALSE)
-plot<-ordiplot(apcoa, type="n")
-vecpcoa<-envfit(apcoa,comm)
-plot(vecpcoa)# add vectors
-vecpcoa$vectors
-
-# Set the colors by treatment 
-
-points(plot, "sites", pch = 20, col = "green4", map$treatment=="SL_0") 
-points(plot, "sites", pch = 20, col = "chartreuse",map$treatment=="SL_SL") 
-points(plot, "sites", pch = 20, col = "blue1",map$treatment=="SL_BBS") 
-points(plot, "sites", pch = 20, col = "darkmagenta",map$treatment=="SL_JG")
-points(plot, "sites", pch = 20, col = "gold",map$treatment=="SL_S") 
-
-
-plot + theme(legend.text = element_text(size = 16))
 
 ```
 
