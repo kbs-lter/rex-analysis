@@ -120,6 +120,7 @@ plot(tukey)
 
 Help from stack exchange - cross validated
 https://stats.stackexchange.com/questions/659832/how-to-analyze-a-dataset-with-a-response-variable-thats-continuous-and-has-a-lo
+https://environmentalcomputing.net/statistics/mvabund/
 ```{r}
 biolog168 <- filter(biolog2, Hour == 168)
 library(gamlss)
@@ -158,7 +159,7 @@ effect_size #0.05658956
 # This means the drought treatment reduced mean Absorbance by approximately 5.7% compared to the control.
 
 ggplot(biolog168, aes(x = Subplot_Descriptions, y = Absorbence)) +
-        geom_violin()
+        geom_boxplot()
 ```
 We analyzed the effects of subplot treatments on Absorbance using a generalized additive model for location, scale, and shape (GAMLSS) with a Beta Inflated (BEINF) distribution. This distribution was appropriate given the response variable's bounded nature (0–1) and potential for inflation at 0 or 1. Fixed effects included subplot treatment (Subplot_Descriptions), and random effects accounted for nested structure within replicates (Rep / Footprint_Location).
 
